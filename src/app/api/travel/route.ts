@@ -11,15 +11,12 @@ const CITIES = [
   "Glasgow",
 ];
 
-const TRAVEL_DURATION_MS = 60 * 60 * 1000;
-const INSTANT_TRAVEL_COST = 10;
+const TRAVEL_COOLDOWN_MS = 60 * 60 * 1000;
 
 async function getPlayer() {
   const userId = await getSessionUserId();
 
-  if (!userId) {
-    return null;
-  }
+  if (!userId) return null;
 
   return prisma.player.findUnique({
     where: { userId },
@@ -29,40 +26,53 @@ async function getPlayer() {
       travelDestination: true,
       travelStartedAt: true,
       travelArrivesAt: true,
-      gold: true,
     },
   });
 }
 
-async function completeExpiredJourney(
+// Converts any journey started under the old system into
+// an instant arrival while preserving its original cooldown end.
+async function resolveOldTravel(
   player: NonNullable<Awaited<ReturnType<typeof getPlayer>>>
 ) {
-  if (
-    !player.travelDestination ||
-    !player.travelArrivesAt ||
-    player.travelArrivesAt.getTime() > Date.now()
-  ) {
-    return;
-  }
+  if (!player.travelDestination) return;
 
   await prisma.player.updateMany({
     where: {
       id: player.id,
       travelDestination: player.travelDestination,
-      travelArrivesAt: { lte: new Date() },
     },
     data: {
       currentCity: player.travelDestination,
       travelDestination: null,
-      travelStartedAt: null,
-      travelArrivesAt: null,
     },
   });
 }
 
+function getCooldown(travelArrivesAt: Date | null) {
+  if (!travelArrivesAt) {
+    return {
+      canTravel: true,
+      cooldownUntil: null,
+      cooldownRemainingMs: 0,
+    };
+  }
+
+  const remaining = Math.max(
+    0,
+    travelArrivesAt.getTime() - Date.now()
+  );
+
+  return {
+    canTravel: remaining === 0,
+    cooldownUntil: travelArrivesAt,
+    cooldownRemainingMs: remaining,
+  };
+}
+
 export async function GET() {
   try {
-    const player = await getPlayer();
+    let player = await getPlayer();
 
     if (!player) {
       return NextResponse.json(
@@ -71,32 +81,21 @@ export async function GET() {
       );
     }
 
-    await completeExpiredJourney(player);
+    await resolveOldTravel(player);
 
-    const updatedPlayer = await getPlayer();
+    player = await getPlayer();
 
-    if (!updatedPlayer) {
+    if (!player) {
       return NextResponse.json(
         { error: "Player not found." },
         { status: 404 }
       );
     }
 
-    const isTravelling =
-      !!updatedPlayer.travelDestination &&
-      !!updatedPlayer.travelArrivesAt &&
-      updatedPlayer.travelArrivesAt.getTime() > Date.now();
-
     return NextResponse.json({
       cities: CITIES,
-      currentCity: updatedPlayer.currentCity,
-      travelDestination: updatedPlayer.travelDestination,
-      travelStartedAt: updatedPlayer.travelStartedAt,
-      travelArrivesAt: updatedPlayer.travelArrivesAt,
-      gold: updatedPlayer.gold,
-      isTravelling,
-      instantTravelCost: INSTANT_TRAVEL_COST,
-      travelDurationMinutes: 60,
+      currentCity: player.currentCity,
+      ...getCooldown(player.travelArrivesAt),
     });
   } catch (error) {
     console.error("Railway GET error:", error);
@@ -110,7 +109,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const player = await getPlayer();
+    let player = await getPlayer();
 
     if (!player) {
       return NextResponse.json(
@@ -119,11 +118,11 @@ export async function POST(request: Request) {
       );
     }
 
-    await completeExpiredJourney(player);
+    await resolveOldTravel(player);
 
-    const updatedPlayer = await getPlayer();
+    player = await getPlayer();
 
-    if (!updatedPlayer) {
+    if (!player) {
       return NextResponse.json(
         { error: "Player not found." },
         { status: 404 }
@@ -131,132 +130,91 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const action = body.action;
+    const destination = body.destination;
 
-    if (action === "travel") {
-      const destination = body.destination;
-
-      if (
-        typeof destination !== "string" ||
-        !CITIES.includes(destination)
-      ) {
-        return NextResponse.json(
-          { error: "Please select a valid destination." },
-          { status: 400 }
-        );
-      }
-
-      if (
-        updatedPlayer.travelDestination ||
-        updatedPlayer.travelArrivesAt
-      ) {
-        return NextResponse.json(
-          { error: "You are already travelling." },
-          { status: 400 }
-        );
-      }
-
-      if (destination === updatedPlayer.currentCity) {
-        return NextResponse.json(
-          { error: "You are already in that city." },
-          { status: 400 }
-        );
-      }
-
-      const startedAt = new Date();
-      const arrivesAt = new Date(
-        startedAt.getTime() + TRAVEL_DURATION_MS
+    if (body.action !== "travel") {
+      return NextResponse.json(
+        { error: "Invalid Railway action." },
+        { status: 400 }
       );
-
-      const result = await prisma.player.updateMany({
-        where: {
-          id: updatedPlayer.id,
-          travelArrivesAt: null,
-        },
-        data: {
-          travelDestination: destination,
-          travelStartedAt: startedAt,
-          travelArrivesAt: arrivesAt,
-        },
-      });
-
-      if (result.count !== 1) {
-        return NextResponse.json(
-          { error: "Your travel status has changed. Please try again." },
-          { status: 409 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `Your journey to ${destination} has begun.`,
-        travelDestination: destination,
-        travelStartedAt: startedAt,
-        travelArrivesAt: arrivesAt,
-      });
     }
 
-    if (action === "skip") {
-      if (
-        !updatedPlayer.travelDestination ||
-        !updatedPlayer.travelArrivesAt ||
-        updatedPlayer.travelArrivesAt.getTime() <= Date.now()
-      ) {
-        return NextResponse.json(
-          { error: "You do not have an active journey to complete." },
-          { status: 400 }
-        );
-      }
-
-      if (updatedPlayer.gold < INSTANT_TRAVEL_COST) {
-        return NextResponse.json(
-          { error: "You need 10 Gold to complete your journey instantly." },
-          { status: 400 }
-        );
-      }
-
-      const destination = updatedPlayer.travelDestination;
-
-      const result = await prisma.player.updateMany({
-        where: {
-          id: updatedPlayer.id,
-          gold: { gte: INSTANT_TRAVEL_COST },
-          travelDestination: destination,
-          travelArrivesAt: { gt: new Date() },
-        },
-        data: {
-          gold: { decrement: INSTANT_TRAVEL_COST },
-          currentCity: destination,
-          travelDestination: null,
-          travelStartedAt: null,
-          travelArrivesAt: null,
-        },
-      });
-
-      if (result.count !== 1) {
-        return NextResponse.json(
-          { error: "Your journey could not be completed. Please try again." },
-          { status: 409 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `You have arrived in ${destination}. 10 Gold has been deducted.`,
-        currentCity: destination,
-        gold: updatedPlayer.gold - INSTANT_TRAVEL_COST,
-      });
+    if (
+      typeof destination !== "string" ||
+      !CITIES.includes(destination)
+    ) {
+      return NextResponse.json(
+        { error: "Please select a valid destination." },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(
-      { error: "Invalid Railway action." },
-      { status: 400 }
+    if (destination === player.currentCity) {
+      return NextResponse.json(
+        { error: "You are already in that city." },
+        { status: 400 }
+      );
+    }
+
+    const now = new Date();
+
+    if (
+      player.travelArrivesAt &&
+      player.travelArrivesAt.getTime() > now.getTime()
+    ) {
+      const remaining = player.travelArrivesAt.getTime() - now.getTime();
+
+      return NextResponse.json(
+        {
+          error: "You must wait before travelling again.",
+          cooldownRemainingMs: remaining,
+          cooldownUntil: player.travelArrivesAt,
+        },
+        { status: 400 }
+      );
+    }
+
+    const cooldownUntil = new Date(
+      now.getTime() + TRAVEL_COOLDOWN_MS
     );
+
+    const result = await prisma.player.updateMany({
+      where: {
+        id: player.id,
+        currentCity: player.currentCity,
+        OR: [
+          { travelArrivesAt: null },
+          { travelArrivesAt: { lte: now } },
+        ],
+      },
+      data: {
+        currentCity: destination,
+        travelDestination: null,
+        travelStartedAt: now,
+        travelArrivesAt: cooldownUntil,
+      },
+    });
+
+    if (result.count !== 1) {
+      return NextResponse.json(
+        {
+          error: "Your travel status has changed. Please try again.",
+        },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `You have arrived in ${destination}. You can travel again in one hour.`,
+      currentCity: destination,
+      ...getCooldown(cooldownUntil),
+    });
   } catch (error) {
     console.error("Railway POST error:", error);
 
     return NextResponse.json(
-      { error: "Something went wrong with your journey." },
+      { error: "Something went wrong with your travel." },
       { status: 500 }
     );
   }
