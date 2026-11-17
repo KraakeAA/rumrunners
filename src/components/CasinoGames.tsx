@@ -509,13 +509,57 @@ export default function CasinoGames({
   }
 
   // Rumrunners fruit machine.
-  // Images are stored directly inside the public folder.
+  // Use the verified www image addresses so the images load consistently
+  // whether the player entered through the root or www domain.
   const slotSymbols: Record<string, { src: string; alt: string }> = {
-    "7": { src: "/seven.png", alt: "Lucky seven" },
-    BAR: { src: "/bar-rum.png", alt: "BAR with rum bottle" },
-    "🍒": { src: "/cherries.png", alt: "Cherries" },
-    "🍊": { src: "/orange.png", alt: "Orange" },
+    "7": {
+      src: "https://www.rumrunners.uk/seven.png",
+      alt: "Lucky seven",
+    },
+    BAR: {
+      src: "https://www.rumrunners.uk/bar-rum.png",
+      alt: "BAR with rum bottle",
+    },
+    "🍒": {
+      src: "https://www.rumrunners.uk/cherries.png",
+      alt: "Cherries",
+    },
+    "🍊": {
+      src: "https://www.rumrunners.uk/orange.png",
+      alt: "Orange",
+    },
   };
+
+  function getSlotArtwork(symbol: string) {
+    const key = symbol.trim();
+    const normalised = key.toLowerCase();
+
+    if (key === "7" || normalised === "seven" || normalised === "777") {
+      return slotSymbols["7"];
+    }
+
+    if (key === "BAR" || normalised === "bar") {
+      return slotSymbols.BAR;
+    }
+
+    if (
+      key === "🍒" ||
+      normalised === "cherries" ||
+      normalised === "cherry"
+    ) {
+      return slotSymbols["🍒"];
+    }
+
+    if (
+      key === "🍊" ||
+      normalised === "orange" ||
+      normalised === "oranges"
+    ) {
+      return slotSymbols["🍊"];
+    }
+
+    return slotSymbols["7"];
+  }
 
   const reels = result?.reels || ["7", "BAR", "🍒"];
   const slotWon = Boolean(result && (result.payout || 0) > 0);
@@ -531,16 +575,17 @@ export default function CasinoGames({
         padding: "18px 10px 24px",
         boxSizing: "border-box",
         background: "#050505",
-        color: "#f2f2f2",
+        color: "#f2eadb",
       }}
     >
       <div
         style={{
           width: "min(100%, 400px)",
           overflow: "hidden",
-          border: "2px solid #817b72",
-          background: "#484848",
-          boxShadow: "0 3px 12px #0009",
+          border: "2px solid #9a8059",
+          borderRadius: 2,
+          background: "#302820",
+          boxShadow: "0 3px 14px #000b, inset 0 0 0 1px #4b3a27",
         }}
       >
         <div
@@ -551,12 +596,14 @@ export default function CasinoGames({
             justifyContent: "center",
             padding: "7px 10px",
             boxSizing: "border-box",
-            borderBottom: "2px solid #8c8275",
+            borderBottom: "2px solid #a88b5c",
             background:
-              "linear-gradient(180deg, #6c5944 0%, #392d21 48%, #211a14 100%)",
-            color: "#f0e8dc",
-            fontSize: 20,
-            letterSpacing: 0.3,
+              "linear-gradient(180deg, #766044 0%, #51402c 42%, #2b2117 100%)",
+            color: "#f0dfbd",
+            fontFamily: "Georgia, serif",
+            fontSize: 21,
+            letterSpacing: 0.5,
+            textShadow: "0 1px 2px #000",
           }}
         >
           Slot Machines
@@ -567,12 +614,13 @@ export default function CasinoGames({
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             gap: 2,
-            background: "#a9a6a2",
-            borderBottom: "2px solid #a49b8e",
+            padding: 3,
+            background: "linear-gradient(180deg, #b49a70, #665238)",
+            borderBottom: "2px solid #a88b5c",
           }}
         >
           {reels.map((symbol, index) => {
-            const artwork = slotSymbols[symbol] || slotSymbols["7"];
+            const artwork = getSlotArtwork(symbol);
 
             return (
               <div
@@ -586,6 +634,8 @@ export default function CasinoGames({
                   justifyContent: "center",
                   padding: 5,
                   boxSizing: "border-box",
+                  border: "1px solid #d0c5b4",
+                  overflow: "hidden",
                 }}
               >
                 <img
@@ -613,12 +663,13 @@ export default function CasinoGames({
             padding: "7px 5px",
             boxSizing: "border-box",
             background: slotWon
-              ? "linear-gradient(180deg, #4c694f, #354b38)"
-              : "linear-gradient(180deg, #484848, #3e3e3e)",
-            borderBottom: "2px solid #8a8177",
-            color: "#f3f3f3",
+              ? "linear-gradient(180deg, #53694a, #354832)"
+              : "linear-gradient(180deg, #4b4030, #342b20)",
+            borderBottom: "2px solid #9a8059",
+            color: slotWon ? "#f0e6c9" : "#d9c7a8",
             textAlign: "center",
             fontSize: 15,
+            fontWeight: 700,
             lineHeight: 1.35,
           }}
         >
@@ -626,7 +677,7 @@ export default function CasinoGames({
             ? slotWon
               ? `You won £${(result.payout || 0).toLocaleString("en-GB")}`
               : "No win this time"
-            : " "}
+            : "Ready to play"}
         </div>
 
         <div
@@ -639,7 +690,8 @@ export default function CasinoGames({
             justifyContent: "flex-start",
             gap: 12,
             boxSizing: "border-box",
-            background: "#484848",
+            background:
+              "linear-gradient(145deg, #40372b 0%, #302820 48%, #29221b 100%)",
           }}
         >
           <div
@@ -656,7 +708,7 @@ export default function CasinoGames({
                 fontSize: 43,
                 lineHeight: 1,
                 fontWeight: 300,
-                color: "#fff",
+                color: "#e8d3a9",
               }}
             >
               £
@@ -676,10 +728,10 @@ export default function CasinoGames({
                 maxWidth: "55%",
                 height: 57,
                 padding: "5px 9px",
-                border: "1px solid #d5d5d5",
-                borderRadius: 9,
-                background: "#fff",
-                color: "#111",
+                border: "2px solid #b69a6b",
+                borderRadius: 7,
+                background: "#f7f4ed",
+                color: "#17120c",
                 fontSize: 27,
                 textAlign: "center",
                 boxSizing: "border-box",
@@ -696,13 +748,13 @@ export default function CasinoGames({
               minHeight: 43,
               padding: "6px 22px",
               borderRadius: 24,
-              border: "2px solid #aaa",
+              border: "2px solid #b8a27d",
               background:
-                "linear-gradient(180deg, #f1f1f1 0%, #c9c9c9 52%, #999 100%)",
-              color: "#111",
+                "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
+              color: "#17130e",
               fontSize: 20,
               fontWeight: 500,
-              boxShadow: "0 2px 2px #222",
+              boxShadow: "0 2px 2px #100d09",
               cursor: busy ? "wait" : "pointer",
             }}
           >
@@ -717,7 +769,7 @@ export default function CasinoGames({
               gap: 8,
               marginTop: 5,
               fontSize: 17,
-              color: "#f1f1f1",
+              color: "#e6d4b1",
               whiteSpace: "nowrap",
             }}
           >
@@ -755,7 +807,7 @@ export default function CasinoGames({
           textAlign: "center",
           fontSize: 14,
           lineHeight: 1.8,
-          color: "#e8e8e8",
+          color: "#e6d4b1",
         }}
       >
         <div>
