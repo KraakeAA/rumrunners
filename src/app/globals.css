@@ -1,1434 +1,238 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap');
-
-:root {
-  --bg: #171513;
-  --panel: #211e1a;
-  --panel2: #29241e;
-  --line: #494033;
-  --text: #e6dcc9;
-  --muted: #a99b83;
-  --gold: #b99557;
-  --red: #963e35;
-  --blue: #47718a;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html, body {
-  margin: 0;
-  min-height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Source Sans 3', Arial, sans-serif;
-}
-
-a { color: var(--gold); }
-button, input { font: inherit; }
-
-.landing, .auth-wrap {
-  min-height: 100vh;
-  display: grid;
-  place-content: center;
-  padding: 24px;
-}
-
-.landing {
-  text-align: center;
-  background: radial-gradient(ellipse at 50% 25%, #393027 0, #171513 65%);
-}
-
-.landing-mark {
-  width: 66px;
-  height: 66px;
-  border: 1px solid var(--gold);
-  color: var(--gold);
-  display: grid;
-  place-items: center;
-  margin: 0 auto 22px;
-  font: 42px Georgia, serif;
-}
-
-.eyebrow {
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: var(--gold);
-  font-weight: 700;
-}
-
-.landing h1 {
-  font: clamp(38px, 8vw, 64px) Georgia, serif;
-  letter-spacing: 5px;
-  margin: 8px 0;
-}
-
-.intro {
-  color: var(--muted);
-  font-size: 17px;
-}
-
-.landing-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin: 28px 0;
-  flex-wrap: wrap;
-}
-
-.button {
-  border: 1px solid var(--gold);
-  background: #8b6c3e;
-  color: #fff5e5;
-  padding: 11px 19px;
-  text-decoration: none;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.button:hover { background: #a17c46; }
-
-.button.secondary {
-  background: transparent;
-  color: var(--text);
-}
-
-.button:disabled {
-  opacity: .55;
-  cursor: wait;
-}
-
-.small-note {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.auth-panel {
-  width: min(420px, 92vw);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  padding: 30px;
-}
-
-.back-link {
-  text-decoration: none;
-  color: var(--muted);
-}
-
-.auth-panel h1 {
-  font: 30px Georgia, serif;
-  margin: 8px 0 24px;
-}
-
-.auth-panel label {
-  display: block;
-  margin: 16px 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.auth-panel input {
-  display: block;
-  width: 100%;
-  padding: 11px;
-  margin-top: 6px;
-  background: #151310;
-  border: 1px solid var(--line);
-  color: var(--text);
-}
-
-.auth-panel .button {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.auth-switch {
-  font-size: 13px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.error { color: #ef9b8e; font-size: 13px; }
-
-.game {
-  min-height: 100vh;
-  max-width: 1600px;
-  margin: auto;
-  background: #1b1916;
-}
-
-.topbar {
-  height: 76px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
-  gap: 30px;
-  background: #211e1a;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand span {
-  border: 1px solid var(--gold);
-  color: var(--gold);
-  font: 26px Georgia, serif;
-  padding: 4px 10px;
-}
-
-.brand strong {
-  font: 19px Georgia, serif;
-  letter-spacing: 2px;
-}
-
-.brand small {
-  font-size: 9px;
-  color: var(--muted);
-  letter-spacing: 2px;
-  align-self: flex-end;
-  margin: 0 0 5px -4px;
-}
-
-.top-player {
-  margin-left: auto;
-  display: flex;
-  gap: 22px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.top-player b { color: var(--text); }
-
-.logout {
-  font-size: 12px;
-  text-decoration: none;
-  color: var(--muted);
-}
-
+/* Layout – menu on the right */
 .game-layout {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr) 235px;
+  grid-template-columns: minmax(0, 1fr) 220px;
   min-height: calc(100vh - 112px);
 }
 
 .sidebar {
   padding: 22px 12px;
-  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  border-right: none;
   background: #201d19;
-}
-
-.side-heading {
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: var(--gold);
-  padding: 0 12px 10px;
-}
-
-.nav-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: 0;
-  border-bottom: 1px solid #342e26;
-  color: #c7bba7;
-  padding: 11px 12px;
-  cursor: pointer;
-}
-
-.nav-item:hover, .nav-item.active {
-  background: #332b20;
-  color: #e4c58d;
-  border-left: 3px solid var(--gold);
-  padding-left: 9px;
+  order: 2;
 }
 
 .main-content {
   padding: 30px clamp(20px, 4vw, 54px);
-  max-width: 950px;
-}
-
-.page-heading {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 14px;
-  margin-bottom: 24px;
-}
-
-.page-heading .eyebrow { margin: 0; }
-
-.page-heading h1 {
-  font: 34px Georgia, serif;
-  margin: 6px 0 0;
-}
-
-.main-content p {
-  line-height: 1.65;
-  color: #c6baa7;
-}
-
-.main-content .lead {
-  font: 19px Georgia, serif;
-  color: #e7dcc9;
-}
-
-.news-line, .job-row {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: 16px 0;
-  display: flex;
-  gap: 18px;
-  align-items: center;
-}
-
-.news-line b {
-  color: var(--gold);
-  font-size: 11px;
-  letter-spacing: 1px;
-}
-
-.news-line span { color: var(--muted); }
-
-.main-content h2 {
-  font: 20px Georgia, serif;
-  margin-top: 30px;
-}
-
-.job-row { justify-content: space-between; }
-.job-row p { margin: 4px 0; }
-.job-row small { color: var(--muted); }
-
-.notice {
-  padding: 12px;
-  background: #30271d;
-  border-left: 3px solid var(--gold);
+  max-width: none;
+  order: 1;
 }
 
 .right-panel {
-  border-left: 1px solid var(--line);
-  padding: 24px 18px;
-  background: #201d19;
+  display: none;
 }
 
-.right-panel h2 {
-  font: 12px Georgia, serif;
+/* Dashboard + Crimes + Bank styles */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 22px 0 28px;
+}
+
+.dash-card {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+}
+
+.dash-card h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
   letter-spacing: 1.5px;
   color: var(--gold);
-  margin: 0 0 20px;
-}
-
-.stat {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #393229;
-  font-size: 13px;
-}
-
-.stat span { color: var(--muted); }
-.stat b { font-weight: 600; }
-
-.meter-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--muted);
-  margin: 18px 0 6px;
-}
-
-.meter-label b { color: var(--text); }
-
-.meter {
-  height: 8px;
-  background: #3a332b;
-  overflow: hidden;
-}
-
-.meter i {
-  display: block;
-  height: 100%;
-}
-
-.health { background: var(--red); }
-.protection { background: var(--blue); }
-
-.footer {
-  border-top: 1px solid var(--line);
-  padding: 12px;
-  text-align: center;
-  color: #716754;
-  font-size: 10px;
-  letter-spacing: 2px;
-}
-
-@media (max-width: 850px) {
-  .game-layout {
-    grid-template-columns: 150px minmax(0, 1fr);
-  }
-
-  .right-panel {
-    grid-column: 1 / -1;
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0 18px;
-  }
-
-  .right-panel h2 { grid-column: 1 / -1; }
-  .top-player { gap: 10px; }
-  .brand small { display: none; }
-}
-
-@media (max-width: 560px) {
-  .topbar {
-    height: auto;
-    min-height: 65px;
-    padding: 10px 14px;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .brand strong { font-size: 15px; }
-
-  .top-player {
-    order: 3;
-    width: 100%;
-    margin: 0;
-    justify-content: space-between;
-  }
-
-  .logout { margin-left: auto; }
-
-  .game-layout { display: block; }
-
-  .sidebar {
-    display: flex;
-    overflow-x: auto;
-    padding: 8px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    gap: 4px;
-  }
-
-  .side-heading { display: none; }
-
-  .nav-item {
-    white-space: nowrap;
-    width: auto;
-    border: 1px solid #393229;
-    padding: 8px 10px;
-  }
-
-  .nav-item.active {
-    padding: 8px 10px;
-    border: 1px solid var(--gold);
-  }
-
-  .main-content { padding: 22px 16px; }
-  .page-heading h1 { font-size: 29px; }
-  .right-panel { display: block; padding: 18px; }
-  .stat { padding: 8px 0; }
-
-  .news-line, .job-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .job-row .button { width: 100%; }
-}
-
-
-/* CASINO GAMES */
-
-.casino-game {
-  border-top: 1px solid var(--line);
-  padding-top: 18px;
-}
-
-.casino-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 16px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 14px;
-}
-
-.casino-title h2 {
-  font: 28px Georgia, serif;
-  margin: 4px 0 0;
-}
-
-.casino-cash {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.casino-cash b {
-  display: block;
-  color: var(--gold);
-  font: 20px Georgia, serif;
-  text-align: right;
-}
-
-.casino-controls {
-  display: flex;
-  align-items: end;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.casino-controls label {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.casino-controls input {
-  display: block;
-  width: 130px;
-  margin-top: 5px;
-  padding: 9px;
-  color: var(--text);
-  background: #151310;
-  border: 1px solid var(--line);
-}
-
-.selection-count {
-  color: var(--muted);
-  font-size: 13px;
-  margin-right: auto;
-}
-
-.casino-instruction {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.keno-grid {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 5px;
-  margin: 16px 0 22px;
-}
-
-.keno-number {
-  min-width: 0;
-  padding: 9px 2px;
-  color: var(--text);
-  background: #28231d;
-  border: 1px solid #514432;
-  cursor: pointer;
-}
-
-.keno-number.chosen {
-  color: #171513;
-  background: var(--gold);
-  border-color: #d4b477;
   font-weight: 700;
 }
 
-.keno-number.drawn {
-  outline: 2px solid #e9e0ce;
-  outline-offset: -3px;
-}
-
-.keno-number.chosen.drawn {
-  background: #78936b;
-  color: white;
-}
-
-.payout-table {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: 14px 0;
-}
-
-.payout-table > b {
-  color: var(--gold);
-  font-size: 11px;
-  letter-spacing: 1.5px;
-}
-
-.payout-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 22px;
-  margin: 12px 0;
-}
-
-.payout-grid span {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.payout-grid b {
+.dash-rank {
+  font: 22px Georgia, serif;
+  margin: 0 0 10px;
   color: var(--text);
 }
 
-.payout-table small {
+.dash-big {
+  font: 26px Georgia, serif;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+
+.dash-big span {
+  font-size: 16px;
   color: var(--muted);
 }
 
-.result-strip {
-  margin-top: 16px;
-  padding: 13px;
-  background: #30271d;
-  border-left: 3px solid var(--gold);
-  line-height: 1.8;
+.xp-bar-wrap { margin-top: 6px; }
+
+.xp-bar {
+  height: 6px;
+  background: #3a332b;
+  overflow: hidden;
+  margin-bottom: 4px;
 }
 
-.slot-machine {
-  margin: 22px 0;
-  padding: 24px;
-  border: 1px solid var(--gold);
-  background: linear-gradient(135deg, #342b20, #171513);
-  text-align: center;
+.xp-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8b6c3e, #c4a35a);
 }
 
-.slot-reels {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.slot-reel {
-  display: grid;
-  place-items: center;
-  width: 90px;
-  height: 90px;
-  background: #e4d7bd;
-  color: #211b14;
-  border: 4px ridge #9c7a45;
-  font: bold 25px Georgia, serif;
-}
-
-.slot-machine p {
-  color: var(--gold);
-  letter-spacing: 2px;
+.xp-bar-wrap small {
+  color: var(--muted);
   font-size: 11px;
 }
 
-.casino-list {
-  max-width: 480px;
-}
-
-.casino-list .nav-item {
-  margin: 6px 0;
-}
-
-@media (max-width: 560px) {
-  .keno-grid {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 4px;
-  }
-
-  .keno-number {
-    padding: 8px 1px;
-  }
-
-  .slot-reel {
-    width: 26vw;
-    height: 26vw;
-    max-width: 90px;
-    max-height: 90px;
-  }
-
-  .payout-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* =========================================
-   RUMRUNNERS — CLASSIC MOBILE GAME DESIGN
-   ========================================= */
-
-:root {
-  --rr-black: #080808;
-  --rr-dark: #171717;
-  --rr-grey: #484848;
-  --rr-grey-dark: #383838;
-  --rr-border: #89847c;
-  --rr-bronze: #554536;
-  --rr-text: #eeeeee;
-  --rr-muted: #bdbdbd;
-  --rr-red: #8c1717;
-  --rr-green: #176027;
-}
-
-/* Main game frame */
-
-html,
-body {
-  background: #000 !important;
-  color: var(--rr-text);
-}
-
-.game {
-  width: 100%;
-  max-width: 1250px;
-  min-height: 100vh;
-  margin: 0 auto;
+.activity-list {
+  list-style: none;
   padding: 0;
-  background: var(--rr-black);
-  border: 4px solid #82766d;
-  outline: 1px solid #aaa;
-  box-shadow: 0 0 20px #000;
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0 0 24px;
+  border: 1px solid var(--line);
 }
 
-/* Player status header */
-
-.topbar {
-  position: relative;
+.activity-list li {
   display: flex;
   align-items: center;
-  gap: 9px;
-  min-height: 104px;
-  padding: 8px;
-  overflow: hidden;
-  background:
-    linear-gradient(90deg, rgba(0,0,0,.8), rgba(0,0,0,.35)),
-    repeating-linear-gradient(
-      90deg,
-      #322a24 0,
-      #322a24 2px,
-      #171717 2px,
-      #171717 5px
-    );
-  border-bottom: 3px solid #82766d;
-}
-
-.topbar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: .35;
-  background: linear-gradient(
-    transparent 35%,
-    #050505 36%,
-    #050505 100%
-  );
-}
-
-.topbar > * {
-  position: relative;
-  z-index: 1;
-}
-
-.status-avatar {
-  width: 68px;
-  height: 76px;
-  flex: 0 0 68px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(#777, #292929);
-  border: 2px solid #aaa;
-  color: #e4d2b5;
-  font: bold 42px Georgia, serif;
-  text-shadow: 2px 2px #000;
-}
-
-.status-identity {
-  min-width: 105px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 12px;
-}
-
-.status-identity strong {
-  color: #fff;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #342e26;
   font-size: 14px;
 }
 
-.status-identity span,
-.status-identity small {
-  color: #ddd;
-}
-
-.health-track {
-  height: 12px;
-  width: 100%;
-  background: #333;
-  border: 1px solid #777;
-  overflow: hidden;
-}
-
-.health-track i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(#65d85e, #176b1a);
-}
-
-.status-resources {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+.activity-list li:last-child { border-bottom: 0; }
+.activity-list .ok { color: #6bbf7a; font-weight: 700; }
+.activity-list .fail { color: #c96b5e; font-weight: 700; }
+.activity-list time {
   margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
 }
 
-.status-resources span {
+.quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.cooldown-banner {
+  background: #3a2a22;
+  border: 1px solid #7a4a38;
+  color: #efb8a8;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+.crime-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  color: white;
-  font-size: 13px;
+  gap: 12px;
+  margin: 18px 0;
 }
 
-.status-resources b {
-  color: #e6c78c;
-  font-size: 21px;
-}
-
-.status-resources small {
-  color: #ccc;
-  font-size: 10px;
-}
-
-.mobile-menu-toggle {
-  display: block;
-  min-width: 78px;
-  padding: 15px 9px;
-  color: #fff;
-  background: linear-gradient(#282828, #111);
-  border: 2px solid #aaa;
-  border-radius: 0;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.logout {
-  display: none;
-}
-
-/* Location strip */
-
-.city-strip {
-  min-height: 58px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 8px 12px;
-  background: #090909;
-  border-bottom: 1px solid #4b4b4b;
-}
-
-.city-location {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.city-location strong {
-  color: white;
-  font-size: 15px;
-}
-
-.city-location span,
-.city-era {
-  color: #bbb;
-  font-size: 13px;
-}
-
-.city-weather {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #ddd;
-  font-size: 13px;
-}
-
-.city-weather i {
-  width: 70px;
-  height: 13px;
-  display: block;
-  background: linear-gradient(
-    90deg,
-    #702222 0 22%,
-    #333 22% 100%
-  );
-  border: 1px solid #555;
-}
-
-.city-era {
-  margin-left: auto;
-  text-align: right;
-}
-
-/* Navigation layout */
-
-.game-layout {
-  display: block;
-  min-height: 500px;
-  background: #000;
-}
-
-.sidebar {
-  display: block;
-  padding: 10px 7px;
-  background: #000;
-  border: 0;
-}
-
-.category-grid,
-.nav-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.nav-category,
-.category-back {
-  width: 100%;
-  min-height: 64px;
-  padding: 12px;
-  text-align: left;
-  color: #fff;
-  background:
-    linear-gradient(
-      180deg,
-      #77736c 0%,
-      #37332e 35%,
-      #171717 100%
-    );
-  border: 2px solid #aaa49b;
-  border-radius: 0;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.nav-category:hover,
-.category-back:hover {
-  background:
-    linear-gradient(
-      180deg,
-      #8b7962 0%,
-      #494036 45%,
-      #1d1b19 100%
-    );
-}
-
-.category-back {
-  min-height: 54px;
-  margin-bottom: 8px;
-  background:
-    linear-gradient(
-      180deg,
-      #75614b,
-      #393027 55%,
-      #151515
-    );
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  min-height: 64px;
-  width: 100%;
-  padding: 12px;
-  text-align: left;
-  color: #f0f0f0;
-  background:
-    linear-gradient(
-      180deg,
-      #656565 0%,
-      #292929 40%,
-      #171717 100%
-    );
-  border: 2px solid #999;
-  border-radius: 0;
-  font-size: 17px;
-  text-shadow: 1px 1px #000;
-  cursor: pointer;
-}
-
-.nav-item:hover,
-.nav-item.active {
-  color: white;
-  background:
-    linear-gradient(
-      180deg,
-      #8d302b,
-      #5e1715 55%,
-      #270b0b
-    );
-  border-color: #b5a9a0;
-}
-
-/* Main content */
-
-.main-content {
-  width: 100%;
-  max-width: none;
-  min-height: 380px;
-  padding: 16px 9px 30px;
-  background: #000;
-}
-
-.page-heading {
-  padding: 10px 4px;
-  margin: 0 0 12px;
-  border-bottom: 2px solid #aaa;
-}
-
-.page-heading h1 {
-  margin: 0;
-  color: #fff;
-  font: 25px Arial, sans-serif;
-}
-
-.page-heading .eyebrow {
-  display: none;
-}
-
-/* Bronze section headers */
-
-.game-section-heading {
-  margin: 10px 0 0;
-  padding: 10px 8px;
-  text-align: center;
-  color: #fff;
-  background:
-    linear-gradient(
-      180deg,
-      #76624b,
-      #42372b 45%,
-      #211b16
-    );
-  border: 2px solid #9b948b;
-  font-size: 18px;
-}
-
-/* Table-style content */
-
-.main-content p {
-  color: #e0e0e0;
-  line-height: 1.5;
-  padding: 8px;
-}
-
-.main-content .lead {
-  color: #eee;
-  font: 18px Arial, sans-serif;
-}
-
-.news-line,
-.job-row {
+.crime-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #484848;
-  border: 2px solid #858078;
-  border-top: 0;
+  gap: 18px;
+  padding: 16px 18px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
 }
 
-.news-line b {
-  color: #f0d29a;
+.crime-card.locked { opacity: 0.55; }
+
+.crime-info b { font-size: 16px; color: var(--text); }
+.crime-info p {
+  margin: 4px 0 6px;
+  color: #c6baa7;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.crime-info small { color: var(--muted); font-size: 12px; }
+
+.bank-panel {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  padding: 22px;
+  max-width: 420px;
 }
 
-.news-line span {
-  color: #eee;
-}
-
-.job-row p {
-  padding: 0;
-  margin: 4px 0;
-}
-
-.job-row small {
-  color: #ccc;
-}
-
-.notice {
-  color: #fff;
-  background: #333;
-  border: 1px solid #888;
-  padding: 12px;
-}
-
-/* Quick status strip */
-
-.quick-status {
+.bank-balances {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  padding: 10px;
-  background: #000;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
-.quick-status > div {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 52px;
-  padding: 5px;
-  text-align: center;
-  color: #fff;
-  background: linear-gradient(#205a2c, #103819);
-  border: 2px solid #777;
-  font-size: 11px;
+.bank-balances span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
 }
 
-.quick-status b {
-  color: #83e58b;
+.bank-balances b { font: 20px Georgia, serif; }
+
+.bank-panel label {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--muted);
   font-size: 13px;
 }
 
-.quick-status .cash-status {
-  background: linear-gradient(#741b1b, #3e0909);
-}
-
-.quick-status .cash-status b {
-  color: #fff;
-}
-
-/* Forum */
-
-.forum {
-  margin-top: 12px;
-}
-
-.forum-sections {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.forum-section {
-  min-height: 64px;
-  padding: 10px;
-  color: #fff;
-  text-align: left;
-  background: linear-gradient(#626262, #222);
-  border: 2px solid #999;
-  border-radius: 0;
-}
-
-.forum-section strong {
+.bank-panel input {
   display: block;
-  color: white;
-  font: 17px Arial, sans-serif;
-  margin-bottom: 5px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px;
+  background: #151310;
+  border: 1px solid var(--line);
+  color: var(--text);
 }
 
-.forum-section small {
-  color: #ccc;
+.bank-actions { display: flex; gap: 10px; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
 }
 
-.forum-section.active {
-  background: linear-gradient(#775f47, #30251a);
-  border-color: #c1b6a9;
+.stat-grid > div {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  padding: 14px;
 }
 
-.forum-toolbar {
-  padding: 12px 5px;
-  border-bottom: 2px solid #888;
+.stat-grid span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
 }
 
-.forum-toolbar h2 {
-  color: white;
-  font: 21px Arial, sans-serif;
-}
+.stat-grid b { font-size: 18px; }
 
-.forum-topic {
-  min-height: 58px;
-  padding: 12px 9px;
-  color: white;
-  background: #484848;
-  border: 1px solid #89847c;
-  border-top: 0;
-  border-radius: 0;
-}
+.flavour { color: #c6baa7; line-height: 1.6; }
+.muted { color: var(--muted); }
 
-.forum-topic:hover {
-  background: #555;
-}
-
-.forum-topic-main strong {
-  color: white;
-}
-
-.forum-topic-main small,
-.forum-topic-count {
-  color: #ddd;
-}
-
-.forum-post {
-  background: #484848;
-  border: 1px solid #89847c;
-  border-radius: 0;
-}
-
-.forum-post.original {
-  border-left: 3px solid #a43a32;
-}
-
-.forum-form input,
-.forum-form textarea,
-.forum-form select,
-.forum-reply textarea {
-  color: #111;
-  background: #ddd;
-  border: 2px solid #888;
-  border-radius: 0;
-}
-
-/* Casino */
-
-.casino-game {
-  border: 0;
-}
-
-.casino-title {
-  border-bottom: 2px solid #888;
-}
-
-.casino-title h2 {
-  color: #fff;
-  font: 23px Arial, sans-serif;
-}
-
-.casino-controls input {
-  color: #111;
-  background: #ddd;
-  border: 2px solid #888;
-  border-radius: 0;
-}
-
-.keno-number {
-  color: white;
-  background: #484848;
-  border: 1px solid #aaa;
-  border-radius: 0;
-}
-
-.keno-number.chosen {
-  color: white;
-  background: #8c2525;
-  border-color: #ddd;
-}
-
-.result-strip {
-  color: white;
-  background: #484848;
-  border: 1px solid #999;
-  border-left: 4px solid #a33;
-}
-
-.slot-machine {
-  background: #292929;
-  border: 2px solid #999;
-  border-radius: 0;
-}
-
-/* Footer */
-
-.footer {
-  background: #111;
-  border-top: 1px solid #555;
-  color: #999;
-}
-
-/* Desktop layout */
-
-@media (min-width: 900px) {
-  .game {
-    margin: 15px auto;
+@media (max-width: 900px) {
+  .game-layout {
+    grid-template-columns: 1fr;
   }
-
   .sidebar {
-    max-width: 100%;
+    order: -1;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
   }
-
-  .category-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .nav-category {
-    text-align: center;
-  }
-
-  .category-content .nav-buttons {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .main-content {
-    padding: 22px 14px;
-  }
-}
-
-/* Mobile layout */
-
-@media (max-width: 600px) {
-  .game {
-    width: 100%;
-    margin: 0;
-    border: 2px solid #82766d;
-    outline: none;
-  }
-
-  .topbar {
-    min-height: 92px;
-    padding: 6px;
-    gap: 5px;
-  }
-
-  .status-avatar {
-    width: 55px;
-    height: 65px;
-    flex-basis: 55px;
-    font-size: 34px;
-  }
-
-  .status-identity {
-    min-width: 76px;
-    font-size: 10px;
-  }
-
-  .status-identity strong {
-    max-width: 90px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .status-resources {
-    gap: 7px;
-  }
-
-  .status-resources span {
-    font-size: 10px;
-  }
-
-  .status-resources b {
-    font-size: 17px;
-  }
-
-  .status-resources small {
-    font-size: 9px;
-  }
-
-  .mobile-menu-toggle {
-    min-width: 65px;
-    padding: 12px 5px;
-    font-size: 13px;
-  }
-
-  .city-strip {
-    min-height: 52px;
-    gap: 10px;
-    padding: 6px;
-  }
-
-  .city-location strong {
-    font-size: 13px;
-  }
-
-  .city-location span,
-  .city-weather,
-  .city-era {
-    font-size: 11px;
-  }
-
-  .city-weather i {
-    width: 38px;
-  }
-
-  .sidebar {
-    display: none;
-    padding: 7px;
-  }
-
-  .sidebar.menu-open {
-    display: block;
-  }
-
-  .category-grid,
-  .category-content .nav-buttons {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .nav-category {
-    min-height: 59px;
-    padding: 8px;
-    text-align: center;
-    font-size: 17px;
-  }
-
-  .category-back {
-    min-height: 52px;
-    font-size: 17px;
-  }
-
-  .nav-item {
-    min-height: 57px;
-    padding: 9px;
-    font-size: 16px;
-  }
-
-  .main-content {
-    padding: 8px 5px 24px;
-  }
-
-  .page-heading h1 {
-    font-size: 21px;
-  }
-
-  .game-section-heading {
-    font-size: 16px;
-    padding: 9px 5px;
-  }
-
-  .quick-status {
-    padding: 7px 4px;
-    gap: 3px;
-  }
-
-  .quick-status > div {
-    min-height: 48px;
-    font-size: 9px;
-  }
-
-  .quick-status b {
-    font-size: 11px;
-  }
-
-  .forum-sections {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .forum-section {
-    min-height: 60px;
-  }
-
-  .forum-section strong {
-    font-size: 15px;
-  }
-
-  .job-row {
+  .main-content { order: 1; }
+  .dash-grid { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .crime-card {
     flex-direction: column;
     align-items: stretch;
   }
-
-  .job-row .button {
-    width: 100%;
-  }
+  .crime-card .button { width: 100%; }
 }
-
