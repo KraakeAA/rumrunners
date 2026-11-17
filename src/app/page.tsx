@@ -71,4 +71,17 @@ export default async function Home() {
         health: player.health,
         protection: player.protection,
         energy: player.energy,
-        maxEnergy
+        maxEnergy: player.maxEnergy,
+        experience: player.experience,
+        lastCrimeAt: player.lastCrimeAt?.toISOString() ?? null,
+        currentCity: player.currentCity
+      }}
+      recentCrimes={recentCrimes.map((c) => ({
+        crimeType: c.crimeType,
+        success: c.success,
+        cashChange: c.cashChange,
+        createdAt: c.createdAt.toISOString()
+      }))}
+    />
+  );
+}
