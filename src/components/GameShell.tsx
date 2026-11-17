@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import CasinoGames from "@/components/CasinoGames";
 
 type Player = {
   username: string;
@@ -16,24 +17,30 @@ type Player = {
 };
 
 const nav = [
-  "Home",
+  "News",
   "Crimes",
   "Auto Theft",
   "Organised Crime",
-  "Attack",
+  "Whack",
+  "Casinos",
+  "Blackjack",
+  "Roulette",
+  "Slots",
+  "Keno",
+  "Racetrack",
   "Market",
   "Properties",
   "Bank",
   "Rankings",
-  "Messages"
+  "Messages",
 ];
 
 export default function GameShell({
-  player
+  player,
 }: {
   player: Player;
 }) {
-  const [section, setSection] = useState("Home");
+  const [section, setSection] = useState("News");
   const [notice, setNotice] = useState("");
   const [energy, setEnergy] = useState(player.energy);
   const [money, setMoney] = useState(player.money);
@@ -45,7 +52,7 @@ export default function GameShell({
 
     try {
       const response = await fetch("/api/game/crime", {
-        method: "POST"
+        method: "POST",
       });
 
       const data = await response.json();
@@ -94,7 +101,7 @@ export default function GameShell({
         <aside className="sidebar">
           <p className="side-heading">THE CITY</p>
 
-          {nav.map(item => (
+          {nav.map((item) => (
             <button
               key={item}
               onClick={() => {
@@ -118,7 +125,7 @@ export default function GameShell({
             <h1>{section}</h1>
           </div>
 
-          {section === "Home" && (
+          {section === "News" && (
             <>
               <p className="lead">
                 The city is awake. Opportunity waits for nobody.
@@ -174,6 +181,67 @@ export default function GameShell({
             </>
           )}
 
+          {section === "Keno" && (
+            <CasinoGames
+              game="Keno"
+              cash={money}
+              onCash={setMoney}
+            />
+          )}
+
+          {section === "Slots" && (
+            <CasinoGames
+              game="Slots"
+              cash={money}
+              onCash={setMoney}
+            />
+          )}
+
+          {section === "Casinos" && (
+            <div className="casino-list">
+              <p className="lead">The city’s gaming rooms.</p>
+              <p>Choose a table or machine from the casino directory.</p>
+
+              {[
+                "Blackjack",
+                "Roulette",
+                "Slots",
+                "Keno",
+                "Racetrack",
+              ].map((name) => (
+                <button
+                  key={name}
+                  className="nav-item"
+                  onClick={() => setSection(name)}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {section === "Blackjack" && (
+            <p>
+              Blackjack table — natural blackjack pays 3:2.
+              Table rules and betting limits still need final specification.
+            </p>
+          )}
+
+          {section === "Roulette" && (
+            <p>
+              European roulette — single zero, numbers 0–36.
+              Betting controls are being prepared.
+            </p>
+          )}
+
+          {section === "Racetrack" && (
+            <p>
+              Racetrack — ten colours and the proposed multiplier
+              ladder. Final colour-to-payout mapping and
+              stake-return convention still need confirmation.
+            </p>
+          )}
+
           {section === "Auto Theft" && (
             <p>
               Auto theft is being built next. This will become
@@ -191,7 +259,7 @@ export default function GameShell({
             </p>
           )}
 
-          {section === "Attack" && (
+          {section === "Whack" && (
             <p>
               Player combat, weapons, bullets and protection
               will be implemented as server-validated actions.
