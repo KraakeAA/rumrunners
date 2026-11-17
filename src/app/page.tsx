@@ -31,9 +31,15 @@ export default async function Home() {
     );
   }
 
-  const player = await prisma.player.findUnique({
-    where: { userId }
-  });
+  const [player, account] = await Promise.all([
+    prisma.player.findUnique({
+      where: { userId }
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true }
+    })
+  ]);
 
   if (!player) {
     return (
@@ -46,6 +52,8 @@ export default async function Home() {
 
   return (
     <GameShell
+      isAdmin={account?.isAdmin ?? false}
+      playerId={player.id}
       player={{
         username: player.username,
         rank: player.rank,
