@@ -500,19 +500,19 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
 
   const slotSymbols: Record<string, { src: string; alt: string }> = {
     "7": {
-      src: "https://www.rumrunners.uk/seven.png",
+      src: "/seven.png",
       alt: "Lucky seven",
     },
     BAR: {
-      src: "https://www.rumrunners.uk/bar-rum.png",
+      src: "/bar-rum.png",
       alt: "BAR with rum bottle",
     },
     "🍒": {
-      src: "https://www.rumrunners.uk/cherries.png",
+      src: "/cherries.png",
       alt: "Cherries",
     },
     "🍊": {
-      src: "https://www.rumrunners.uk/orange.png",
+      src: "/orange.png",
       alt: "Orange",
     },
   };
@@ -562,39 +562,39 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "18px 10px 24px",
+        padding: "6px 0 12px",
         boxSizing: "border-box",
-        background: "#050505",
+        background: "transparent",
         color: "#f2eadb",
       }}
     >
       <div
         style={{
-          width: "min(100%, 400px)",
+          width: "min(100%, 360px)",
           overflow: "hidden",
-          border: "3px solid #b49a70",
+          border: "2px solid #b49a70",
           borderRadius: 2,
           background:
             "linear-gradient(145deg, #665033 0%, #49351f 40%, #2c1e10 100%)",
           boxShadow:
-            "0 3px 14px #000b, inset 0 0 0 2px #80643e",
+            "0 3px 10px #0008, inset 0 0 0 1px #80643e",
         }}
       >
         {/* Antique gold machine header */}
         <div
           style={{
-            minHeight: 48,
+            minHeight: 42,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "7px 10px",
+            padding: "6px 8px",
             boxSizing: "border-box",
-            borderBottom: "3px solid #c1a16b",
+            borderBottom: "2px solid #c1a16b",
             background:
               "linear-gradient(180deg, #a18459 0%, #80613d 30%, #594027 68%, #382617 100%)",
             color: "#f4dfb7",
             fontFamily: "Georgia, serif",
-            fontSize: 21,
+            fontSize: 19,
             letterSpacing: 0.5,
             textShadow: "0 1px 3px #000",
           }}
@@ -602,16 +602,16 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
           Slot Machines
         </div>
 
-        {/* Three reel windows */}
+        {/* Three compact reel windows */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 3,
-            padding: 4,
+            gap: 2,
+            padding: 3,
             background:
               "linear-gradient(180deg, #c6a979, #94744b 55%, #62472b)",
-            borderBottom: "3px solid #b49a70",
+            borderBottom: "2px solid #b49a70",
           }}
         >
           {reels.map((symbol, index) => {
@@ -621,13 +621,13 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
               <div
                 key={`${index}-${symbol}`}
                 style={{
-                  height: "clamp(92px, 25vw, 130px)",
+                  height: "clamp(76px, 22vw, 105px)",
                   minWidth: 0,
                   background: "#fffaf0",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  padding: 5,
+                  padding: 4,
                   boxSizing: "border-box",
                   border: "1px solid #d8c49f",
                   boxShadow: "inset 0 0 5px #9b8157",
@@ -653,21 +653,21 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
         <div
           aria-live="polite"
           style={{
-            minHeight: 43,
+            minHeight: 39,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "7px 5px",
+            padding: "6px 5px",
             boxSizing: "border-box",
             background: slotWon
               ? "linear-gradient(180deg, #61764f, #405638)"
               : "linear-gradient(180deg, #80613c, #584027)",
-            borderBottom: "3px solid #b49a70",
+            borderBottom: "2px solid #b49a70",
             color: "#f4e6c7",
             textAlign: "center",
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: 700,
-            lineHeight: 1.35,
+            lineHeight: 1.3,
             textShadow: "0 1px 2px #0008",
           }}
         >
@@ -678,16 +678,16 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
             : "Ready to play"}
         </div>
 
-        {/* Full bronze and gold control cabinet */}
+        {/* Compact bronze and gold control cabinet */}
         <div
           style={{
-            minHeight: 300,
-            padding: "42px 15px 28px",
+            minHeight: 225,
+            padding: "24px 12px 20px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "flex-start",
-            gap: 12,
+            gap: 10,
             boxSizing: "border-box",
             background:
               "linear-gradient(145deg, #70583b 0%, #5b452d 25%, #493520 55%, #352516 80%, #291b10 100%)",
@@ -700,13 +700,13 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 9,
+              gap: 8,
               width: "100%",
             }}
           >
             <span
               style={{
-                fontSize: 43,
+                fontSize: 37,
                 lineHeight: 1,
                 fontWeight: 300,
                 color: "#f0d7a5",
@@ -726,15 +726,15 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
               disabled={busy}
               aria-label="Slot machine bet amount"
               style={{
-                width: 125,
+                width: 112,
                 maxWidth: "55%",
-                height: 57,
-                padding: "5px 9px",
+                height: 49,
+                padding: "5px 8px",
                 border: "2px solid #c4a675",
                 borderRadius: 7,
                 background: "#f7f4ed",
                 color: "#17120c",
-                fontSize: 27,
+                fontSize: 24,
                 textAlign: "center",
                 boxSizing: "border-box",
               }}
@@ -746,15 +746,15 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
             onClick={play}
             disabled={busy}
             style={{
-              minWidth: 170,
-              minHeight: 43,
-              padding: "6px 22px",
+              minWidth: 155,
+              minHeight: 39,
+              padding: "5px 18px",
               borderRadius: 24,
               border: "2px solid #c5b18c",
               background:
                 "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
               color: "#17130e",
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: 500,
               boxShadow: "0 2px 3px #100d09",
               cursor: busy ? "wait" : "pointer",
@@ -768,9 +768,9 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
-              marginTop: 5,
-              fontSize: 17,
+              gap: 7,
+              marginTop: 3,
+              fontSize: 15,
               color: "#f0dfbd",
               whiteSpace: "nowrap",
               textShadow: "0 1px 2px #000",
@@ -793,7 +793,7 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
                 color: "#f0c5b5",
                 borderRadius: 3,
                 textAlign: "center",
-                fontSize: 13,
+                fontSize: 12,
               }}
             >
               {message}
@@ -805,12 +805,12 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
       {/* Machine ownership and betting limit */}
       <div
         style={{
-          width: "min(100%, 440px)",
-          padding: "28px 8px 0",
+          width: "min(100%, 360px)",
+          padding: "17px 5px 0",
           boxSizing: "border-box",
           textAlign: "center",
-          fontSize: 14,
-          lineHeight: 1.8,
+          fontSize: 13,
+          lineHeight: 1.7,
           color: "#e6d4b1",
         }}
       >
