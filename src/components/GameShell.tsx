@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -104,6 +105,7 @@ export default function GameShell({
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
+
       setUkClock(
         new Intl.DateTimeFormat("en-GB", {
           timeZone: "Europe/London",
@@ -113,6 +115,7 @@ export default function GameShell({
           hour12: false
         }).format(now)
       );
+
       setUkDate(
         new Intl.DateTimeFormat("en-GB", {
           timeZone: "Europe/London",
@@ -123,8 +126,10 @@ export default function GameShell({
         }).format(now)
       );
     };
+
     updateClock();
     const clockTimer = window.setInterval(updateClock, 1000);
+
     return () => window.clearInterval(clockTimer);
   }, []);
 
@@ -134,30 +139,43 @@ export default function GameShell({
         setCrimeCooldown(0);
         return;
       }
-      const elapsed = (Date.now() - new Date(lastCrimeAt).getTime()) / 1000;
+
+      const elapsed =
+        (Date.now() - new Date(lastCrimeAt).getTime()) / 1000;
+
       const remaining = Math.max(0, 90 - Math.floor(elapsed));
       setCrimeCooldown(remaining);
     };
+
     tick();
     const t = window.setInterval(tick, 1000);
+
     return () => window.clearInterval(t);
   }, [lastCrimeAt]);
 
   useEffect(() => {
     let active = true;
+
     async function loadLocation() {
       try {
-        const response = await fetch("/api/travel", { cache: "no-store" });
+        const response = await fetch("/api/travel", {
+          cache: "no-store"
+        });
+
         if (!response.ok) return;
+
         const data = await response.json();
+
         if (active && typeof data.currentCity === "string") {
           setCurrentCity(data.currentCity);
         }
       } catch {
-        // keep default
+        // Keep the current city if the request fails.
       }
     }
+
     loadLocation();
+
     return () => {
       active = false;
     };
@@ -166,9 +184,15 @@ export default function GameShell({
   const xpCurrent = experience;
   const xpNext = xpForLevel(rankLevel + 1);
   const xpPrev = xpForLevel(rankLevel);
+
   const xpProgress =
     xpNext > xpPrev
-      ? Math.min(100, Math.floor(((xpCurrent - xpPrev) / (xpNext - xpPrev)) * 100))
+      ? Math.min(
+          100,
+          Math.floor(
+            ((xpCurrent - xpPrev) / (xpNext - xpPrev)) * 100
+          )
+        )
       : 100;
 
   async function commitCrime(crimeId: string) {
@@ -178,7 +202,9 @@ export default function GameShell({
     try {
       const response = await fetch("/api/game/crime", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ crimeId })
       });
 
@@ -196,6 +222,7 @@ export default function GameShell({
         } else {
           setNotice(data.error || "The job failed.");
         }
+
         return;
       }
 
@@ -240,6 +267,7 @@ export default function GameShell({
 
   async function bankAction(action: "deposit" | "withdraw") {
     const amount = Number(bankAmount);
+
     if (!Number.isSafeInteger(amount) || amount < 1) {
       setNotice("Enter a whole number amount.");
       return;
@@ -251,7 +279,9 @@ export default function GameShell({
     try {
       const response = await fetch("/api/game/bank", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ action, amount })
       });
 
@@ -264,6 +294,7 @@ export default function GameShell({
 
       setMoney(data.money);
       setBank(data.bank);
+
       setNotice(
         action === "deposit"
           ? `Deposited £${amount.toLocaleString("en-GB")}.`
@@ -285,18 +316,23 @@ export default function GameShell({
       window.location.href = "/logout";
       return;
     }
+
     if (item === "Profile") {
-      window.location.href = `/profile/${encodeURIComponent(player.username)}`;
+      window.location.href =
+        `/profile/${encodeURIComponent(player.username)}`;
       return;
     }
+
     if (item === "Users Online") {
       window.location.href = "/users-online";
       return;
     }
+
     if (item === "Forums") {
       window.location.href = "/forum";
       return;
     }
+
     if (item === "Railway") {
       window.location.href = "/railway";
       return;
@@ -312,57 +348,241 @@ export default function GameShell({
 
   return (
     <div className="game">
-      <header className="topbar">
-        <div className="brand">
-          <span>R</span>
-          <strong>RUMRUNNERS</strong>
-          <small>BRITAIN · 1933</small>
-        </div>
-
-        <div className="top-player">
-          <b>{player.username}</b>
-          <span>{rank}</span>
-          <span>£{money.toLocaleString("en-GB")}</span>
-        </div>
-
-        <button
-          className="mobile-menu-toggle"
-          onClick={() => {
-            setMenuOpen(!menuOpen);
-            setSelectedGroup("");
+      {/* TOP BAR */}
+      <header
+        className="topbar"
+        style={{
+          minHeight: 62,
+          height: "auto",
+          padding: "8px 12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          flexWrap: "nowrap",
+          background: "linear-gradient(180deg, #242019, #171512)",
+          borderBottom: "1px solid #55452e"
+        }}
+      >
+        {/* CASH AND BANK — TOP LEFT */}
+        <div
+          aria-label="Player money"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            minWidth: 0,
+            color: "#ead9b8",
+            fontSize: 13,
+            lineHeight: 1.25
           }}
         >
-          {menuOpen ? "Close" : "Menu"}
-        </button>
-      </header>
+          <strong
+            style={{
+              fontSize: 15,
+              whiteSpace: "nowrap"
+            }}
+          >
+            £{money.toLocaleString("en-GB")}
+          </strong>
 
-      <div className="city-strip">
-        <div className="city-location">
-          <strong>{currentCity}</strong>
-          <span>
-            {currentCity === "London" ? "Greater London" : "Britain"}
+          <span
+            style={{
+              color: "#b9a783",
+              whiteSpace: "nowrap"
+            }}
+          >
+            Bank £{bank.toLocaleString("en-GB")}
           </span>
         </div>
 
-        <div className="city-weather">
-          <span aria-hidden="true">☁</span>
-          <span>Overcast</span>
-          <i aria-hidden="true" />
+        {/* MESSAGE, JAIL AND MENU — TOP RIGHT */}
+        <nav
+          aria-label="Game shortcuts"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 7,
+            flexShrink: 0,
+            marginLeft: "auto"
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Messages"
+            title="Messages"
+            onClick={() => navigate("Mailbox")}
+            style={{
+              width: 38,
+              height: 38,
+              display: "grid",
+              placeItems: "center",
+              padding: 0,
+              border: "1px solid #65543b",
+              borderRadius: 3,
+              background: "linear-gradient(180deg, #393126, #211c16)",
+              color: "#e8d7b6",
+              fontSize: 21,
+              cursor: "pointer"
+            }}
+          >
+            ✉
+          </button>
+
+          <button
+            type="button"
+            aria-label="Jail"
+            title="Jail"
+            onClick={() => navigate("Jail")}
+            style={{
+              width: 38,
+              height: 38,
+              display: "grid",
+              placeItems: "center",
+              padding: 0,
+              border: "1px solid #65543b",
+              borderRadius: 3,
+              background: "linear-gradient(180deg, #393126, #211c16)",
+              color: "#e8d7b6",
+              fontSize: 21,
+              cursor: "pointer"
+            }}
+          >
+            ▥
+          </button>
+
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => {
+              setMenuOpen(!menuOpen);
+              setSelectedGroup("");
+            }}
+            style={{
+              minWidth: 70,
+              height: 38,
+              padding: "0 12px",
+              marginLeft: 1,
+              border: "1px solid #a88b5b",
+              borderRadius: 3,
+              background: "linear-gradient(180deg, #4a3b28, #292117)",
+              color: "#f0dfc0",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer"
+            }}
+          >
+            {menuOpen ? "Close" : "Menu"}
+          </button>
+        </nav>
+      </header>
+
+      {/* CITY LEFT, UK TIME RIGHT */}
+      <div
+        className="city-strip"
+        style={{
+          minHeight: 58,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "nowrap",
+          gap: 8,
+          padding: "7px 13px",
+          background: "#1b1814",
+          borderBottom: "1px solid #55452e"
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            minWidth: 0
+          }}
+        >
+          <div
+            className="city-location"
+            style={{ flexShrink: 0 }}
+          >
+            <strong>{currentCity}</strong>
+            <span>
+              {currentCity === "London"
+                ? "Greater London"
+                : "Britain"}
+            </span>
+          </div>
+
+          <div
+            className="city-weather"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              whiteSpace: "nowrap",
+              fontSize: 12
+            }}
+          >
+            <span aria-hidden="true">☁</span>
+            <span>Overcast</span>
+          </div>
         </div>
 
-        <div className="city-era">
-          <strong>{ukClock}</strong>
-          <span>{ukDate} · UK TIME</span>
+        <div
+          className="city-era"
+          style={{
+            width: "auto",
+            marginLeft: "auto",
+            flexShrink: 0,
+            textAlign: "right",
+            lineHeight: 1.25
+          }}
+        >
+          <strong style={{ fontSize: 15 }}>
+            {ukClock}
+          </strong>
+          <span style={{ fontSize: 10 }}>
+            {ukDate} · UK TIME
+          </span>
+        </div>
+      </div>
+
+      {/* STATUS INDICATORS MOVED TO THE TOP */}
+      <div
+        className="game-status-strip"
+        style={{
+          display: "flex",
+          gap: 5,
+          padding: "6px 8px",
+          background: "#151310",
+          borderTop: "0",
+          borderBottom: "1px solid #494033"
+        }}
+      >
+        <div>
+          <span>Bank</span>
+          <strong>Ready</strong>
+        </div>
+
+        <div>
+          <span>Jail</span>
+          <strong>Free</strong>
+        </div>
+
+        <div>
+          <span>Organised Crime</span>
+          <strong>Ready</strong>
+        </div>
+
+        <div>
+          <span>Rackets</span>
+          <strong>Not active</strong>
         </div>
       </div>
 
       <div className="game-layout">
         <main className="main-content">
-          <div className="page-heading">
-            <p className="eyebrow">THE UNDERWORLD</p>
-            <h1>{section}</h1>
-          </div>
-
           {section === "Home" && (
             <>
               <p className="lead">
@@ -373,12 +593,15 @@ export default function GameShell({
                 <div className="dash-card">
                   <h3>Your standing</h3>
                   <p className="dash-rank">{rank}</p>
+
                   <div className="xp-bar-wrap">
                     <div className="xp-bar">
                       <i style={{ width: `${xpProgress}%` }} />
                     </div>
+
                     <small>
-                      Level {rankLevel} · {xpCurrent.toLocaleString()} /{" "}
+                      Level {rankLevel} ·{" "}
+                      {xpCurrent.toLocaleString()} /{" "}
                       {xpNext.toLocaleString()} XP
                     </small>
                   </div>
@@ -398,7 +621,9 @@ export default function GameShell({
                   <p className="dash-big">
                     £{money.toLocaleString("en-GB")}
                   </p>
-                  <small>Bank: £{bank.toLocaleString("en-GB")}</small>
+                  <small>
+                    Bank: £{bank.toLocaleString("en-GB")}
+                  </small>
                 </div>
               </div>
 
@@ -412,8 +637,11 @@ export default function GameShell({
               </div>
 
               <h2>Recent activity</h2>
+
               {localCrimes.length === 0 ? (
-                <p className="muted">No jobs logged yet. Try the Crimes section.</p>
+                <p className="muted">
+                  No jobs logged yet. Try the Crimes section.
+                </p>
               ) : (
                 <ul className="activity-list">
                   {localCrimes.map((c, i) => (
@@ -421,17 +649,22 @@ export default function GameShell({
                       <span className={c.success ? "ok" : "fail"}>
                         {c.success ? "✓" : "✗"}
                       </span>
+
                       <span>
                         {c.crimeType}
                         {c.success
                           ? ` · +£${c.cashChange.toLocaleString("en-GB")}`
                           : " · failed"}
                       </span>
+
                       <time>
-                        {new Date(c.createdAt).toLocaleTimeString("en-GB", {
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
+                        {new Date(c.createdAt).toLocaleTimeString(
+                          "en-GB",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          }
+                        )}
                       </time>
                     </li>
                   ))}
@@ -439,15 +672,20 @@ export default function GameShell({
               )}
 
               <div className="quick-actions">
-                <button className="button" onClick={() => navigate("Crimes")}>
+                <button
+                  className="button"
+                  onClick={() => navigate("Crimes")}
+                >
                   Go to Crimes
                 </button>
+
                 <button
                   className="button secondary"
                   onClick={() => navigate("Local Bank")}
                 >
                   Local Bank
                 </button>
+
                 <button
                   className="button secondary"
                   onClick={() => navigate("Keno")}
@@ -474,6 +712,7 @@ export default function GameShell({
               <div className="crime-list">
                 {availableCrimes.map((crime) => {
                   const locked = rankLevel < crime.minRankLevel;
+
                   return (
                     <div
                       key={crime.id}
@@ -482,6 +721,7 @@ export default function GameShell({
                       <div className="crime-info">
                         <b>{crime.name}</b>
                         <p>{crime.description}</p>
+
                         <small>
                           Energy {crime.energyCost} · Rank{" "}
                           {crime.minRankLevel}+ · Pay £
@@ -490,6 +730,7 @@ export default function GameShell({
                           {locked && " · LOCKED"}
                         </small>
                       </div>
+
                       <button
                         className="button"
                         disabled={
@@ -527,6 +768,7 @@ export default function GameShell({
                     <span>On hand</span>
                     <b>£{money.toLocaleString("en-GB")}</b>
                   </div>
+
                   <div>
                     <span>In bank</span>
                     <b>£{bank.toLocaleString("en-GB")}</b>
@@ -551,6 +793,7 @@ export default function GameShell({
                   >
                     Deposit
                   </button>
+
                   <button
                     className="button secondary"
                     disabled={busy}
@@ -566,166 +809,321 @@ export default function GameShell({
           )}
 
           {section === "Keno" && (
-            <CasinoGames game="Keno" cash={money} onCash={setMoney} />
+            <CasinoGames
+              game="Keno"
+              cash={money}
+              onCash={setMoney}
+            />
           )}
+
           {section === "Slot Machines" && (
-            <CasinoGames game="Slots" cash={money} onCash={setMoney} />
+            <CasinoGames
+              game="Slots"
+              cash={money}
+              onCash={setMoney}
+            />
           )}
 
           {section === "Blackjack" && (
-            <p className="flavour">Blackjack tables are being prepared.</p>
+            <p className="flavour">
+              Blackjack tables are being prepared.
+            </p>
           )}
+
           {section === "Roulette" && (
-            <p className="flavour">European roulette wheel is under construction.</p>
+            <p className="flavour">
+              European roulette wheel is under construction.
+            </p>
           )}
+
           {section === "Auto Theft" && (
-            <p className="flavour">Steal cars, strip them, or sell them on the quiet. Coming soon.</p>
+            <p className="flavour">
+              Steal cars, strip them, or sell them on the quiet. Coming soon.
+            </p>
           )}
+
           {section === "Bootlegging" && (
-            <p className="flavour">Build stills and supply the city&apos;s demand for illegal liquor.</p>
+            <p className="flavour">
+              Build stills and supply the city&apos;s demand for illegal liquor.
+            </p>
           )}
+
           {section === "Organised Crime" && (
-            <p className="flavour">Four-player jobs with invitations and a 100% payout split.</p>
+            <p className="flavour">
+              Four-player jobs with invitations and a 100% payout split.
+            </p>
           )}
+
           {section === "Whack" && (
-            <p className="flavour">Player combat. Weapons, bullets and protection.</p>
+            <p className="flavour">
+              Player combat. Weapons, bullets and protection.
+            </p>
           )}
+
           {section === "Hitlist" && (
-            <p className="flavour">View and manage your targets.</p>
+            <p className="flavour">
+              View and manage your targets.
+            </p>
           )}
+
           {section === "Rackets" && (
-            <p className="flavour">Own and protect criminal rackets for passive income.</p>
+            <p className="flavour">
+              Own and protect criminal rackets for passive income.
+            </p>
           )}
+
           {section === "Marketplace" && (
-            <p className="flavour">Buy and sell goods with other players.</p>
+            <p className="flavour">
+              Buy and sell goods with other players.
+            </p>
           )}
+
           {section === "Gun Shop" && (
-            <p className="flavour">Weapons and ammunition.</p>
+            <p className="flavour">
+              Weapons and ammunition.
+            </p>
           )}
+
           {section === "Escrow" && (
-            <p className="flavour">Secure player-to-player trading.</p>
+            <p className="flavour">
+              Secure player-to-player trading.
+            </p>
           )}
+
           {section === "Statistics" && (
             <div>
-              <p className="lead">Your criminal record so far.</p>
+              <p className="lead">
+                Your criminal record so far.
+              </p>
+
               <div className="stat-grid">
                 <div><span>Rank</span><b>{rank}</b></div>
                 <div><span>Level</span><b>{rankLevel}</b></div>
-                <div><span>Experience</span><b>{experience.toLocaleString()}</b></div>
+                <div>
+                  <span>Experience</span>
+                  <b>{experience.toLocaleString()}</b>
+                </div>
                 <div><span>Health</span><b>{player.health}%</b></div>
-                <div><span>Protection</span><b>{player.protection}%</b></div>
-                <div><span>Bullets</span><b>{player.bullets}</b></div>
+                <div>
+                  <span>Protection</span>
+                  <b>{player.protection}%</b>
+                </div>
+                <div>
+                  <span>Bullets</span>
+                  <b>{player.bullets}</b>
+                </div>
               </div>
             </div>
           )}
+
           {section === "Jail" && (
-            <p className="flavour">You are currently free.</p>
+            <p className="flavour">
+              You are currently free.
+            </p>
           )}
+
           {section === "Hospital" && (
-            <p className="flavour">Your health is currently {player.health}%.</p>
+            <p className="flavour">
+              Your health is currently {player.health}%.
+            </p>
           )}
+
           {section === "Graveyard" && (
-            <p className="flavour">Remember those who have fallen.</p>
+            <p className="flavour">
+              Remember those who have fallen.
+            </p>
           )}
+
           {section === "Gymnasium" && (
-            <p className="flavour">Train strength, stamina and accuracy. Coming later.</p>
+            <p className="flavour">
+              Train strength, stamina and accuracy. Coming later.
+            </p>
           )}
+
           {section === "Search" && (
-            <p className="flavour">Search the city for opportunities.</p>
+            <p className="flavour">
+              Search the city for opportunities.
+            </p>
           )}
+
           {section === "Updates" && (
-            <p className="flavour">Development updates will be posted here.</p>
+            <p className="flavour">
+              Development updates will be posted here.
+            </p>
           )}
+
           {section === "Cities" && (
-            <p className="flavour">London, Birmingham, Manchester, Liverpool, Glasgow.</p>
+            <p className="flavour">
+              London, Birmingham, Manchester, Liverpool, Glasgow.
+            </p>
           )}
+
           {section === "Find Player" && (
-            <p className="flavour">Search for another player by name.</p>
+            <p className="flavour">
+              Search for another player by name.
+            </p>
           )}
+
           {section === "Mailbox" && (
-            <p className="flavour">Your incoming messages.</p>
+            <p className="flavour">
+              Your incoming messages.
+            </p>
           )}
+
           {section === "Send Letter" && (
-            <p className="flavour">Write a letter to another player.</p>
+            <p className="flavour">
+              Write a letter to another player.
+            </p>
           )}
+
           {section === "Saved Mail" && (
-            <p className="flavour">Your saved messages.</p>
+            <p className="flavour">
+              Your saved messages.
+            </p>
           )}
+
           {section === "Classifieds" && (
-            <p className="flavour">Player advertisements and listings.</p>
+            <p className="flavour">
+              Player advertisements and listings.
+            </p>
           )}
+
           {section === "Off Topic" && (
-            <p className="flavour">General conversation away from the game.</p>
+            <p className="flavour">
+              General conversation away from the game.
+            </p>
           )}
+
           {section === "Crew" && (
-            <p className="flavour">Your crew and criminal associates.</p>
+            <p className="flavour">
+              Your crew and criminal associates.
+            </p>
           )}
+
           {section === "Gold" && (
-            <p className="flavour">Premium currency. Not yet active.</p>
+            <p className="flavour">
+              Premium currency. Not yet active.
+            </p>
           )}
+
           {section === "Store" && (
-            <p className="flavour">The Rumrunners store.</p>
+            <p className="flavour">
+              The Rumrunners store.
+            </p>
           )}
+
           {section === "Pawn Shop" && (
-            <p className="flavour">Buy and sell items at the pawn shop.</p>
+            <p className="flavour">
+              Buy and sell items at the pawn shop.
+            </p>
           )}
+
           {section === "Stock Market" && (
-            <p className="flavour">Investments and the stock market.</p>
+            <p className="flavour">
+              Investments and the stock market.
+            </p>
           )}
+
           {section === "Brothel" && (
-            <p className="flavour">Visit the city&apos;s establishments.</p>
+            <p className="flavour">
+              Visit the city&apos;s establishments.
+            </p>
           )}
+
           {section === "Lottery" && (
-            <p className="flavour">The city lottery. Coming soon.</p>
+            <p className="flavour">
+              The city lottery. Coming soon.
+            </p>
           )}
+
           {section === "Poker Run" && (
-            <p className="flavour">Poker Run tables are being prepared.</p>
+            <p className="flavour">
+              Poker Run tables are being prepared.
+            </p>
           )}
+
           {section === "Race Track" && (
-            <p className="flavour">Race Track betting will open later.</p>
+            <p className="flavour">
+              Race Track betting will open later.
+            </p>
           )}
+
           {section === "Jacks or Better" && (
-            <p className="flavour">Video poker. Coming soon.</p>
+            <p className="flavour">
+              Video poker. Coming soon.
+            </p>
           )}
+
           {section === "Sports Betting" && (
-            <p className="flavour">Sports books are not yet open.</p>
+            <p className="flavour">
+              Sports books are not yet open.
+            </p>
           )}
+
           {section === "Rumrunners Live" && (
-            <p className="flavour">Live news from the underworld.</p>
+            <p className="flavour">
+              Live news from the underworld.
+            </p>
           )}
+
           {section === "Wiki" && (
-            <p className="flavour">The Rumrunners game guide.</p>
+            <p className="flavour">
+              The Rumrunners game guide.
+            </p>
           )}
+
           {section === "Terms of Service" && (
-            <p className="flavour">Game rules and terms of service.</p>
+            <p className="flavour">
+              Game rules and terms of service.
+            </p>
           )}
+
           {section === "Help Desk" && (
-            <p className="flavour">Help and support for players.</p>
+            <p className="flavour">
+              Help and support for players.
+            </p>
           )}
+
           {section === "Suggestion Box" && (
-            <p className="flavour">Send suggestions for future improvements.</p>
+            <p className="flavour">
+              Send suggestions for future improvements.
+            </p>
           )}
+
           {section === "Full Site" && (
-            <p className="flavour">You are viewing the full Rumrunners game.</p>
+            <p className="flavour">
+              You are viewing the full Rumrunners game.
+            </p>
           )}
+
           {section === "Profile" && (
-            <p className="flavour">Your player profile.</p>
+            <p className="flavour">
+              Your player profile.
+            </p>
           )}
+
           {section === "Game" && (
-            <p className="flavour">Game discussion board.</p>
+            <p className="flavour">
+              Game discussion board.
+            </p>
           )}
 
           {section !== "Home" &&
             section !== "Crimes" &&
             section !== "Local Bank" &&
-            notice && <p className="notice">{notice}</p>}
+            notice && (
+              <p className="notice">{notice}</p>
+            )}
         </main>
 
         {/* MENU */}
-        <aside className={`sidebar ${menuOpen ? "menu-open" : ""}`}>
+        <aside
+          className={`sidebar ${menuOpen ? "menu-open" : ""}`}
+        >
           {selectedGroup === "" ? (
             <>
               <p className="side-heading">MENU</p>
+
               <div className="category-grid">
                 {menuGroups.map((group) => (
                   <button
@@ -769,25 +1167,6 @@ export default function GameShell({
             </div>
           )}
         </aside>
-      </div>
-
-      <div className="game-status-strip">
-        <div>
-          <span>Bank Account</span>
-          <strong>Ready</strong>
-        </div>
-        <div>
-          <span>Jail</span>
-          <strong>Free</strong>
-        </div>
-        <div>
-          <span>Organised Crime</span>
-          <strong>Ready</strong>
-        </div>
-        <div>
-          <span>Rackets</span>
-          <strong>Not active</strong>
-        </div>
       </div>
 
       <footer className="footer">
