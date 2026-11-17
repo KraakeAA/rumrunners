@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CasinoGames from "@/components/CasinoGames";
 
 type Player = {
@@ -79,7 +79,7 @@ const menuGroups = [
       "Local Bank",
       "Pawn Shop",
       "Stock Market",
-      "Train Station",
+      "Railway",
       "Brothel"
     ]
   },
@@ -115,6 +115,35 @@ export default function GameShell({
   const [energy, setEnergy] = useState(player.energy);
   const [money, setMoney] = useState(player.money);
   const [busy, setBusy] = useState(false);
+  const [currentCity, setCurrentCity] = useState("London");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadLocation() {
+      try {
+        const response = await fetch("/api/travel", {
+          cache: "no-store"
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (active && typeof data.currentCity === "string") {
+          setCurrentCity(data.currentCity);
+        }
+      } catch {
+        // Keep the last known/default city if the request fails.
+      }
+    }
+
+    loadLocation();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const activeGroup = menuGroups.find(
     group => group.title === selectedGroup
@@ -187,6 +216,11 @@ export default function GameShell({
       return;
     }
 
+    if (item === "Railway") {
+      window.location.href = "/railway";
+      return;
+    }
+
     setSection(item);
   }
 
@@ -218,6 +252,32 @@ export default function GameShell({
           {menuOpen ? "Close" : "Menu"}
         </button>
       </header>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          padding: "9px 14px",
+          background: "#211d18",
+          borderTop: "1px solid #493b2d",
+          borderBottom: "1px solid #493b2d",
+          color: "#aaa",
+          fontSize: "12px"
+        }}
+      >
+        <span style={{ color: "#b99a70", letterSpacing: "1px" }}>
+          YOUR CITY
+        </span>
+
+        <strong style={{ color: "#e2c49a", fontSize: "14px" }}>
+          {currentCity}
+        </strong>
+
+        <span style={{ marginLeft: "auto", color: "#777" }}>
+          BRITAIN · 1933
+        </span>
+      </div>
 
       <div className="game-layout">
 
@@ -503,7 +563,7 @@ export default function GameShell({
             <p>Investments and the stock market.</p>
           )}
 
-          {section === "Train Station" && (
+          {section === "Railway" && (
             <p>Travel between cities.</p>
           )}
 
