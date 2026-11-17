@@ -328,13 +328,8 @@ export default function GameShell({
         <button
           className="mobile-menu-toggle"
           onClick={() => {
-            if (menuOpen) {
-              setMenuOpen(false);
-              setSelectedGroup("");
-            } else {
-              setMenuOpen(true);
-              setSelectedGroup("");
-            }
+            setMenuOpen(!menuOpen);
+            setSelectedGroup("");
           }}
         >
           {menuOpen ? "Close" : "Menu"}
@@ -362,7 +357,6 @@ export default function GameShell({
       </div>
 
       <div className="game-layout">
-        {/* MAIN CONTENT */}
         <main className="main-content">
           <div className="page-heading">
             <p className="eyebrow">THE UNDERWORLD</p>
