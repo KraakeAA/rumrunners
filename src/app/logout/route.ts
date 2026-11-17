@@ -2,10 +2,10 @@
 import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/session";
 
-export async function GET(request: Request) {
+export async function GET() {
   await destroySession();
 
   return NextResponse.redirect(
-    new URL("/", request.url)
+    new URL("/", "https://www.rumrunners.uk")
   );
 }
