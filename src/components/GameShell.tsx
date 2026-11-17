@@ -362,7 +362,7 @@ export default function GameShell({
       </div>
 
       <div className="game-layout">
-        {/* MAIN CONTENT – left side */}
+        {/* MAIN CONTENT */}
         <main className="main-content">
           <div className="page-heading">
             <p className="eyebrow">THE UNDERWORLD</p>
@@ -727,11 +727,11 @@ export default function GameShell({
             notice && <p className="notice">{notice}</p>}
         </main>
 
-        {/* MENU – right side */}
+        {/* MENU – shows 5 categories first */}
         <aside className={`sidebar ${menuOpen ? "menu-open" : ""}`}>
           {!menuOpen ? (
             <>
-              <p className="side-heading">THE UNDERWORLD</p>
+              <p className="side-heading">MENU</p>
               <div className="category-grid">
                 {menuGroups.map((group) => (
                   <button
@@ -746,7 +746,13 @@ export default function GameShell({
             </>
           ) : (
             <div className="category-content">
-              <div className="game-section-heading">{selectedGroup}</div>
+              <button
+                className="category-back"
+                onClick={() => setMenuOpen(false)}
+              >
+                « {selectedGroup}
+              </button>
+
               <div className="nav-buttons">
                 {activeGroup?.items.map((item) => (
                   <button
@@ -764,12 +770,6 @@ export default function GameShell({
                   </button>
                 ))}
               </div>
-              <button
-                className="category-back"
-                onClick={() => setMenuOpen(false)}
-              >
-                ← All categories
-              </button>
             </div>
           )}
         </aside>
