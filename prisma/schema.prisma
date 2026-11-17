@@ -35,9 +35,10 @@ model Player {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inventory InventoryItem[]
-  crimeLogs CrimeLog[]
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inventory  InventoryItem[]
+  crimeLogs  CrimeLog[]
+  casinoLogs CasinoLog[]
 }
 
 model InventoryItem {
@@ -60,4 +61,18 @@ model CrimeLog {
   createdAt  DateTime @default(now())
 
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+model CasinoLog {
+  id        String   @id @default(cuid())
+  playerId  String
+  game      String
+  bet       Int
+  payout    Int
+  outcome   Json
+  createdAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, createdAt])
 }
