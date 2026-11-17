@@ -25,7 +25,6 @@ async function getPlayer() {
     where: { userId },
     select: {
       id: true,
-      username: true,
       currentCity: true,
       travelDestination: true,
       travelStartedAt: true,
@@ -50,7 +49,6 @@ async function completeExpiredJourney(
     where: {
       id: player.id,
       travelDestination: player.travelDestination,
-      travelArrivesAt: player.travelArrivesAt,
       travelArrivesAt: { lte: new Date() },
     },
     data: {
@@ -84,6 +82,11 @@ export async function GET() {
       );
     }
 
+    const isTravelling =
+      !!updatedPlayer.travelDestination &&
+      !!updatedPlayer.travelArrivesAt &&
+      updatedPlayer.travelArrivesAt.getTime() > Date.now();
+
     return NextResponse.json({
       cities: CITIES,
       currentCity: updatedPlayer.currentCity,
@@ -91,10 +94,7 @@ export async function GET() {
       travelStartedAt: updatedPlayer.travelStartedAt,
       travelArrivesAt: updatedPlayer.travelArrivesAt,
       gold: updatedPlayer.gold,
-      isTravelling:
-        !!updatedPlayer.travelDestination &&
-        !!updatedPlayer.travelArrivesAt &&
-        updatedPlayer.travelArrivesAt.getTime() > Date.now(),
+      isTravelling,
       instantTravelCost: INSTANT_TRAVEL_COST,
       travelDurationMinutes: 60,
     });
@@ -146,7 +146,10 @@ export async function POST(request: Request) {
         );
       }
 
-      if (updatedPlayer.travelArrivesAt) {
+      if (
+        updatedPlayer.travelDestination ||
+        updatedPlayer.travelArrivesAt
+      ) {
         return NextResponse.json(
           { error: "You are already travelling." },
           { status: 400 }
@@ -168,10 +171,7 @@ export async function POST(request: Request) {
       const result = await prisma.player.updateMany({
         where: {
           id: updatedPlayer.id,
-          OR: [
-            { travelArrivesAt: null },
-            { travelArrivesAt: { lte: startedAt } },
-          ],
+          travelArrivesAt: null,
         },
         data: {
           travelDestination: destination,
@@ -215,17 +215,18 @@ export async function POST(request: Request) {
         );
       }
 
+      const destination = updatedPlayer.travelDestination;
+
       const result = await prisma.player.updateMany({
         where: {
           id: updatedPlayer.id,
           gold: { gte: INSTANT_TRAVEL_COST },
-          travelDestination: updatedPlayer.travelDestination,
-          travelArrivesAt: updatedPlayer.travelArrivesAt,
+          travelDestination: destination,
           travelArrivesAt: { gt: new Date() },
         },
         data: {
           gold: { decrement: INSTANT_TRAVEL_COST },
-          currentCity: updatedPlayer.travelDestination,
+          currentCity: destination,
           travelDestination: null,
           travelStartedAt: null,
           travelArrivesAt: null,
@@ -241,8 +242,8 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `You have arrived in ${updatedPlayer.travelDestination}. 10 Gold has been deducted.`,
-        currentCity: updatedPlayer.travelDestination,
+        message: `You have arrived in ${destination}. 10 Gold has been deducted.`,
+        currentCity: destination,
         gold: updatedPlayer.gold - INSTANT_TRAVEL_COST,
       });
     }
