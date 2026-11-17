@@ -155,7 +155,6 @@ export default function CasinoGames({
           boxShadow: "0 3px 12px #0008",
         }}
       >
-        {/* Heading */}
         <div
           style={{
             minHeight: 43,
@@ -192,7 +191,6 @@ export default function CasinoGames({
           </span>
         </div>
 
-        {/* Draw label */}
         <div
           style={{
             padding: "7px",
@@ -207,7 +205,6 @@ export default function CasinoGames({
           {" "}Keno Draw
         </div>
 
-        {/* Compact win sentence */}
         {result && (
           <div
             style={{
@@ -250,7 +247,6 @@ export default function CasinoGames({
           </div>
         )}
 
-        {/* 80 number grid */}
         <div
           className="keno-grid"
           style={{
@@ -274,21 +270,18 @@ export default function CasinoGames({
             let border = "1px solid #62594e";
             let shadow = "none";
 
-            // Selected numbers remain burgundy after the draw.
             if (isSelected) {
               background = "linear-gradient(145deg, #713b38, #482522)";
               color = "#f3ded2";
               border = "1px solid #a66b58";
             }
 
-            // Drawn numbers which were not selected.
             if (isDrawn && !isSelected) {
               background = "linear-gradient(145deg, #344653, #202d37)";
               color = "#d1dce1";
               border = "1px solid #60798a";
             }
 
-            // Winning matches are purple.
             if (isMatch) {
               background = "linear-gradient(145deg, #a83bd0, #69218b)";
               color = "#fff2ff";
@@ -329,7 +322,6 @@ export default function CasinoGames({
           })}
         </div>
 
-        {/* Colour guide */}
         <div
           style={{
             display: "flex",
@@ -346,7 +338,6 @@ export default function CasinoGames({
           <span><b style={{ color: "#718b9b" }}>■</b> Other drawn</span>
         </div>
 
-        {/* Clear, balance, Save */}
         <div
           style={{
             display: "grid",
@@ -396,7 +387,6 @@ export default function CasinoGames({
           </div>
         </div>
 
-        {/* Bet input at the bottom */}
         <div
           style={{
             display: "flex",
@@ -455,7 +445,6 @@ export default function CasinoGames({
           </button>
         </div>
 
-        {/* Bet information */}
         <div
           style={{
             textAlign: "center",
@@ -520,11 +509,12 @@ export default function CasinoGames({
   }
 
   // Rumrunners fruit machine.
+  // Images are stored directly inside the public folder.
   const slotSymbols: Record<string, { src: string; alt: string }> = {
-    "7": { src: "/slots/seven.png", alt: "Lucky seven" },
-    BAR: { src: "/slots/bar-rum.png", alt: "BAR with rum bottle" },
-    "🍒": { src: "/slots/cherries.png", alt: "Cherries" },
-    "🍊": { src: "/slots/orange.png", alt: "Orange" },
+    "7": { src: "/seven.png", alt: "Lucky seven" },
+    BAR: { src: "/bar-rum.png", alt: "BAR with rum bottle" },
+    "🍒": { src: "/cherries.png", alt: "Cherries" },
+    "🍊": { src: "/orange.png", alt: "Orange" },
   };
 
   const reels = result?.reels || ["7", "BAR", "🍒"];
@@ -544,7 +534,6 @@ export default function CasinoGames({
         color: "#f2f2f2",
       }}
     >
-      {/* Machine body */}
       <div
         style={{
           width: "min(100%, 400px)",
@@ -554,7 +543,6 @@ export default function CasinoGames({
           boxShadow: "0 3px 12px #0009",
         }}
       >
-        {/* Bronze title strip */}
         <div
           style={{
             minHeight: 48,
@@ -574,7 +562,6 @@ export default function CasinoGames({
           Slot Machines
         </div>
 
-        {/* Three illustrated reels */}
         <div
           style={{
             display: "grid",
@@ -616,7 +603,6 @@ export default function CasinoGames({
           })}
         </div>
 
-        {/* Winning strip */}
         <div
           aria-live="polite"
           style={{
@@ -643,7 +629,6 @@ export default function CasinoGames({
             : " "}
         </div>
 
-        {/* Stake, pull handle and cash balance */}
         <div
           style={{
             minHeight: 300,
@@ -762,7 +747,6 @@ export default function CasinoGames({
         </div>
       </div>
 
-      {/* Machine information beneath the cabinet */}
       <div
         style={{
           width: "min(100%, 440px)",
