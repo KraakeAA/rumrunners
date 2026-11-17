@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -31,13 +30,20 @@ export default async function Home() {
     );
   }
 
-  const [player, account] = await Promise.all([
+  const [player, account, recentCrimes] = await Promise.all([
     prisma.player.findUnique({
       where: { userId }
     }),
     prisma.user.findUnique({
       where: { id: userId },
       select: { isAdmin: true }
+    }),
+    prisma.crimeLog.findMany({
+      where: {
+        player: { userId }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5
     })
   ]);
 
@@ -57,14 +63,12 @@ export default async function Home() {
       player={{
         username: player.username,
         rank: player.rank,
+        rankLevel: player.rankLevel,
         money: player.money,
         bank: player.bank,
+        gold: player.gold,
         bullets: player.bullets,
         health: player.health,
         protection: player.protection,
         energy: player.energy,
-        maxEnergy: player.maxEnergy
-      }}
-    />
-  );
-}
+        maxEnergy
