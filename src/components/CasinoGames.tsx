@@ -132,6 +132,7 @@ export default function CasinoGames({
   if (game === "Keno") {
     const drawn = result?.drawn || [];
     const matches = selected.filter((n) => drawn.includes(n));
+    const hasResult = result !== null;
 
     return (
       <section
@@ -143,19 +144,21 @@ export default function CasinoGames({
           maxWidth: "100%",
           boxSizing: "border-box",
           overflow: "hidden",
-          border: "1px solid #77716a",
-          borderRadius: 6,
-          background: "#403d3b",
-          color: "#eee",
+          border: "1px solid #65513a",
+          borderRadius: 5,
+          background: "#211d19",
+          color: "#e8dfd0",
+          fontFamily: "Arial, sans-serif",
+          boxShadow: "0 3px 12px #0008",
         }}
       >
-        {/* Game heading */}
+        {/* Keno title */}
         <div
           style={{
-            minHeight: 44,
+            minHeight: 43,
             padding: "8px 12px",
-            background: "linear-gradient(#493b2b, #211a14)",
-            borderBottom: "1px solid #80776d",
+            background: "linear-gradient(180deg, #55432e, #292017)",
+            borderBottom: "1px solid #786044",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -163,91 +166,136 @@ export default function CasinoGames({
             boxSizing: "border-box",
           }}
         >
-          <strong style={{ fontSize: 18 }}>Keno</strong>
+          <strong
+            style={{
+              fontFamily: "Georgia, serif",
+              fontSize: 19,
+              color: "#e9d2a7",
+              letterSpacing: 1,
+            }}
+          >
+            KENO
+          </strong>
+
           <span
             style={{
               position: "absolute",
               right: 12,
-              color: "#a99c8d",
-              fontSize: 20,
+              color: "#b69a6d",
+              fontSize: 19,
             }}
           >
             ⓘ
           </span>
         </div>
 
-        {/* Draw information */}
+        {/* Draw identity */}
         <div
           style={{
             padding: "7px",
             textAlign: "center",
-            background: "#34302e",
-            borderBottom: "1px solid #77716a",
+            background: "#302820",
+            borderBottom: "1px solid #574532",
             fontSize: 14,
+            color: "#d9c7a8",
           }}
         >
-          <span style={{ color: "#e00022" }}>🔴</span>
-          {" "}
-          Keno Draw
+          <span style={{ color: "#b78a4d" }}>◉</span>
+          {" "}Rumrunners Keno Draw
         </div>
 
-        {/* Win message ABOVE the number grid */}
-        {result && (
+        {/* Winning result above the grid */}
+        {hasResult && (
           <div
             style={{
-              margin: "10px 10px 5px",
+              margin: "9px 10px 5px",
               padding: "11px 7px",
-              borderRadius: 6,
-              background: "#353130",
+              borderRadius: 4,
+              background: "linear-gradient(135deg, #332719, #211a14)",
+              border: "1px solid #80623c",
               textAlign: "center",
               fontSize: 14,
-              lineHeight: 1.5,
+              lineHeight: 1.55,
             }}
           >
             {matches.length > 0 ? (
               <>
-                You matched <strong>{result.matches}</strong> numbers
-                {" "}and won{" "}
-                <strong style={{ color: "#ffe1a2" }}>
-                  £{(result.payout || 0).toLocaleString("en-GB")}!
+                <div
+                  style={{
+                    color: "#d9b77c",
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontWeight: 700,
+                    marginBottom: 3,
+                  }}
+                >
+                  WINNING DRAW
+                </div>
+
+                You matched <strong style={{ color: "#f0d6a4" }}>
+                  {result.matches}
+                </strong> numbers and won
+
+                <strong
+                  style={{
+                    display: "block",
+                    color: "#e7c17f",
+                    fontSize: 21,
+                    fontFamily: "Georgia, serif",
+                    marginTop: 2,
+                  }}
+                >
+                  £{(result.payout || 0).toLocaleString("en-GB")}
                 </strong>
               </>
             ) : (
               <>
-                You matched <strong>0</strong> numbers.
-                Better luck next time!
+                <div
+                  style={{
+                    color: "#c18b7d",
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontWeight: 700,
+                    marginBottom: 3,
+                  }}
+                >
+                  DRAW COMPLETE
+                </div>
+                No winning numbers this time.
               </>
             )}
           </div>
         )}
 
-        {!result && (
+        {!hasResult && (
           <div
             style={{
               margin: "9px 10px 5px",
               padding: "8px 5px",
-              background: "#353130",
-              borderRadius: 5,
+              background: "#302820",
+              border: "1px solid #50402e",
+              borderRadius: 3,
               textAlign: "center",
               fontSize: 12,
-              color: "#d1cbc5",
+              color: "#b9aa94",
             }}
           >
-            Choose 10 numbers · {selected.length}/10 selected
+            Select 10 numbers · {selected.length}/10 selected
           </div>
         )}
 
-        {/* Compact 10-column number grid */}
+        {/* Number grid */}
         <div
           className="keno-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
-            gap: 0,
-            padding: "7px 9px 2px",
+            gap: 2,
+            padding: "7px 9px 3px",
             margin: 0,
             width: "100%",
             boxSizing: "border-box",
+            background: "#211d19",
           }}
         >
           {numbers.map((n) => {
@@ -255,24 +303,28 @@ export default function CasinoGames({
             const isDrawn = drawn.includes(n);
             const isMatch = isSelected && isDrawn;
 
-            let background = "#555252";
-            let color = "#d0cece";
-            let border = "1px solid #85817e";
+            let background = "#302c28";
+            let color = "#b9b0a4";
+            let border = "1px solid #51473a";
+            let shadow = "none";
 
-            if (isDrawn && !isSelected) {
-              background = "#0800ed";
-              color = "#fff";
+            if (isSelected && !hasResult) {
+              background = "linear-gradient(145deg, #713b38, #482522)";
+              color = "#f3ded2";
+              border = "1px solid #a66b58";
             }
 
-            if (isSelected) {
-              background = "#a500ed";
-              color = "#fff";
+            if (isDrawn && !isSelected) {
+              background = "linear-gradient(145deg, #344653, #202d37)";
+              color = "#d1dce1";
+              border = "1px solid #60798a";
             }
 
             if (isMatch) {
-              background = "#a500ed";
-              color = "#fff";
-              border = "1px solid #d17bfa";
+              background = "linear-gradient(145deg, #c19a55, #80602e)";
+              color = "#fff5dc";
+              border = "1px solid #f0d294";
+              shadow = "inset 0 0 7px #f8df9a55";
             }
 
             return (
@@ -281,23 +333,24 @@ export default function CasinoGames({
                 type="button"
                 onClick={() => toggleNumber(n)}
                 disabled={busy}
-                aria-label={`Number ${n}${isMatch ? ", matched" : ""}`}
+                aria-label={`Number ${n}${isMatch ? ", winning match" : isDrawn ? ", drawn" : ""}`}
                 style={{
                   minWidth: 0,
                   width: "100%",
                   aspectRatio: "1 / 1",
                   padding: 0,
                   margin: 0,
-                  borderRadius: 0,
+                  borderRadius: 2,
                   border,
                   background,
                   color,
-                  fontSize: "clamp(10px, 3.5vw, 17px)",
-                  fontWeight: isMatch ? 600 : 400,
+                  fontSize: "clamp(10px, 3.5vw, 16px)",
+                  fontWeight: isMatch ? 700 : 500,
                   display: "grid",
                   placeItems: "center",
                   cursor: busy ? "default" : "pointer",
                   boxSizing: "border-box",
+                  boxShadow: shadow,
                   WebkitAppearance: "none",
                 }}
               >
@@ -307,6 +360,23 @@ export default function CasinoGames({
           })}
         </div>
 
+        {/* Legend */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: "5px 12px",
+            padding: "5px 8px 7px",
+            fontSize: 10,
+            color: "#a99b87",
+          }}
+        >
+          <span> <b style={{ color: "#d6ad65" }}>■</b> Match</span>
+          <span> <b style={{ color: "#a36a60" }}>■</b> Selected</span>
+          <span> <b style={{ color: "#718b9b" }}>■</b> Drawn</span>
+        </div>
+
         {/* Clear, balance and Save */}
         <div
           style={{
@@ -314,7 +384,9 @@ export default function CasinoGames({
             gridTemplateColumns: "1fr auto 1fr",
             alignItems: "center",
             gap: 5,
-            padding: "8px 10px 2px",
+            padding: "7px 11px 3px",
+            borderTop: "1px solid #4d4031",
+            background: "#29231d",
           }}
         >
           <div style={{ justifySelf: "start" }}>
@@ -333,15 +405,20 @@ export default function CasinoGames({
               fontSize: 13,
               textAlign: "center",
               whiteSpace: "nowrap",
+              color: "#e1c48e",
             }}
           >
-            💵 £{cash.toLocaleString("en-GB")}
+            £{cash.toLocaleString("en-GB")}
           </strong>
 
           <div style={{ justifySelf: "end" }}>
             <button
               type="button"
-              onClick={savedNumbers.length === 10 ? loadSavedNumbers : saveNumbers}
+              onClick={
+                savedNumbers.length === 10
+                  ? loadSavedNumbers
+                  : saveNumbers
+              }
               disabled={busy}
               style={smallButtonStyle}
             >
@@ -350,7 +427,7 @@ export default function CasinoGames({
           </div>
         </div>
 
-        {/* Bet amount at the bottom */}
+        {/* Bet amount */}
         <div
           style={{
             display: "flex",
@@ -360,9 +437,10 @@ export default function CasinoGames({
             padding: "12px 8px 5px",
             width: "100%",
             boxSizing: "border-box",
+            background: "#29231d",
           }}
         >
-          <span style={{ fontSize: 13 }}>£</span>
+          <span style={{ fontSize: 14, color: "#c4ad85" }}>£</span>
 
           <input
             type="number"
@@ -378,12 +456,13 @@ export default function CasinoGames({
               minWidth: 90,
               height: 42,
               padding: "5px 10px",
-              background: "#fff",
-              color: "#111",
-              border: "2px solid #2877ad",
-              borderRadius: 9,
-              fontSize: 20,
+              background: "#171411",
+              color: "#ead9b8",
+              border: "1px solid #94764c",
+              borderRadius: 3,
+              fontSize: 19,
               boxSizing: "border-box",
+              outline: "none",
             }}
           />
 
@@ -392,57 +471,60 @@ export default function CasinoGames({
             onClick={play}
             disabled={busy}
             style={{
-              padding: "7px 15px",
-              minHeight: 36,
-              borderRadius: 22,
-              background: "#078cf0",
-              color: "#fff",
-              border: "2px solid #b9d8f0",
+              padding: "7px 16px",
+              minHeight: 38,
+              borderRadius: 3,
+              background: "linear-gradient(180deg, #987345, #614528)",
+              color: "#fff0d5",
+              border: "1px solid #c3a06a",
               fontSize: 14,
-              fontWeight: 600,
+              fontWeight: 700,
               whiteSpace: "nowrap",
+              cursor: busy ? "wait" : "pointer",
             }}
           >
-            {busy ? "…" : "Bet!"}
+            {busy ? "Playing…" : "Bet!"}
           </button>
         </div>
 
-        {/* Maximum bet and wealth information */}
+        {/* Bet information */}
         <div
           style={{
             textAlign: "center",
-            padding: "5px 8px 13px",
-            fontSize: 13,
+            padding: "5px 8px 12px",
+            fontSize: 12,
             lineHeight: 1.8,
-            color: "#e1deda",
+            color: "#b9aa94",
+            background: "#29231d",
           }}
         >
           <div>
-            <strong>Maximum bet:</strong> £50,000
+            <strong style={{ color: "#ddc18d" }}>Maximum bet:</strong>
+            {" "}£1,000,000
           </div>
 
           <div>
-            <strong>Wealth:</strong> {cash >= 1000000
-              ? "Excessively Rich"
-              : cash >= 100000
-                ? "Wealthy"
-                : "Building your fortune"}
+            <strong style={{ color: "#ddc18d" }}>Numbers selected:</strong>
+            {" "}{selected.length}/10
           </div>
         </div>
 
-        {result && (
+        {hasResult && (
           <div
             style={{
-              margin: "0 10px 9px",
-              padding: 7,
-              background: "#302b28",
-              borderRadius: 4,
+              margin: "0 10px 10px",
+              padding: 8,
+              background: "#302820",
+              border: "1px solid #574532",
+              borderRadius: 3,
               textAlign: "center",
-              fontSize: 12,
+              fontSize: 11,
+              color: "#cbb99a",
+              lineHeight: 1.8,
             }}
           >
-            <strong>Drawn:</strong> {drawn.join(" · ")}
-            {" · "}
+            <strong>Drawn numbers:</strong>
+            <div>{drawn.join(" · ")}</div>
             <strong>Matches:</strong> {result.matches}
             {" · "}
             <strong>Multiplier:</strong> {result.multiplier}×
@@ -454,11 +536,12 @@ export default function CasinoGames({
             style={{
               margin: "0 10px 10px",
               padding: 8,
-              background: "#302b28",
-              color: "#f2c7a5",
-              borderRadius: 4,
+              background: "#382522",
+              border: "1px solid #805044",
+              color: "#e6b9a7",
+              borderRadius: 3,
               textAlign: "center",
-              fontSize: 13,
+              fontSize: 12,
             }}
           >
             {message}
@@ -468,7 +551,7 @@ export default function CasinoGames({
     );
   }
 
-  // Existing Slots game remains available.
+  // Existing Slots game
   return (
     <section className="casino-game">
       <div className="casino-title">
@@ -542,11 +625,11 @@ export default function CasinoGames({
 }
 
 const smallButtonStyle: React.CSSProperties = {
-  padding: "3px 6px",
-  borderRadius: 0,
-  border: "1px solid #ddd",
-  background: "#dedede",
-  color: "#111",
+  padding: "4px 8px",
+  borderRadius: 2,
+  border: "1px solid #9a8059",
+  background: "linear-gradient(180deg, #493a29, #2d241a)",
+  color: "#e6d2ad",
   fontSize: 12,
   lineHeight: 1.2,
   cursor: "pointer",
