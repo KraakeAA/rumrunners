@@ -1,6 +1,7 @@
 
 import type { Metadata } from "next";
 import "./globals.css";
+import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 
 export const metadata: Metadata = {
   title: "Rumrunners — A life of crime",
@@ -15,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <PresenceHeartbeat />
+        {children}
+      </body>
     </html>
   );
 }
