@@ -13,7 +13,9 @@ model User {
   email        String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
-  player       Player?
+  isAdmin      Boolean  @default(false)
+
+  player Player?
 }
 
 model Player {
@@ -39,6 +41,9 @@ model Player {
   inventory  InventoryItem[]
   crimeLogs  CrimeLog[]
   casinoLogs CasinoLog[]
+
+  forumTopics ForumTopic[] @relation("ForumTopicAuthor")
+  forumPosts  ForumPost[]  @relation("ForumPostAuthor")
 }
 
 model InventoryItem {
@@ -75,4 +80,34 @@ model CasinoLog {
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId, createdAt])
+}
+
+model ForumTopic {
+  id        String   @id @default(cuid())
+  category  String
+  title     String
+  body      String   @db.Text
+  pinned    Boolean  @default(false)
+  locked    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+
+  author Player       @relation("ForumTopicAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  posts  ForumPost[]
+
+  @@index([category, pinned, createdAt])
+}
+
+model ForumPost {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  authorId  String
+  topicId   String
+
+  author Player     @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  topic  ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, createdAt])
 }
