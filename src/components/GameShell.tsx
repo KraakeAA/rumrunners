@@ -20,81 +20,41 @@ const menuGroups = [
   {
     title: "Main",
     items: [
-      "Home",
-      "Updates",
-      "Suggestion Box",
-      "Rumrunners Live",
-      "Wiki",
-      "Terms of Service",
-      "Find Player",
-      "Help Desk",
-      "Profile",
-      "Cities",
-      "Statistics",
-      "Users Online",
-      "Logout",
-      "Full Site"
+      "Home", "Updates", "Suggestion Box", "Rumrunners Live",
+      "Wiki", "Terms of Service", "Find Player", "Help Desk",
+      "Profile", "Cities", "Statistics", "Users Online",
+      "Logout", "Full Site"
     ]
   },
   {
     title: "Messaging",
     items: [
-      "Forums",
-      "Crew",
-      "Game",
-      "Classifieds",
-      "Off Topic",
-      "Mailbox",
-      "Saved Mail",
-      "Send Letter"
+      "Forums", "Crew", "Game", "Classifieds",
+      "Off Topic", "Mailbox", "Saved Mail", "Send Letter"
     ]
   },
   {
     title: "Campaign",
     items: [
-      "Auto Theft",
-      "Bootlegging",
-      "Crew",
-      "Crimes",
-      "Graveyard",
-      "Gymnasium",
-      "Whack",
-      "Hitlist",
-      "Organised Crime",
-      "Rackets",
-      "Search",
-      "Shooting Range"
+      "Auto Theft", "Bootlegging", "Crew", "Crimes",
+      "Graveyard", "Gymnasium", "Whack", "Hitlist",
+      "Organised Crime", "Rackets", "Search", "Shooting Range"
     ]
   },
   {
     title: "Resources",
     items: [
-      "Gun Shop",
-      "Escrow",
-      "Store",
-      "Gold",
-      "Marketplace",
-      "Hospital",
-      "Jail",
-      "Local Bank",
-      "Pawn Shop",
-      "Stock Market",
-      "Railway",
-      "Brothel"
+      "Gun Shop", "Escrow", "Store", "Gold",
+      "Marketplace", "Hospital", "Jail", "Local Bank",
+      "Pawn Shop", "Stock Market", "Railway", "Brothel"
     ]
   },
   {
     title: "Casino",
     items: [
-      "Blackjack",
-      "Jacks or Better",
-      "Keno",
-      "Lottery",
-      "Poker Run",
-      "Race Track",
-      "Roulette",
-      "Slot Machines",
-      "Sports Betting"
+      "Blackjack", "Jacks or Better", "Keno", "Lottery",
+      "Poker Run", "Race Track", "Roulette",
+      "Slot Machines", "Sports Betting"
     ]
   }
 ];
@@ -231,7 +191,6 @@ export default function GameShell({
 
   return (
     <div className="game">
-
       <header className="topbar">
         <div className="brand">
           <span>R</span>
@@ -280,35 +239,33 @@ export default function GameShell({
       </div>
 
       <div className="game-layout">
-
         <aside className={`sidebar ${menuOpen ? "menu-open" : ""}`}>
-
           {!menuOpen ? (
             <>
               <p className="side-heading">THE UNDERWORLD</p>
 
-              {menuGroups.map(group => (
-                <button
-                  key={group.title}
-                  className="nav-item"
-                  onClick={() => selectGroup(group.title)}
-                >
-                  {group.title}
-                </button>
-              ))}
+              <div className="category-grid">
+                {menuGroups.map(group => (
+                  <button
+                    key={group.title}
+                    className="nav-category"
+                    onClick={() => selectGroup(group.title)}
+                  >
+                    {group.title}
+                  </button>
+                ))}
+              </div>
             </>
           ) : (
-            <>
+            <div className="category-content">
               <button
-                className="nav-item active"
+                className="category-back"
                 onClick={() => setMenuOpen(false)}
               >
-                × Close menu
+                « {selectedGroup}
               </button>
 
-              <p className="side-heading">{selectedGroup}</p>
-
-              <div className="menu-grid">
+              <div className="nav-buttons">
                 {activeGroup?.items.map(item => (
                   <button
                     key={item}
@@ -325,17 +282,16 @@ export default function GameShell({
               </div>
 
               <button
-                className="nav-item"
+                className="category-back"
                 onClick={() => setMenuOpen(false)}
               >
-                ← All categories
+                « All categories
               </button>
-            </>
+            </div>
           )}
         </aside>
 
         <main className="main-content">
-
           <div className="page-heading">
             <p className="eyebrow">THE UNDERWORLD</p>
             <h1>{section}</h1>
@@ -600,7 +556,6 @@ export default function GameShell({
           {section !== "Home" && notice && (
             <p className="notice">{notice}</p>
           )}
-
         </main>
 
         <aside className="right-panel">
