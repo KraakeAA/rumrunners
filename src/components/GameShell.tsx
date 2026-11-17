@@ -83,7 +83,7 @@ export default function GameShell({
   recentCrimes?: CrimeLog[];
 }) {
   const [section, setSection] = useState("Home");
-  const [selectedGroup, setSelectedGroup] = useState("Main");
+  const [selectedGroup, setSelectedGroup] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [energy, setEnergy] = useState(player.energy);
@@ -162,10 +162,6 @@ export default function GameShell({
       active = false;
     };
   }, []);
-
-  const activeGroup = menuGroups.find(
-    (group) => group.title === selectedGroup
-  );
 
   const xpCurrent = experience;
   const xpNext = xpForLevel(rankLevel + 1);
@@ -283,6 +279,7 @@ export default function GameShell({
   function navigate(item: string) {
     setNotice("");
     setMenuOpen(false);
+    setSelectedGroup("");
 
     if (item === "Logout") {
       window.location.href = "/logout";
@@ -308,11 +305,6 @@ export default function GameShell({
     setSection(item);
   }
 
-  function selectGroup(group: string) {
-    setSelectedGroup(group);
-    setMenuOpen(true);
-  }
-
   const availableCrimes = useMemo(
     () => CRIMES.filter((c) => c.minRankLevel <= rankLevel + 1),
     [rankLevel]
@@ -335,7 +327,15 @@ export default function GameShell({
 
         <button
           className="mobile-menu-toggle"
-          onClick={() => setMenuOpen(!menuOpen)}
+          onClick={() => {
+            if (menuOpen) {
+              setMenuOpen(false);
+              setSelectedGroup("");
+            } else {
+              setMenuOpen(true);
+              setSelectedGroup("");
+            }
+          }}
         >
           {menuOpen ? "Close" : "Menu"}
         </button>
@@ -727,9 +727,9 @@ export default function GameShell({
             notice && <p className="notice">{notice}</p>}
         </main>
 
-        {/* MENU – shows 5 categories first */}
+        {/* MENU */}
         <aside className={`sidebar ${menuOpen ? "menu-open" : ""}`}>
-          {!menuOpen ? (
+          {selectedGroup === "" ? (
             <>
               <p className="side-heading">MENU</p>
               <div className="category-grid">
@@ -737,7 +737,7 @@ export default function GameShell({
                   <button
                     key={group.title}
                     className="nav-category"
-                    onClick={() => selectGroup(group.title)}
+                    onClick={() => setSelectedGroup(group.title)}
                   >
                     {group.title}
                   </button>
@@ -748,27 +748,29 @@ export default function GameShell({
             <div className="category-content">
               <button
                 className="category-back"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => setSelectedGroup("")}
               >
                 « {selectedGroup}
               </button>
 
               <div className="nav-buttons">
-                {activeGroup?.items.map((item) => (
-                  <button
-                    key={item}
-                    className={
-                      item === "Logout"
-                        ? "nav-item logout-menu-item"
-                        : section === item
-                          ? "nav-item active"
-                          : "nav-item"
-                    }
-                    onClick={() => navigate(item)}
-                  >
-                    {item}
-                  </button>
-                ))}
+                {menuGroups
+                  .find((g) => g.title === selectedGroup)
+                  ?.items.map((item) => (
+                    <button
+                      key={item}
+                      className={
+                        item === "Logout"
+                          ? "nav-item logout-menu-item"
+                          : section === item
+                            ? "nav-item active"
+                            : "nav-item"
+                      }
+                      onClick={() => navigate(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
               </div>
             </div>
           )}
