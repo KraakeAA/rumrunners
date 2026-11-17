@@ -26,6 +26,7 @@ model Player {
   rankLevel    Int      @default(1)
   money        Int      @default(500)
   bank         Int      @default(0)
+  gold         Int      @default(0)
   bullets      Int      @default(0)
   health       Int      @default(100)
   protection   Int      @default(0)
@@ -37,6 +38,12 @@ model Player {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Location and railway travel
+  currentCity      String    @default("London")
+  travelDestination String?
+  travelStartedAt   DateTime?
+  travelArrivesAt   DateTime?
+
   // Profile information
   profilePictureUrl String? @db.Text
   profileQuote      String? @db.Text
@@ -45,15 +52,15 @@ model Player {
   profileViews      Int     @default(0)
 
   // Profile privacy and display preferences
-  profileVisible       Boolean @default(true)
-  showProfileViews     Boolean @default(true)
-  showHistory          Boolean @default(false)
-  showBirthday         Boolean @default(false)
-  showCountry          Boolean @default(false)
-  showOrganization     Boolean @default(true)
-  showOcStatus         Boolean @default(true)
-  allowProfileImages   Boolean @default(true)
-  friendsOnlyImages    Boolean @default(false)
+  profileVisible     Boolean @default(true)
+  showProfileViews   Boolean @default(true)
+  showHistory        Boolean @default(false)
+  showBirthday       Boolean @default(false)
+  showCountry        Boolean @default(false)
+  showOrganization   Boolean @default(true)
+  showOcStatus       Boolean @default(true)
+  allowProfileImages Boolean @default(true)
+  friendsOnlyImages  Boolean @default(false)
 
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   inventory  InventoryItem[]
