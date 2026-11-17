@@ -16,13 +16,87 @@ type Player = {
   maxEnergy: number;
 };
 
-const navGroups = [
-  { title: "The City", items: ["News", "Rankings", "Users Online"] },
-  { title: "Activities", items: ["Crimes", "Auto Theft", "Organised Crime"] },
-  { title: "Combat", items: ["Whack"] },
-  { title: "Casinos", items: ["Casinos", "Blackjack", "Roulette", "Slots", "Keno", "Racetrack"] },
-  { title: "Economy", items: ["Market", "Properties", "Bank", "Escrow"] },
-  { title: "Social", items: ["Forum", "Messages"] }
+const menuGroups = [
+  {
+    title: "Main",
+    items: [
+      "Home",
+      "Updates",
+      "Suggestion Box",
+      "Rumrunners Live",
+      "Wiki",
+      "Terms of Service",
+      "Find Player",
+      "Help Desk",
+      "Profile",
+      "Cities",
+      "Statistics",
+      "Users Online",
+      "Logout",
+      "Full Site"
+    ]
+  },
+  {
+    title: "Messaging",
+    items: [
+      "Forums",
+      "Crew",
+      "Game",
+      "Classifieds",
+      "Off Topic",
+      "Mailbox",
+      "Saved Mail",
+      "Send Letter"
+    ]
+  },
+  {
+    title: "Campaign",
+    items: [
+      "Auto Theft",
+      "Bootlegging",
+      "Crew",
+      "Crimes",
+      "Graveyard",
+      "Gymnasium",
+      "Whack",
+      "Hitlist",
+      "Organised Crime",
+      "Rackets",
+      "Search",
+      "Shooting Range"
+    ]
+  },
+  {
+    title: "Resources",
+    items: [
+      "Gun Shop",
+      "Escrow",
+      "Store",
+      "Gold",
+      "Marketplace",
+      "Hospital",
+      "Jail",
+      "Local Bank",
+      "Pawn Shop",
+      "Stock Market",
+      "Train Station",
+      "Brothel"
+    ]
+  },
+  {
+    title: "Casino",
+    items: [
+      "Blackjack",
+      "Jacks or Better",
+      "Keno",
+      "Lottery",
+      "Poker Run",
+      "Race Track",
+      "Roulette",
+      "Slot Machines",
+      "Sports Betting"
+    ]
+  }
 ];
 
 export default function GameShell({
@@ -34,13 +108,17 @@ export default function GameShell({
   isAdmin?: boolean;
   playerId: string;
 }) {
-  const [section, setSection] = useState("News");
+  const [section, setSection] = useState("Home");
+  const [selectedGroup, setSelectedGroup] = useState("Main");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [energy, setEnergy] = useState(player.energy);
   const [money, setMoney] = useState(player.money);
   const [busy, setBusy] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+
+  const activeGroup = menuGroups.find(
+    group => group.title === selectedGroup
+  );
 
   async function commitCrime() {
     setBusy(true);
@@ -54,7 +132,13 @@ export default function GameShell({
       const data = await response.json();
 
       if (!response.ok) {
-        setNotice(data.error || "The job failed.");
+        setNotice(
+          data.error === "COOLDOWN"
+            ? "The streets need time to cool down before your next job."
+            : data.error === "NO_ENERGY"
+              ? "You're exhausted. Wait for your energy to recover."
+              : data.error || "The job failed."
+        );
         return;
       }
 
@@ -76,15 +160,25 @@ export default function GameShell({
   function navigate(item: string) {
     setNotice("");
     setMenuOpen(false);
-    setSelectedGroup(null);
 
-    if (item === "Forum") {
-      window.location.href = "/forum";
+    if (item === "Logout") {
+      window.location.href = "/logout";
+      return;
+    }
+
+    if (item === "Profile") {
+      window.location.href =
+        `/profile/${encodeURIComponent(player.username)}`;
       return;
     }
 
     if (item === "Users Online") {
       window.location.href = "/users-online";
+      return;
+    }
+
+    if (item === "Forums") {
+      window.location.href = "/forum";
       return;
     }
 
@@ -96,115 +190,98 @@ export default function GameShell({
     setSection(item);
   }
 
-  const currentGroup = navGroups.find(
-    group => group.title === selectedGroup
-  );
+  function selectGroup(group: string) {
+    setSelectedGroup(group);
+    setMenuOpen(true);
+  }
 
   return (
     <div className="game">
-      <header className="topbar">
-        <div className="status-avatar">R</div>
 
-        <div className="status-identity">
-          <strong>{player.username}</strong>
-          <span>{player.rank}</span>
+      <header className="topbar">
+        <div className="brand">
+          <span>R</span>
+          <strong>RUMRUNNERS</strong>
           <small>BRITAIN · 1933</small>
-          <div className="health-track">
-            <i style={{ width: `${Math.max(0, Math.min(100, player.health))}%` }} />
-          </div>
-          <small>{player.health}/100 Health</small>
         </div>
 
-        <div className="status-resources">
-          <span>
-            <b>£{money.toLocaleString("en-GB")}</b>
-            <small>Cash</small>
-          </span>
-          <span>
-            <b>{player.bullets}</b>
-            <small>Bullets</small>
-          </span>
-          <span>
-            <b>{energy}/{player.maxEnergy}</b>
-            <small>Energy</small>
-          </span>
+        <div className="top-player">
+          <b>{player.username}</b>
+          <span>{player.rank}</span>
+          <span>£{money.toLocaleString("en-GB")}</span>
         </div>
 
         <button
           className="mobile-menu-toggle"
-          onClick={() => {
-            setMenuOpen(!menuOpen);
-            setSelectedGroup(null);
-          }}
-          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(!menuOpen)}
         >
-          {menuOpen ? "Close ×" : "☰ Menu"}
+          {menuOpen ? "Close" : "Menu"}
         </button>
-
-        <a href="/logout" className="logout">Sign out</a>
       </header>
 
-      <div className="city-strip">
-        <div className="city-location">
-          <strong>London</strong>
-          <span>The City</span>
-        </div>
-        <div className="city-weather">
-          <i />
-          Overcast
-        </div>
-        <div className="city-era">1933</div>
-      </div>
-
       <div className="game-layout">
+
         <aside className={`sidebar ${menuOpen ? "menu-open" : ""}`}>
-          {!selectedGroup ? (
+
+          {!menuOpen ? (
             <>
-              <div className="category-grid">
-                {navGroups.map(group => (
-                  <button
-                    key={group.title}
-                    className="nav-category"
-                    onClick={() => setSelectedGroup(group.title)}
-                  >
-                    {group.title}
-                  </button>
-                ))}
-              </div>
+              <p className="side-heading">THE UNDERWORLD</p>
+
+              {menuGroups.map(group => (
+                <button
+                  key={group.title}
+                  className="nav-item"
+                  onClick={() => selectGroup(group.title)}
+                >
+                  {group.title}
+                </button>
+              ))}
             </>
           ) : (
-            <div className="category-content">
+            <>
               <button
-                className="category-back"
-                onClick={() => setSelectedGroup(null)}
+                className="nav-item active"
+                onClick={() => setMenuOpen(false)}
               >
-                ← All categories
+                × Close menu
               </button>
 
               <p className="side-heading">{selectedGroup}</p>
 
-              <div className="nav-buttons">
-                {currentGroup?.items.map(item => (
+              <div className="menu-grid">
+                {activeGroup?.items.map(item => (
                   <button
                     key={item}
+                    className={
+                      item === "Logout"
+                        ? "nav-item logout-menu-item"
+                        : "nav-item"
+                    }
                     onClick={() => navigate(item)}
-                    className={section === item ? "nav-item active" : "nav-item"}
                   >
                     {item}
                   </button>
                 ))}
               </div>
-            </div>
+
+              <button
+                className="nav-item"
+                onClick={() => setMenuOpen(false)}
+              >
+                ← All categories
+              </button>
+            </>
           )}
         </aside>
 
         <main className="main-content">
+
           <div className="page-heading">
             <p className="eyebrow">THE UNDERWORLD</p>
             <h1>{section}</h1>
           </div>
 
-          {section === "News" && (
+          {section === "Home" && (
             <>
               <p className="lead">
                 The city is awake. Opportunity waits for nobody.
@@ -241,7 +318,11 @@ export default function GameShell({
                   <small>Cost: 1 energy · Success earns a modest reward</small>
                 </div>
 
-                <button className="button" disabled={busy} onClick={commitCrime}>
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={commitCrime}
+                >
                   {busy ? "Working…" : "Attempt crime"}
                 </button>
               </div>
@@ -254,66 +335,212 @@ export default function GameShell({
             <CasinoGames game="Keno" cash={money} onCash={setMoney} />
           )}
 
-          {section === "Slots" && (
+          {section === "Slot Machines" && (
             <CasinoGames game="Slots" cash={money} onCash={setMoney} />
           )}
 
-          {section === "Casinos" && (
-            <>
-              <p className="lead">The city's gaming rooms.</p>
-              <div className="nav-buttons">
-                {["Blackjack", "Roulette", "Slots", "Keno", "Racetrack"].map(name => (
-                  <button key={name} className="nav-item" onClick={() => setSection(name)}>
-                    {name}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
           {section === "Blackjack" && (
-            <p>Blackjack table — natural blackjack pays 3:2. Table rules and betting limits still need final specification.</p>
+            <p>Blackjack table. Betting and game controls are being developed.</p>
           )}
 
           {section === "Roulette" && (
-            <p>European roulette — single zero, numbers 0–36. Betting controls are being prepared.</p>
+            <p>European roulette. Betting and game controls are being developed.</p>
           )}
 
-          {section === "Racetrack" && (
-            <p>Racetrack — ten colours and the proposed multiplier ladder. Final colour-to-payout mapping and stake-return convention still need confirmation.</p>
-          )}
+          {section === "Home" && null}
 
           {section === "Auto Theft" && (
-            <p>Auto theft is being built next. This will become a separate repeatable activity with its own outcomes and rewards.</p>
+            <p>Auto theft will have its own jobs, vehicles and outcomes.</p>
+          )}
+
+          {section === "Bootlegging" && (
+            <p>Build your bootlegging operation and supply the city's demand.</p>
           )}
 
           {section === "Organised Crime" && (
-            <p>Organised jobs are being built next: four players, a leader, three invited crew members and a freely allocated 100% payout split locked when the job begins.</p>
+            <p>
+              Organised jobs will support four players, invitations and
+              a payout split totalling 100%.
+            </p>
           )}
 
           {section === "Whack" && (
-            <p>Player combat, weapons, bullets and protection will be implemented as server-validated actions.</p>
+            <p>Player combat, weapons, bullets and protection.</p>
           )}
 
-          {section === "Market" && (
-            <p>The market will list weapons, ammunition and other useful goods.</p>
+          {section === "Hitlist" && (
+            <p>View and manage your targets.</p>
           )}
 
-          {section === "Properties" && (
-            <p>Properties will provide a place in the city and future gameplay benefits.</p>
+          {section === "Rackets" && (
+            <p>Manage your criminal rackets around the city.</p>
           )}
 
-          {section === "Bank" && (
-            <p>Bank balance: £{player.bank.toLocaleString("en-GB")}. Deposits and withdrawals will be added here.</p>
+          {section === "Local Bank" && (
+            <p>
+              Bank balance: £{player.bank.toLocaleString("en-GB")}.
+              Deposits and withdrawals will be developed here.
+            </p>
+          )}
+
+          {section === "Marketplace" && (
+            <p>Buy and sell goods with other players.</p>
+          )}
+
+          {section === "Gun Shop" && (
+            <p>Weapons and ammunition will be available here.</p>
+          )}
+
+          {section === "Escrow" && (
+            <p>Secure player-to-player trading.</p>
           )}
 
           {section === "Rankings" && (
-            <p>The city rankings will list the most notorious players.</p>
+            <p>The city's most notorious players.</p>
+          )}
+
+          {section === "Statistics" && (
+            <p>Your criminal statistics and career history.</p>
+          )}
+
+          {section === "Find Player" && (
+            <p>Search for another player in Rumrunners.</p>
           )}
 
           {section === "Messages" && (
-            <p>Player-to-player messages and system notices will appear here.</p>
+            <p>Player-to-player messages and system notices.</p>
           )}
+
+          {section === "Mailbox" && (
+            <p>Your incoming messages.</p>
+          )}
+
+          {section === "Classifieds" && (
+            <p>Player advertisements and listings.</p>
+          )}
+
+          {section === "Off Topic" && (
+            <p>General conversation away from the game.</p>
+          )}
+
+          {section === "Crew" && (
+            <p>Your crew and criminal associates.</p>
+          )}
+
+          {section === "Updates" && (
+            <p>News and development updates from Rumrunners.</p>
+          )}
+
+          {section === "Cities" && (
+            <p>Explore the cities available in the game.</p>
+          )}
+
+          {section === "Jail" && (
+            <p>Jail information and sentence details.</p>
+          )}
+
+          {section === "Hospital" && (
+            <p>Medical treatment and recovery.</p>
+          )}
+
+          {section === "Graveyard" && (
+            <p>Remember those who have fallen.</p>
+          )}
+
+          {section === "Gymnasium" && (
+            <p>Train your character and improve your abilities.</p>
+          )}
+
+          {section === "Search" && (
+            <p>Search the city for opportunities.</p>
+          )}
+
+          {section === "Full Site" && (
+            <p>You are viewing the full Rumrunners game.</p>
+          )}
+
+          {section === "Suggestion Box" && (
+            <p>Send suggestions for future game improvements.</p>
+          )}
+
+          {section === "Rumrunners Live" && (
+            <p>Live news and activity from the underworld.</p>
+          )}
+
+          {section === "Wiki" && (
+            <p>The Rumrunners game guide.</p>
+          )}
+
+          {section === "Terms of Service" && (
+            <p>Game rules and terms of service.</p>
+          )}
+
+          {section === "Help Desk" && (
+            <p>Help and support for players.</p>
+          )}
+
+          {section === "Send Letter" && (
+            <p>Write a letter to another player.</p>
+          )}
+
+          {section === "Saved Mail" && (
+            <p>Your saved messages.</p>
+          )}
+
+          {section === "Gold" && (
+            <p>Gold account features.</p>
+          )}
+
+          {section === "Store" && (
+            <p>The Rumrunners store.</p>
+          )}
+
+          {section === "Pawn Shop" && (
+            <p>Buy and sell items at the pawn shop.</p>
+          )}
+
+          {section === "Stock Market" && (
+            <p>Investments and the stock market.</p>
+          )}
+
+          {section === "Train Station" && (
+            <p>Travel between cities.</p>
+          )}
+
+          {section === "Brothel" && (
+            <p>Visit the city's establishments.</p>
+          )}
+
+          {section === "Lottery" && (
+            <p>The city lottery.</p>
+          )}
+
+          {section === "Poker Run" && (
+            <p>Poker Run.</p>
+          )}
+
+          {section === "Race Track" && (
+            <p>Race Track.</p>
+          )}
+
+          {section === "Jacks or Better" && (
+            <p>Jacks or Better.</p>
+          )}
+
+          {section === "Sports Betting" && (
+            <p>Sports betting.</p>
+          )}
+
+          {section === "Auto Theft" && null}
+
+          {section === "Profile" && (
+            <p>Your player profile.</p>
+          )}
+
+          {section !== "Home" && notice && (
+            <p className="notice">{notice}</p>
+          )}
+
         </main>
 
         <aside className="right-panel">
@@ -350,7 +577,10 @@ export default function GameShell({
           </div>
 
           <div className="meter">
-            <i className="health" style={{ width: `${player.health}%` }} />
+            <i
+              className="health"
+              style={{ width: `${player.health}%` }}
+            />
           </div>
 
           <div className="meter-label">
@@ -359,9 +589,31 @@ export default function GameShell({
           </div>
 
           <div className="meter">
-            <i className="protection" style={{ width: `${player.protection}%` }} />
+            <i
+              className="protection"
+              style={{ width: `${player.protection}%` }}
+            />
           </div>
         </aside>
+      </div>
+
+      <div className="game-status-strip">
+        <div>
+          <span>Bank Account</span>
+          <strong>Ready</strong>
+        </div>
+        <div>
+          <span>Jail</span>
+          <strong>Free</strong>
+        </div>
+        <div>
+          <span>Organised Crime</span>
+          <strong>Ready</strong>
+        </div>
+        <div>
+          <span>Rackets</span>
+          <strong>Not active</strong>
+        </div>
       </div>
 
       <footer className="footer">
