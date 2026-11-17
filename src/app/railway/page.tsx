@@ -6,13 +6,9 @@ import { useCallback, useEffect, useState } from "react";
 type RailwayData = {
   cities: string[];
   currentCity: string;
-  travelDestination: string | null;
-  travelStartedAt: string | null;
-  travelArrivesAt: string | null;
-  gold: number;
-  isTravelling: boolean;
-  instantTravelCost: number;
-  travelDurationMinutes: number;
+  canTravel: boolean;
+  cooldownUntil: string | null;
+  cooldownRemainingMs: number;
 };
 
 const panelStyle: React.CSSProperties = {
@@ -74,22 +70,15 @@ export default function RailwayPage() {
   useEffect(() => {
     loadRailway();
 
-    const clock = setInterval(() => {
+    const clock = window.setInterval(() => {
       setNow(Date.now());
     }, 1000);
 
-    const refresh = setInterval(() => {
-      loadRailway();
-    }, 5000);
-
-    return () => {
-      clearInterval(clock);
-      clearInterval(refresh);
-    };
+    return () => window.clearInterval(clock);
   }, [loadRailway]);
 
-  async function travel(action: "travel" | "skip") {
-    if (busy) return;
+  async function travel() {
+    if (!destination || busy || !data) return;
 
     setBusy(true);
     setError("");
@@ -102,7 +91,7 @@ export default function RailwayPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          action,
+          action: "travel",
           destination,
         }),
       });
@@ -110,11 +99,37 @@ export default function RailwayPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error || "Your request could not be completed.");
-      } else {
-        setMessage(result.message || "Your request was successful.");
-        await loadRailway();
+        setError(result.error || "Your journey could not be completed.");
+
+        if (result.cooldownUntil) {
+          setData((previous) =>
+            previous
+              ? {
+                  ...previous,
+                  canTravel: false,
+                  cooldownUntil: result.cooldownUntil,
+                }
+              : previous
+          );
+        }
+
+        return;
       }
+
+      setData((previous) =>
+        previous
+          ? {
+              ...previous,
+              currentCity: result.currentCity,
+              canTravel: result.canTravel,
+              cooldownUntil: result.cooldownUntil,
+              cooldownRemainingMs: result.cooldownRemainingMs,
+            }
+          : previous
+      );
+
+      setDestination("");
+      setMessage(result.message || `You have arrived in ${result.currentCity}.`);
     } catch {
       setError("Unable to contact the Railway. Please try again.");
     } finally {
@@ -123,11 +138,7 @@ export default function RailwayPage() {
   }
 
   function formatTime(milliseconds: number) {
-    const totalSeconds = Math.max(
-      0,
-      Math.ceil(milliseconds / 1000)
-    );
-
+    const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -159,14 +170,11 @@ export default function RailwayPage() {
     );
   }
 
-  const travelling =
-    data.isTravelling &&
-    !!data.travelDestination &&
-    !!data.travelArrivesAt;
-
-  const remaining = travelling
-    ? new Date(data.travelArrivesAt!).getTime() - now
+  const remaining = data.cooldownUntil
+    ? Math.max(0, new Date(data.cooldownUntil).getTime() - now)
     : 0;
+
+  const canTravel = remaining === 0;
 
   const availableCities = data.cities.filter(
     (city) => city !== data.currentCity
@@ -214,13 +222,6 @@ export default function RailwayPage() {
           >
             {data.currentCity}
           </div>
-
-          <div style={{ color: "#aaa", marginTop: "8px" }}>
-            Gold balance:{" "}
-            <strong style={{ color: "#e5c46b" }}>
-              {data.gold.toLocaleString()}
-            </strong>
-          </div>
         </div>
       </section>
 
@@ -252,165 +253,114 @@ export default function RailwayPage() {
         </div>
       )}
 
-      {travelling ? (
-        <section style={panelStyle}>
-          <div style={headingStyle}>Journey in Progress</div>
+      <section style={panelStyle}>
+        <div style={headingStyle}>Travel Between Cities</div>
 
-          <div style={{ padding: "20px", textAlign: "center" }}>
-            <div style={{ color: "#999", fontSize: "12px" }}>
-              YOUR DESTINATION
-            </div>
-
-            <div
-              style={{
-                color: "#e1c49b",
-                fontSize: "27px",
-                fontWeight: 700,
-                margin: "8px 0 20px",
-              }}
-            >
-              {data.travelDestination}
-            </div>
-
-            <div style={{ color: "#aaa", fontSize: "12px" }}>
-              TIME REMAINING
-            </div>
-
-            <div
-              style={{
-                fontSize: "36px",
-                fontWeight: 700,
-                color: "#d9bd91",
-                fontVariantNumeric: "tabular-nums",
-                margin: "8px 0",
-              }}
-            >
-              {formatTime(remaining)}
-            </div>
-
-            <p style={{ color: "#999", fontSize: "13px" }}>
-              Your journey continues even when you log out.
-            </p>
-
-            <div
-              style={{
-                borderTop: "1px solid #38332d",
-                marginTop: "20px",
-                paddingTop: "18px",
-              }}
-            >
-              <p style={{ color: "#d8bd83" }}>
-                Arrive immediately for 10 Gold?
+        <div style={{ padding: "18px" }}>
+          {canTravel ? (
+            <>
+              <p style={{ color: "#aaa", marginTop: 0 }}>
+                Choose your destination. You will arrive immediately.
               </p>
+
+              <label
+                htmlFor="railway-destination"
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  color: "#d8bd91",
+                  fontSize: "13px",
+                }}
+              >
+                DESTINATION
+              </label>
+
+              <select
+                id="railway-destination"
+                value={destination}
+                onChange={(event) => setDestination(event.target.value)}
+                style={{
+                  width: "100%",
+                  maxWidth: "400px",
+                  padding: "12px",
+                  background: "#252525",
+                  border: "1px solid #66523d",
+                  color: "#eee",
+                  fontSize: "15px",
+                  marginBottom: "18px",
+                }}
+              >
+                <option value="">Select a destination...</option>
+
+                {availableCities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+
+              <div
+                style={{
+                  background: "#22201c",
+                  border: "1px solid #40382f",
+                  padding: "13px",
+                  marginBottom: "18px",
+                }}
+              >
+                <div style={{ color: "#aaa", fontSize: "12px" }}>
+                  TRAVEL TIME
+                </div>
+                <strong style={{ color: "#e1c49b" }}>
+                  Instant arrival
+                </strong>
+                <p
+                  style={{
+                    color: "#999",
+                    fontSize: "12px",
+                    marginBottom: 0,
+                  }}
+                >
+                  You can travel again after a one-hour cooldown.
+                </p>
+              </div>
 
               <button
                 style={{
                   ...buttonStyle,
-                  opacity: busy || data.gold < data.instantTravelCost
-                    ? 0.5
-                    : 1,
+                  opacity: !destination || busy ? 0.5 : 1,
                 }}
-                disabled={busy || data.gold < data.instantTravelCost}
-                onClick={() => travel("skip")}
+                disabled={!destination || busy}
+                onClick={travel}
               >
-                {busy
-                  ? "Please wait..."
-                  : `Arrive Now - ${data.instantTravelCost} Gold`}
+                {busy ? "Travelling..." : "Travel"}
               </button>
-
-              {data.gold < data.instantTravelCost && (
-                <p style={{ color: "#d88b8b", fontSize: "12px" }}>
-                  You need more Gold to use this option.
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section style={panelStyle}>
-          <div style={headingStyle}>Book Your Journey</div>
-
-          <div style={{ padding: "18px" }}>
-            <p style={{ color: "#aaa", marginTop: 0 }}>
-              Select the city you wish to travel to.
-            </p>
-
-            <label
-              htmlFor="railway-destination"
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                color: "#d8bd91",
-                fontSize: "13px",
-              }}
-            >
-              DESTINATION
-            </label>
-
-            <select
-              id="railway-destination"
-              value={destination}
-              onChange={(event) => setDestination(event.target.value)}
-              style={{
-                width: "100%",
-                maxWidth: "400px",
-                padding: "12px",
-                background: "#252525",
-                border: "1px solid #66523d",
-                color: "#eee",
-                fontSize: "15px",
-                marginBottom: "18px",
-              }}
-            >
-              <option value="">Select a destination...</option>
-
-              {availableCities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
-
-            <div
-              style={{
-                background: "#22201c",
-                border: "1px solid #40382f",
-                padding: "13px",
-                marginBottom: "18px",
-              }}
-            >
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: "12px" }}>
               <div style={{ color: "#aaa", fontSize: "12px" }}>
-                JOURNEY DURATION
+                NEXT TRAVEL AVAILABLE IN
               </div>
-              <strong style={{ color: "#e1c49b" }}>
-                1 hour
-              </strong>
 
-              <p
+              <div
                 style={{
-                  color: "#999",
-                  fontSize: "12px",
-                  marginBottom: 0,
+                  fontSize: "36px",
+                  fontWeight: 700,
+                  color: "#d9bd91",
+                  fontVariantNumeric: "tabular-nums",
+                  margin: "12px 0",
                 }}
               >
-                Travel time runs on real-world time, including while
-                you are logged out.
+                {formatTime(remaining)}
+              </div>
+
+              <p style={{ color: "#999", fontSize: "13px" }}>
+                You have arrived in {data.currentCity}. You can continue
+                playing while your travel cooldown runs.
               </p>
             </div>
-
-            <button
-              style={{
-                ...buttonStyle,
-                opacity: !destination || busy ? 0.5 : 1,
-              }}
-              disabled={!destination || busy}
-              onClick={() => travel("travel")}
-            >
-              {busy ? "Booking..." : "Travel"}
-            </button>
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+      </section>
 
       <section style={panelStyle}>
         <div style={headingStyle}>Available Cities</div>
@@ -418,7 +368,6 @@ export default function RailwayPage() {
         <div>
           {data.cities.map((city) => {
             const isCurrent = city === data.currentCity;
-            const isDestination = city === data.travelDestination;
 
             return (
               <div
@@ -439,19 +388,11 @@ export default function RailwayPage() {
                 <span
                   style={{
                     fontSize: "11px",
-                    color: isCurrent
-                      ? "#91c58d"
-                      : isDestination
-                        ? "#d8bd83"
-                        : "#888",
+                    color: isCurrent ? "#91c58d" : "#888",
                     textTransform: "uppercase",
                   }}
                 >
-                  {isCurrent
-                    ? "Your location"
-                    : isDestination
-                      ? "Your destination"
-                      : "Available"}
+                  {isCurrent ? "Your location" : "Available"}
                 </span>
               </div>
             );
