@@ -1,21 +1,33 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import {
   CRIME_COOLDOWN_SECONDS,
-  CRIME_ENERGY_COST,
+  CRIMES,
   energyAfterRegen,
+  levelFromXp,
   rollCrime
 } from "@/lib/game";
+import { rankForLevel } from "@/lib/ranks";
 
-export async function POST() {
+export async function POST(req: Request) {
   const userId = await getSessionUserId();
 
   if (!userId) {
     return NextResponse.json(
       { error: "Sign in first." },
       { status: 401 }
+    );
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const crimeId = typeof body.crimeId === "string" ? body.crimeId : "street_robbery";
+  const crime = CRIMES.find((c) => c.id === crimeId);
+
+  if (!crime) {
+    return NextResponse.json(
+      { error: "Unknown job." },
+      { status: 400 }
     );
   }
 
@@ -36,7 +48,12 @@ export async function POST() {
         now.getTime() - player.lastCrimeAt.getTime() <
           CRIME_COOLDOWN_SECONDS * 1000
       ) {
-        throw new Error("COOLDOWN");
+        const remaining = Math.ceil(
+          (CRIME_COOLDOWN_SECONDS * 1000 -
+            (now.getTime() - player.lastCrimeAt.getTime())) /
+            1000
+        );
+        throw new Error(`COOLDOWN:${remaining}`);
       }
 
       const regen = energyAfterRegen(
@@ -46,19 +63,28 @@ export async function POST() {
         now
       );
 
-      if (regen.energy < CRIME_ENERGY_COST) {
+      if (regen.energy < crime.energyCost) {
         throw new Error("NO_ENERGY");
       }
 
-      const roll = rollCrime();
+      if (player.rankLevel < crime.minRankLevel) {
+        throw new Error("RANK_TOO_LOW");
+      }
+
+      const roll = rollCrime(crime, player.rankLevel);
+      const newXp = player.experience + roll.xp;
+      const newLevel = levelFromXp(newXp);
+      const newRank = rankForLevel(newLevel);
 
       const updated = await tx.player.update({
         where: { id: player.id },
         data: {
-          energy: regen.energy - CRIME_ENERGY_COST,
+          energy: regen.energy - crime.energyCost,
           lastEnergyAt: regen.lastEnergyAt,
           money: { increment: roll.cash },
-          experience: { increment: roll.success ? 5 : 1 },
+          experience: newXp,
+          rankLevel: newLevel,
+          rank: newRank,
           lastCrimeAt: now
         }
       });
@@ -66,7 +92,7 @@ export async function POST() {
       await tx.crimeLog.create({
         data: {
           playerId: player.id,
-          crimeType: "Street robbery",
+          crimeType: crime.name,
           success: roll.success,
           cashChange: roll.cash
         }
@@ -76,19 +102,25 @@ export async function POST() {
         success: roll.success,
         cashChange: roll.cash,
         energy: updated.energy,
-        money: updated.money
+        money: updated.money,
+        experience: updated.experience,
+        rank: updated.rank,
+        rankLevel: updated.rankLevel,
+        crimeName: crime.name,
+        xpGained: roll.xp,
+        leveledUp: newLevel > player.rankLevel
       };
     });
 
     return NextResponse.json(result);
-
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "";
 
-    if (message === "COOLDOWN") {
+    if (message.startsWith("COOLDOWN:")) {
+      const remaining = message.split(":")[1];
       return NextResponse.json(
-        { error: "COOLDOWN" },
+        { error: "COOLDOWN", remaining: Number(remaining) },
         { status: 429 }
       );
     }
@@ -97,6 +129,13 @@ export async function POST() {
       return NextResponse.json(
         { error: "NO_ENERGY" },
         { status: 400 }
+      );
+    }
+
+    if (message === "RANK_TOO_LOW") {
+      return NextResponse.json(
+        { error: "RANK_TOO_LOW" },
+        { status: 403 }
       );
     }
 
