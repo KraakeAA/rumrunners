@@ -240,12 +240,20 @@ export default function GameShell({
           <span>£{money.toLocaleString("en-GB")}</span>
         </div>
 
-        <button
-          className="mobile-menu-toggle"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? "Close" : "Menu"}
-        </button>
+        
+<button
+  className="mobile-menu-toggle"
+  style={{
+    marginLeft: "auto",
+    flexShrink: 0,
+    order: 2,
+    alignSelf: "center"
+  }}
+  onClick={() => setMenuOpen(!menuOpen)}
+>
+  {menuOpen ? "Close" : "Menu"}
+</button>
+
       </header>
 
       {/* City, weather and UK time strip */}
