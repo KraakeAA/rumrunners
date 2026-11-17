@@ -76,7 +76,43 @@ export default function GameShell({
   const [money, setMoney] = useState(player.money);
   const [busy, setBusy] = useState(false);
   const [currentCity, setCurrentCity] = useState("London");
+  const [ukClock, setUkClock] = useState("--:--:--");
+  const [ukDate, setUkDate] = useState("Loading UK time");
 
+  // Shared UK clock display. Automatically follows GMT and BST.
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+
+      setUkClock(
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/London",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        }).format(now)
+      );
+
+      setUkDate(
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/London",
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        }).format(now)
+      );
+    };
+
+    updateClock();
+
+    const clockTimer = window.setInterval(updateClock, 1000);
+
+    return () => window.clearInterval(clockTimer);
+  }, []);
+
+  // Load the player's current city.
   useEffect(() => {
     let active = true;
 
@@ -94,7 +130,7 @@ export default function GameShell({
           setCurrentCity(data.currentCity);
         }
       } catch {
-        // Keep the last known/default city if the request fails.
+        // Keep the default city if the request fails.
       }
     }
 
@@ -212,30 +248,27 @@ export default function GameShell({
         </button>
       </header>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          padding: "9px 14px",
-          background: "#211d18",
-          borderTop: "1px solid #493b2d",
-          borderBottom: "1px solid #493b2d",
-          color: "#aaa",
-          fontSize: "12px"
-        }}
-      >
-        <span style={{ color: "#b99a70", letterSpacing: "1px" }}>
-          YOUR CITY
-        </span>
+      {/* City, weather and UK time strip */}
+      <div className="city-strip">
+        <div className="city-location">
+          <strong>{currentCity}</strong>
+          <span>
+            {currentCity === "London"
+              ? "Greater London"
+              : "Britain"}
+          </span>
+        </div>
 
-        <strong style={{ color: "#e2c49a", fontSize: "14px" }}>
-          {currentCity}
-        </strong>
+        <div className="city-weather">
+          <span aria-hidden="true">☁</span>
+          <span>Overcast</span>
+          <i aria-hidden="true" />
+        </div>
 
-        <span style={{ marginLeft: "auto", color: "#777" }}>
-          BRITAIN · 1933
-        </span>
+        <div className="city-era">
+          <strong>{ukClock}</strong>
+          <span>{ukDate} · UK TIME</span>
+        </div>
       </div>
 
       <div className="game-layout">
@@ -258,12 +291,9 @@ export default function GameShell({
             </>
           ) : (
             <div className="category-content">
-              <button
-                className="category-back"
-                onClick={() => setMenuOpen(false)}
-              >
-                « {selectedGroup}
-              </button>
+              <div className="game-section-heading">
+                {selectedGroup}
+              </div>
 
               <div className="nav-buttons">
                 {activeGroup?.items.map(item => (
@@ -285,7 +315,7 @@ export default function GameShell({
                 className="category-back"
                 onClick={() => setMenuOpen(false)}
               >
-                « All categories
+                ← All categories
               </button>
             </div>
           )}
@@ -362,8 +392,6 @@ export default function GameShell({
           {section === "Roulette" && (
             <p>European roulette. Betting and game controls are being developed.</p>
           )}
-
-          {section === "Home" && null}
 
           {section === "Auto Theft" && (
             <p>Auto theft will have its own jobs, vehicles and outcomes.</p>
@@ -546,8 +574,6 @@ export default function GameShell({
           {section === "Sports Betting" && (
             <p>Sports betting.</p>
           )}
-
-          {section === "Auto Theft" && null}
 
           {section === "Profile" && (
             <p>Your player profile.</p>
