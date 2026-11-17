@@ -37,6 +37,24 @@ model Player {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Profile information
+  profilePictureUrl String? @db.Text
+  profileQuote      String? @db.Text
+  profileStatus     String? @db.Text
+  statusExpiresAt   DateTime?
+  profileViews      Int     @default(0)
+
+  // Profile privacy and display preferences
+  profileVisible       Boolean @default(true)
+  showProfileViews     Boolean @default(true)
+  showHistory          Boolean @default(false)
+  showBirthday         Boolean @default(false)
+  showCountry          Boolean @default(false)
+  showOrganization     Boolean @default(true)
+  showOcStatus         Boolean @default(true)
+  allowProfileImages   Boolean @default(true)
+  friendsOnlyImages    Boolean @default(false)
+
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   inventory  InventoryItem[]
   crimeLogs  CrimeLog[]
