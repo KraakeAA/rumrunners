@@ -638,7 +638,7 @@ button, input { font: inherit; }
 .flavour { color: #c6baa7; line-height: 1.6; }
 .muted { color: var(--muted); }
 
-/* Casino (basic) */
+/* Casino */
 .casino-game {
   border-top: 1px solid var(--line);
   padding-top: 20px;
@@ -784,9 +784,16 @@ button, input { font: inherit; }
 
   .sidebar {
     display: none;
-    border-left: none;
-    border-bottom: 1px solid var(--line);
-    padding: 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: #1a1815;
+    padding: 20px 16px;
+    overflow-y: auto;
+    border: none;
   }
 
   .sidebar.menu-open {
@@ -814,6 +821,11 @@ button, input { font: inherit; }
 
   .crime-card .button {
     width: 100%;
+  }
+
+  .category-grid,
+  .nav-buttons {
+    grid-template-columns: 1fr 1fr;
   }
 
   .keno-grid {
