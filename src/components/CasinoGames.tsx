@@ -519,82 +519,268 @@ export default function CasinoGames({
     );
   }
 
-  // Existing Slots game retained.
+  // Rumrunners fruit machine.
+  const slotSymbols: Record<string, { src: string; alt: string }> = {
+    "7": { src: "/slots/seven.png", alt: "Lucky seven" },
+    BAR: { src: "/slots/bar-rum.png", alt: "BAR with rum bottle" },
+    "🍒": { src: "/slots/cherries.png", alt: "Cherries" },
+    "🍊": { src: "/slots/orange.png", alt: "Orange" },
+  };
+
+  const reels = result?.reels || ["7", "BAR", "🍒"];
+  const slotWon = Boolean(result && (result.payout || 0) > 0);
+
   return (
-    <section className="casino-game">
-      <div className="casino-title">
+    <section
+      className="casino-game"
+      style={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "18px 10px 24px",
+        boxSizing: "border-box",
+        background: "#050505",
+        color: "#f2f2f2",
+      }}
+    >
+      {/* Machine body */}
+      <div
+        style={{
+          width: "min(100%, 400px)",
+          overflow: "hidden",
+          border: "2px solid #817b72",
+          background: "#484848",
+          boxShadow: "0 3px 12px #0009",
+        }}
+      >
+        {/* Bronze title strip */}
+        <div
+          style={{
+            minHeight: 48,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "7px 10px",
+            boxSizing: "border-box",
+            borderBottom: "2px solid #8c8275",
+            background:
+              "linear-gradient(180deg, #6c5944 0%, #392d21 48%, #211a14 100%)",
+            color: "#f0e8dc",
+            fontSize: 20,
+            letterSpacing: 0.3,
+          }}
+        >
+          Slot Machines
+        </div>
+
+        {/* Three illustrated reels */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 2,
+            background: "#a9a6a2",
+            borderBottom: "2px solid #a49b8e",
+          }}
+        >
+          {reels.map((symbol, index) => {
+            const artwork = slotSymbols[symbol] || slotSymbols["7"];
+
+            return (
+              <div
+                key={`${index}-${symbol}`}
+                style={{
+                  height: "clamp(92px, 25vw, 130px)",
+                  minWidth: 0,
+                  background: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 5,
+                  boxSizing: "border-box",
+                }}
+              >
+                <img
+                  src={artwork.src}
+                  alt={artwork.alt}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Winning strip */}
+        <div
+          aria-live="polite"
+          style={{
+            minHeight: 43,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "7px 5px",
+            boxSizing: "border-box",
+            background: slotWon
+              ? "linear-gradient(180deg, #4c694f, #354b38)"
+              : "linear-gradient(180deg, #484848, #3e3e3e)",
+            borderBottom: "2px solid #8a8177",
+            color: "#f3f3f3",
+            textAlign: "center",
+            fontSize: 15,
+            lineHeight: 1.35,
+          }}
+        >
+          {result
+            ? slotWon
+              ? `You won £${(result.payout || 0).toLocaleString("en-GB")}`
+              : "No win this time"
+            : " "}
+        </div>
+
+        {/* Stake, pull handle and cash balance */}
+        <div
+          style={{
+            minHeight: 300,
+            padding: "42px 15px 28px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: 12,
+            boxSizing: "border-box",
+            background: "#484848",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 9,
+              width: "100%",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 43,
+                lineHeight: 1,
+                fontWeight: 300,
+                color: "#fff",
+              }}
+            >
+              £
+            </span>
+
+            <input
+              type="number"
+              min="1"
+              max="1000000"
+              step="1"
+              value={bet}
+              onChange={(e) => setBet(e.target.value)}
+              disabled={busy}
+              aria-label="Slot machine bet amount"
+              style={{
+                width: 125,
+                maxWidth: "55%",
+                height: 57,
+                padding: "5px 9px",
+                border: "1px solid #d5d5d5",
+                borderRadius: 9,
+                background: "#fff",
+                color: "#111",
+                fontSize: 27,
+                textAlign: "center",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={play}
+            disabled={busy}
+            style={{
+              minWidth: 170,
+              minHeight: 43,
+              padding: "6px 22px",
+              borderRadius: 24,
+              border: "2px solid #aaa",
+              background:
+                "linear-gradient(180deg, #f1f1f1 0%, #c9c9c9 52%, #999 100%)",
+              color: "#111",
+              fontSize: 20,
+              fontWeight: 500,
+              boxShadow: "0 2px 2px #222",
+              cursor: busy ? "wait" : "pointer",
+            }}
+          >
+            {busy ? "Pulling…" : "Pull Handle"}
+          </button>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 5,
+              fontSize: 17,
+              color: "#f1f1f1",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span aria-hidden="true">💵</span>
+            £{cash.toLocaleString("en-GB")}
+          </div>
+
+          {message && (
+            <div
+              role="alert"
+              style={{
+                width: "100%",
+                marginTop: 5,
+                padding: 8,
+                boxSizing: "border-box",
+                background: "#382522",
+                border: "1px solid #805044",
+                color: "#f0c5b5",
+                borderRadius: 3,
+                textAlign: "center",
+                fontSize: 13,
+              }}
+            >
+              {message}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Machine information beneath the cabinet */}
+      <div
+        style={{
+          width: "min(100%, 440px)",
+          padding: "28px 8px 0",
+          boxSizing: "border-box",
+          textAlign: "center",
+          fontSize: 14,
+          lineHeight: 1.8,
+          color: "#e8e8e8",
+        }}
+      >
         <div>
-          <p className="eyebrow">THE GAMING ROOMS</p>
-          <h2>{game}</h2>
+          This slot machine is owned by <strong>Rumrunners</strong>
         </div>
-
-        <div className="casino-cash">
-          Cash on hand
-          <b>£{cash.toLocaleString("en-GB")}</b>
+        <div>
+          The maximum bet is set at <strong>£1,000,000.</strong>
         </div>
       </div>
-
-      <div className="casino-controls">
-        <label>
-          Stake (£)
-          <input
-            type="number"
-            min="1"
-            max="1000000"
-            step="1"
-            value={bet}
-            onChange={(e) => setBet(e.target.value)}
-          />
-        </label>
-
-        <span className="selection-count">
-          Three-reel fruit machine
-        </span>
-
-        <button className="button" disabled={busy} onClick={play}>
-          {busy ? "Playing…" : "Spin reels"}
-        </button>
-      </div>
-
-      <div className="slot-machine">
-        <div className="slot-reels">
-          {(result?.reels || ["?", "?", "?"]).map((s, i) => (
-            <div className="slot-reel" key={i}>{s}</div>
-          ))}
-        </div>
-
-        <p>{result?.combination || "THE HOUSE FRUIT MACHINE"}</p>
-      </div>
-
-      <div className="payout-table">
-        <b>SLOT PAYOUTS</b>
-        <div className="payout-grid">
-          <span>2 × Cherry <b>2×</b></span>
-          <span>1 × 7 <b>5×</b></span>
-          <span>2 × 7 <b>10×</b></span>
-          <span>3 × Cherries <b>20×</b></span>
-          <span>3 × Oranges <b>50×</b></span>
-          <span>3 × BAR <b>100×</b></span>
-          <span>3 × 777 <b>500×</b></span>
-        </div>
-
-        <small>
-          One spin, one payout. Only the highest qualifying
-          prize is awarded.
-        </small>
-      </div>
-
-      {result && (
-        <p className="notice">
-          {result.net !== undefined && result.net >= 0
-            ? `You are up £${result.net.toLocaleString("en-GB")}.`
-            : `You are down £${Math.abs(
-                result.net || 0
-              ).toLocaleString("en-GB")}.`}
-        </p>
-      )}
-
-      {message && <p className="notice error">{message}</p>}
     </section>
   );
 }
