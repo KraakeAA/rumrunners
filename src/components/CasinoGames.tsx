@@ -1,826 +1,1177 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import CasinoGames from "@/components/CasinoGames";
+import { CRIMES, xpForLevel } from "@/lib/game";
 
-type Result = {
-  error?: string;
-  money?: number;
-  bet?: number;
-  payout?: number;
-  net?: number;
-  drawn?: number[];
-  matches?: number;
-  multiplier?: number;
-  reels?: string[];
-  combination?: string;
+type Player = {
+  username: string;
+  rank: string;
+  rankLevel: number;
+  money: number;
+  bank: number;
+  gold: number;
+  bullets: number;
+  health: number;
+  protection: number;
+  energy: number;
+  maxEnergy: number;
+  experience: number;
+  lastCrimeAt: string | null;
+  currentCity: string;
 };
 
-type Props = {
-  game: "Keno" | "Slots";
-  cash: number;
-  onCash: (cash: number) => void;
+type CrimeLog = {
+  crimeType: string;
+  success: boolean;
+  cashChange: number;
+  createdAt: string;
 };
 
-const goldButton: React.CSSProperties = {
-  padding: "5px 10px",
-  border: "1px solid #b49a70",
-  borderRadius: 3,
-  background: "linear-gradient(180deg, #725839, #392819)",
-  color: "#f0dfbd",
-  fontSize: 12,
-  cursor: "pointer",
-};
+const menuGroups = [
+  {
+    title: "Main",
+    items: [
+      "Home", "Updates", "Suggestion Box", "Rumrunners Live",
+      "Wiki", "Terms of Service", "Find Player", "Help Desk",
+      "Profile", "Cities", "Statistics", "Users Online",
+      "Logout", "Full Site"
+    ]
+  },
+  {
+    title: "Messaging",
+    items: [
+      "Forums", "Crew", "Game", "Classifieds",
+      "Off Topic", "Mailbox", "Saved Mail", "Send Letter"
+    ]
+  },
+  {
+    title: "Campaign",
+    items: [
+      "Auto Theft", "Bootlegging", "Crew", "Crimes",
+      "Graveyard", "Gymnasium", "Whack", "Hitlist",
+      "Organised Crime", "Rackets", "Search", "Shooting Range"
+    ]
+  },
+  {
+    title: "Resources",
+    items: [
+      "Gun Shop", "Escrow", "Store", "Gold",
+      "Marketplace", "Hospital", "Jail", "Local Bank",
+      "Pawn Shop", "Stock Market", "Railway", "Brothel"
+    ]
+  },
+  {
+    title: "Casino",
+    items: [
+      "Blackjack", "Jacks or Better", "Keno", "Lottery",
+      "Poker Run", "Race Track", "Roulette",
+      "Slot Machines", "Sports Betting"
+    ]
+  }
+];
 
-export default function CasinoGames({ game, cash, onCash }: Props) {
-  const [bet, setBet] = useState("10");
-  const [selected, setSelected] = useState<number[]>([]);
-  const [savedNumbers, setSavedNumbers] = useState<number[]>([]);
+export default function GameShell({
+  player,
+  isAdmin = false,
+  playerId,
+  recentCrimes = []
+}: {
+  player: Player;
+  isAdmin?: boolean;
+  playerId: string;
+  recentCrimes?: CrimeLog[];
+}) {
+  const [section, setSection] = useState("Home");
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [energy, setEnergy] = useState(player.energy);
+  const [money, setMoney] = useState(player.money);
+  const [bank, setBank] = useState(player.bank);
+  const [rank, setRank] = useState(player.rank);
+  const [rankLevel, setRankLevel] = useState(player.rankLevel);
+  const [experience, setExperience] = useState(player.experience);
+  const [lastCrimeAt, setLastCrimeAt] = useState(player.lastCrimeAt);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [result, setResult] = useState<Result | null>(null);
+  const [currentCity, setCurrentCity] = useState(player.currentCity || "London");
+  const [ukClock, setUkClock] = useState("--:--:--");
+  const [ukDate, setUkDate] = useState("Loading UK time");
+  const [crimeCooldown, setCrimeCooldown] = useState(0);
+  const [bankAmount, setBankAmount] = useState("100");
+  const [localCrimes, setLocalCrimes] = useState(recentCrimes);
 
-  const numbers = useMemo(
-    () => Array.from({ length: 80 }, (_, i) => i + 1),
-    []
-  );
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
 
-  function toggleNumber(number: number) {
-    if (busy) return;
+      setUkClock(
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/London",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        }).format(now)
+      );
 
-    setMessage("");
-    setResult(null);
+      setUkDate(
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/London",
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        }).format(now)
+      );
+    };
 
-    setSelected((current) =>
-      current.includes(number)
-        ? current.filter((n) => n !== number)
-        : current.length < 10
-          ? [...current, number]
-          : current
-    );
-  }
+    updateClock();
+    const clockTimer = window.setInterval(updateClock, 1000);
 
-  function clearNumbers() {
-    if (busy) return;
-    setSelected([]);
-    setResult(null);
-    setMessage("");
-  }
+    return () => window.clearInterval(clockTimer);
+  }, []);
 
-  function saveNumbers() {
-    if (selected.length !== 10) {
-      setMessage("Choose exactly 10 numbers before saving.");
-      return;
+  useEffect(() => {
+    const tick = () => {
+      if (!lastCrimeAt) {
+        setCrimeCooldown(0);
+        return;
+      }
+
+      const elapsed =
+        (Date.now() - new Date(lastCrimeAt).getTime()) / 1000;
+
+      const remaining = Math.max(0, 90 - Math.floor(elapsed));
+      setCrimeCooldown(remaining);
+    };
+
+    tick();
+    const t = window.setInterval(tick, 1000);
+
+    return () => window.clearInterval(t);
+  }, [lastCrimeAt]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadLocation() {
+      try {
+        const response = await fetch("/api/travel", {
+          cache: "no-store"
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (active && typeof data.currentCity === "string") {
+          setCurrentCity(data.currentCity);
+        }
+      } catch {
+        // Keep the current city if the request fails.
+      }
     }
 
-    setSavedNumbers([...selected]);
-    setMessage("Your numbers have been saved.");
-  }
+    loadLocation();
 
-  function loadSavedNumbers() {
-    if (savedNumbers.length !== 10) {
-      setMessage("You haven't saved a set of numbers yet.");
-      return;
-    }
+    return () => {
+      active = false;
+    };
+  }, []);
 
-    setSelected([...savedNumbers]);
-    setResult(null);
-    setMessage("");
-  }
+  const xpCurrent = experience;
+  const xpNext = xpForLevel(rankLevel + 1);
+  const xpPrev = xpForLevel(rankLevel);
 
-  async function play() {
-    setMessage("");
-    setResult(null);
+  const xpProgress =
+    xpNext > xpPrev
+      ? Math.min(
+          100,
+          Math.floor(
+            ((xpCurrent - xpPrev) / (xpNext - xpPrev)) * 100
+          )
+        )
+      : 100;
 
-    const stake = Number(bet);
-
-    if (!Number.isSafeInteger(stake) || stake < 1) {
-      setMessage("Enter a valid whole-number stake.");
-      return;
-    }
-
-    if (game === "Keno" && selected.length !== 10) {
-      setMessage("Choose exactly 10 numbers.");
-      return;
-    }
-
+  async function commitCrime(crimeId: string) {
     setBusy(true);
+    setNotice("");
 
     try {
-      const response = await fetch(`/api/game/${game.toLowerCase()}`, {
+      const response = await fetch("/api/game/crime", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(
-          game === "Keno"
-            ? { bet: stake, selected }
-            : { bet: stake }
-        ),
+        body: JSON.stringify({ crimeId })
       });
 
-      const data: Result = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error || "The game could not be played.");
-      } else {
-        setResult(data);
-
-        if (typeof data.money === "number") {
-          onCash(data.money);
+        if (data.error === "COOLDOWN") {
+          setNotice(
+            `The streets are still hot. Wait ${data.remaining ?? "a few"} seconds.`
+          );
+        } else if (data.error === "NO_ENERGY") {
+          setNotice("You're exhausted. Wait for your energy to recover.");
+        } else if (data.error === "RANK_TOO_LOW") {
+          setNotice("You need a higher rank for that job.");
+        } else {
+          setNotice(data.error || "The job failed.");
         }
+
+        return;
+      }
+
+      setEnergy(data.energy);
+      setMoney(data.money);
+      setExperience(data.experience);
+      setRank(data.rank);
+      setRankLevel(data.rankLevel);
+      setLastCrimeAt(new Date().toISOString());
+
+      setLocalCrimes((prev) =>
+        [
+          {
+            crimeType: data.crimeName,
+            success: data.success,
+            cashChange: data.cashChange,
+            createdAt: new Date().toISOString()
+          },
+          ...prev
+        ].slice(0, 8)
+      );
+
+      if (data.leveledUp) {
+        setNotice(
+          data.success
+            ? `Job successful. You took £${data.cashChange.toLocaleString("en-GB")}. Rank up — you are now ${data.rank}.`
+            : `The job went wrong, but you still gained experience. Rank up — you are now ${data.rank}.`
+        );
+      } else {
+        setNotice(
+          data.success
+            ? `Job successful. You pocketed £${data.cashChange.toLocaleString("en-GB")} (+${data.xpGained} XP).`
+            : `The job went wrong. You got away empty-handed (+${data.xpGained} XP).`
+        );
       }
     } catch {
-      setMessage("Unable to connect. Please try again.");
+      setNotice("Unable to connect. Please try again.");
     } finally {
       setBusy(false);
     }
   }
 
-  if (game === "Keno") {
-    const drawn = result?.drawn || [];
-    const matches = selected.filter((n) => drawn.includes(n));
+  async function bankAction(action: "deposit" | "withdraw") {
+    const amount = Number(bankAmount);
 
-    return (
-      <section
+    if (!Number.isSafeInteger(amount) || amount < 1) {
+      setNotice("Enter a whole number amount.");
+      return;
+    }
+
+    setBusy(true);
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/game/bank", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ action, amount })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setNotice(data.error || "Bank transaction failed.");
+        return;
+      }
+
+      setMoney(data.money);
+      setBank(data.bank);
+
+      setNotice(
+        action === "deposit"
+          ? `Deposited £${amount.toLocaleString("en-GB")}.`
+          : `Withdrew £${amount.toLocaleString("en-GB")}.`
+      );
+    } catch {
+      setNotice("Unable to reach the bank.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function navigate(item: string) {
+    setNotice("");
+    setMenuOpen(false);
+    setSelectedGroup("");
+
+    if (item === "Logout") {
+      window.location.href = "/logout";
+      return;
+    }
+
+    if (item === "Profile") {
+      window.location.href =
+        `/profile/${encodeURIComponent(player.username)}`;
+      return;
+    }
+
+    if (item === "Users Online") {
+      window.location.href = "/users-online";
+      return;
+    }
+
+    if (item === "Forums") {
+      window.location.href = "/forum";
+      return;
+    }
+
+    if (item === "Railway") {
+      window.location.href = "/railway";
+      return;
+    }
+
+    setSection(item);
+  }
+
+  const availableCrimes = useMemo(
+    () => CRIMES.filter((c) => c.minRankLevel <= rankLevel + 1),
+    [rankLevel]
+  );
+
+  return (
+    <div className="game">
+      {/* TOP BAR */}
+      <header
+        className="topbar"
         style={{
-          width: "100%",
-          boxSizing: "border-box",
-          overflow: "hidden",
-          border: "1px solid #806747",
-          borderRadius: 4,
-          background: "#29231d",
-          color: "#e8e0d4",
-          fontFamily: "Arial, sans-serif",
+          minHeight: 62,
+          height: "auto",
+          padding: "8px 12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          flexWrap: "nowrap",
+          background: "linear-gradient(180deg, #242019, #171512)",
+          borderBottom: "1px solid #55452e"
         }}
       >
+        {/* CASH AND BANK — TOP LEFT */}
         <div
+          aria-label="Player money"
           style={{
-            minHeight: 43,
-            padding: 8,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-            boxSizing: "border-box",
-            background:
-              "linear-gradient(180deg, #94764d, #59432b 50%, #302115)",
-            borderBottom: "2px solid #b49a70",
+            flexDirection: "column",
+            gap: 2,
+            minWidth: 0,
+            color: "#ead9b8",
+            fontSize: 13,
+            lineHeight: 1.25
           }}
         >
           <strong
             style={{
-              color: "#f0dfbd",
-              fontFamily: "Georgia, serif",
-              fontSize: 19,
-              letterSpacing: 1,
+              fontSize: 15,
+              whiteSpace: "nowrap"
             }}
           >
-            Keno
+            £{money.toLocaleString("en-GB")}
           </strong>
+
           <span
             style={{
-              position: "absolute",
-              right: 12,
-              color: "#d2b783",
-              fontSize: 19,
+              color: "#b9a783",
+              whiteSpace: "nowrap"
             }}
           >
-            ⓘ
+            Bank £{bank.toLocaleString("en-GB")}
           </span>
         </div>
 
-        <div
-          style={{
-            padding: 7,
-            textAlign: "center",
-            background: "#34291e",
-            borderBottom: "1px solid #705638",
-            fontSize: 14,
-            color: "#e2cda9",
-          }}
-        >
-          <span style={{ color: "#bd8b4d" }}>◉</span> Keno Draw
-        </div>
-
-        {result && (
-          <div
-            style={{
-              margin: "10px 10px 5px",
-              padding: 14,
-              borderRadius: 4,
-              background: "#403b38",
-              textAlign: "center",
-              fontSize: 14,
-              lineHeight: 1.5,
-              color: "#e6e1dc",
-              fontWeight: 700,
-            }}
-          >
-            {matches.length > 0 ? (
-              <>
-                You matched {result.matches} numbers and won £
-                {(result.payout || 0).toLocaleString("en-GB")}!
-              </>
-            ) : (
-              <>You matched 0 numbers and won £0!</>
-            )}
-          </div>
-        )}
-
-        {!result && (
-          <div
-            style={{
-              margin: "9px 10px 5px",
-              padding: 8,
-              background: "#302820",
-              border: "1px solid #705638",
-              borderRadius: 3,
-              textAlign: "center",
-              fontSize: 12,
-              color: "#d4c09e",
-            }}
-          >
-            Choose 10 numbers · {selected.length}/10 selected
-          </div>
-        )}
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
-            gap: 2,
-            padding: "7px 9px 3px",
-            background: "#29231d",
-            boxSizing: "border-box",
-          }}
-        >
-          {numbers.map((number) => {
-            const isSelected = selected.includes(number);
-            const isDrawn = drawn.includes(number);
-            const isMatch = isSelected && isDrawn;
-
-            let background = "#393633";
-            let color = "#bdb5a9";
-            let border = "1px solid #62594e";
-
-            if (isSelected) {
-              background = "linear-gradient(145deg, #713b38, #482522)";
-              color = "#f3ded2";
-              border = "1px solid #a66b58";
-            }
-
-            if (isDrawn && !isSelected) {
-              background = "linear-gradient(145deg, #344653, #202d37)";
-              color = "#d1dce1";
-              border = "1px solid #60798a";
-            }
-
-            if (isMatch) {
-              background = "linear-gradient(145deg, #a83bd0, #69218b)";
-              color = "#fff2ff";
-              border = "1px solid #d58af0";
-            }
-
-            return (
-              <button
-                key={number}
-                type="button"
-                onClick={() => toggleNumber(number)}
-                disabled={busy}
-                aria-label={`Number ${number}`}
-                style={{
-                  minWidth: 0,
-                  width: "100%",
-                  aspectRatio: "1 / 1",
-                  padding: 0,
-                  margin: 0,
-                  borderRadius: 2,
-                  border,
-                  background,
-                  color,
-                  fontSize: "clamp(10px, 3.5vw, 16px)",
-                  fontWeight: isMatch ? 700 : 500,
-                  display: "grid",
-                  placeItems: "center",
-                  cursor: busy ? "default" : "pointer",
-                  boxSizing: "border-box",
-                  WebkitAppearance: "none",
-                }}
-              >
-                {number}
-              </button>
-            );
-          })}
-        </div>
-
-        <div
+        {/* MESSAGE, JAIL AND MENU — TOP RIGHT */}
+        <nav
+          aria-label="Game shortcuts"
           style={{
             display: "flex",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            gap: "5px 12px",
-            padding: "5px 8px 7px",
-            fontSize: 10,
-            color: "#c5b497",
-          }}
-        >
-          <span><b style={{ color: "#c66be5" }}>■</b> Winning match</span>
-          <span><b style={{ color: "#a36a60" }}>■</b> Your selection</span>
-          <span><b style={{ color: "#718b9b" }}>■</b> Other drawn</span>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto 1fr",
             alignItems: "center",
-            gap: 5,
-            padding: "7px 11px 3px",
-            borderTop: "1px solid #705638",
-            background: "#29231d",
+            justifyContent: "flex-end",
+            gap: 7,
+            flexShrink: 0,
+            marginLeft: "auto"
           }}
         >
-          <div style={{ justifySelf: "start" }}>
-            <button
-              type="button"
-              onClick={clearNumbers}
-              disabled={busy}
-              style={goldButton}
-            >
-              Clear!
-            </button>
-          </div>
-
-          <strong
+          <button
+            type="button"
+            aria-label="Messages"
+            title="Messages"
+            onClick={() => navigate("Mailbox")}
             style={{
-              fontSize: 13,
-              textAlign: "center",
-              whiteSpace: "nowrap",
-              color: "#e1c48e",
+              width: 38,
+              height: 38,
+              display: "grid",
+              placeItems: "center",
+              padding: 0,
+              border: "1px solid #65543b",
+              borderRadius: 3,
+              background: "linear-gradient(180deg, #393126, #211c16)",
+              color: "#e8d7b6",
+              fontSize: 21,
+              cursor: "pointer"
             }}
           >
-            💵 £{cash.toLocaleString("en-GB")}
-          </strong>
-
-          <div style={{ justifySelf: "end" }}>
-            <button
-              type="button"
-              onClick={
-                savedNumbers.length === 10
-                  ? loadSavedNumbers
-                  : saveNumbers
-              }
-              disabled={busy}
-              style={goldButton}
-            >
-              {savedNumbers.length === 10 ? "Load!" : "Save!"}
-            </button>
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: 6,
-            padding: "12px 8px 5px",
-            width: "100%",
-            boxSizing: "border-box",
-            background: "#29231d",
-          }}
-        >
-          <span style={{ fontSize: 14, color: "#c4ad85" }}>£</span>
-
-          <input
-            type="number"
-            min="1"
-            step="1"
-            value={bet}
-            onChange={(e) => setBet(e.target.value)}
-            disabled={busy}
-            aria-label="Keno bet amount"
-            style={{
-              width: "min(47%, 190px)",
-              minWidth: 90,
-              height: 42,
-              padding: "5px 10px",
-              background: "#171411",
-              color: "#ead9b8",
-              border: "1px solid #94764c",
-              borderRadius: 3,
-              fontSize: 19,
-              boxSizing: "border-box",
-            }}
-          />
+            ✉
+          </button>
 
           <button
             type="button"
-            onClick={play}
-            disabled={busy}
+            aria-label="Jail"
+            title="Jail"
+            onClick={() => navigate("Jail")}
             style={{
-              padding: "7px 16px",
-              minHeight: 38,
+              width: 38,
+              height: 38,
+              display: "grid",
+              placeItems: "center",
+              padding: 0,
+              border: "1px solid #65543b",
               borderRadius: 3,
-              background: "linear-gradient(180deg, #987345, #614528)",
-              color: "#fff0d5",
-              border: "1px solid #c3a06a",
-              fontSize: 14,
-              fontWeight: 700,
-              whiteSpace: "nowrap",
-              cursor: busy ? "wait" : "pointer",
+              background: "linear-gradient(180deg, #393126, #211c16)",
+              color: "#e8d7b6",
+              fontSize: 21,
+              cursor: "pointer"
             }}
           >
-            {busy ? "Playing…" : "Bet!"}
+            ▥
           </button>
-        </div>
 
-        <div
-          style={{
-            textAlign: "center",
-            padding: "5px 8px 12px",
-            fontSize: 12,
-            lineHeight: 1.8,
-            color: "#c4b69f",
-            background: "#29231d",
-          }}
-        >
-          <div>
-            <strong style={{ color: "#ddc18d" }}>Maximum bet:</strong>
-            {" "}As permitted by the game
-          </div>
-          <div>
-            <strong style={{ color: "#ddc18d" }}>Numbers selected:</strong>
-            {" "}{selected.length}/10
-          </div>
-        </div>
-
-        {result?.drawn && (
-          <div
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => {
+              setMenuOpen(!menuOpen);
+              setSelectedGroup("");
+            }}
             style={{
-              margin: "0 10px 10px",
-              padding: 8,
-              background: "#302820",
-              border: "1px solid #705638",
+              minWidth: 70,
+              height: 38,
+              padding: "0 12px",
+              marginLeft: 1,
+              border: "1px solid #a88b5b",
               borderRadius: 3,
-              textAlign: "center",
-              fontSize: 11,
-              color: "#cbb99a",
-              lineHeight: 1.8,
+              background: "linear-gradient(180deg, #4a3b28, #292117)",
+              color: "#f0dfc0",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer"
             }}
           >
-            <strong>Drawn numbers:</strong>
-            <div>{result.drawn.join(" · ")}</div>
-            <strong>Matches:</strong> {result.matches}
-            {" · "}
-            <strong>Multiplier:</strong> {result.multiplier}×
-          </div>
-        )}
+            {menuOpen ? "Close" : "Menu"}
+          </button>
+        </nav>
+      </header>
 
-        {message && (
-          <div
-            style={{
-              margin: "0 10px 10px",
-              padding: 8,
-              background: "#382522",
-              border: "1px solid #805044",
-              color: "#e6b9a7",
-              borderRadius: 3,
-              textAlign: "center",
-              fontSize: 12,
-            }}
-          >
-            {message}
-          </div>
-        )}
-      </section>
-    );
-  }
-
-  const slotSymbols: Record<string, { src: string; alt: string }> = {
-    "7": {
-      src: "/seven.png",
-      alt: "Lucky seven",
-    },
-    BAR: {
-      src: "/bar-rum.png",
-      alt: "BAR with rum bottle",
-    },
-    "🍒": {
-      src: "/cherries.png",
-      alt: "Cherries",
-    },
-    "🍊": {
-      src: "/orange.png",
-      alt: "Orange",
-    },
-  };
-
-  function getSlotArtwork(symbol: string) {
-    const key = symbol.trim();
-    const normalised = key.toLowerCase();
-
-    if (
-      key === "7" ||
-      normalised === "seven" ||
-      normalised === "777"
-    ) {
-      return slotSymbols["7"];
-    }
-
-    if (key === "BAR" || normalised === "bar") {
-      return slotSymbols.BAR;
-    }
-
-    if (
-      key === "🍒" ||
-      normalised === "cherries" ||
-      normalised === "cherry"
-    ) {
-      return slotSymbols["🍒"];
-    }
-
-    if (
-      key === "🍊" ||
-      normalised === "orange" ||
-      normalised === "oranges"
-    ) {
-      return slotSymbols["🍊"];
-    }
-
-    return slotSymbols["7"];
-  }
-
-  const reels = result?.reels || ["7", "BAR", "🍒"];
-  const slotWon = Boolean(result && (result.payout || 0) > 0);
-
-  return (
-    <section
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "6px 0 12px",
-        boxSizing: "border-box",
-        background: "transparent",
-        color: "#f2eadb",
-      }}
-    >
+      {/* CITY LEFT, UK TIME RIGHT */}
       <div
+        className="city-strip"
         style={{
-          width: "min(100%, 360px)",
-          overflow: "hidden",
-          border: "2px solid #b49a70",
-          borderRadius: 2,
-          background:
-            "linear-gradient(145deg, #665033 0%, #49351f 40%, #2c1e10 100%)",
-          boxShadow:
-            "0 3px 10px #0008, inset 0 0 0 1px #80643e",
+          minHeight: 58,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "nowrap",
+          gap: 8,
+          padding: "7px 13px",
+          background: "#1b1814",
+          borderBottom: "1px solid #55452e"
         }}
       >
-        {/* Antique gold machine header */}
         <div
           style={{
-            minHeight: 42,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            padding: "6px 8px",
-            boxSizing: "border-box",
-            borderBottom: "2px solid #c1a16b",
-            background:
-              "linear-gradient(180deg, #a18459 0%, #80613d 30%, #594027 68%, #382617 100%)",
-            color: "#f4dfb7",
-            fontFamily: "Georgia, serif",
-            fontSize: 19,
-            letterSpacing: 0.5,
-            textShadow: "0 1px 3px #000",
-          }}
-        >
-          Slot Machines
-        </div>
-
-        {/* Three compact reel windows */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 2,
-            padding: 3,
-            background:
-              "linear-gradient(180deg, #c6a979, #94744b 55%, #62472b)",
-            borderBottom: "2px solid #b49a70",
-          }}
-        >
-          {reels.map((symbol, index) => {
-            const artwork = getSlotArtwork(symbol);
-
-            return (
-              <div
-                key={`${index}-${symbol}`}
-                style={{
-                  height: "clamp(76px, 22vw, 105px)",
-                  minWidth: 0,
-                  background: "#fffaf0",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 4,
-                  boxSizing: "border-box",
-                  border: "1px solid #d8c49f",
-                  boxShadow: "inset 0 0 5px #9b8157",
-                  overflow: "hidden",
-                }}
-              >
-                <img
-                  src={artwork.src}
-                  alt={artwork.alt}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Win or no-win message */}
-        <div
-          aria-live="polite"
-          style={{
-            minHeight: 39,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "6px 5px",
-            boxSizing: "border-box",
-            background: slotWon
-              ? "linear-gradient(180deg, #61764f, #405638)"
-              : "linear-gradient(180deg, #80613c, #584027)",
-            borderBottom: "2px solid #b49a70",
-            color: "#f4e6c7",
-            textAlign: "center",
-            fontSize: 14,
-            fontWeight: 700,
-            lineHeight: 1.3,
-            textShadow: "0 1px 2px #0008",
-          }}
-        >
-          {result
-            ? slotWon
-              ? `You won £${(result.payout || 0).toLocaleString("en-GB")}`
-              : "No win this time"
-            : "Ready to play"}
-        </div>
-
-        {/* Compact bronze and gold control cabinet */}
-        <div
-          style={{
-            minHeight: 225,
-            padding: "24px 12px 20px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-start",
             gap: 10,
-            boxSizing: "border-box",
-            background:
-              "linear-gradient(145deg, #70583b 0%, #5b452d 25%, #493520 55%, #352516 80%, #291b10 100%)",
-            boxShadow:
-              "inset 0 2px 8px #c4a16b33, inset 0 -5px 12px #120b05aa",
+            minWidth: 0
           }}
         >
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              width: "100%",
-            }}
+            className="city-location"
+            style={{ flexShrink: 0 }}
           >
-            <span
-              style={{
-                fontSize: 37,
-                lineHeight: 1,
-                fontWeight: 300,
-                color: "#f0d7a5",
-                textShadow: "0 1px 3px #000",
-              }}
-            >
-              £
+            <strong>{currentCity}</strong>
+            <span>
+              {currentCity === "London"
+                ? "Greater London"
+                : "Britain"}
             </span>
-
-            <input
-              type="number"
-              min="1"
-              max="1000000"
-              step="1"
-              value={bet}
-              onChange={(e) => setBet(e.target.value)}
-              disabled={busy}
-              aria-label="Slot machine bet amount"
-              style={{
-                width: 112,
-                maxWidth: "55%",
-                height: 49,
-                padding: "5px 8px",
-                border: "2px solid #c4a675",
-                borderRadius: 7,
-                background: "#f7f4ed",
-                color: "#17120c",
-                fontSize: 24,
-                textAlign: "center",
-                boxSizing: "border-box",
-              }}
-            />
           </div>
-
-          <button
-            type="button"
-            onClick={play}
-            disabled={busy}
-            style={{
-              minWidth: 155,
-              minHeight: 39,
-              padding: "5px 18px",
-              borderRadius: 24,
-              border: "2px solid #c5b18c",
-              background:
-                "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
-              color: "#17130e",
-              fontSize: 18,
-              fontWeight: 500,
-              boxShadow: "0 2px 3px #100d09",
-              cursor: busy ? "wait" : "pointer",
-            }}
-          >
-            {busy ? "Pulling…" : "Pull Handle"}
-          </button>
 
           <div
+            className="city-weather"
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: 7,
-              marginTop: 3,
-              fontSize: 15,
-              color: "#f0dfbd",
+              gap: 4,
               whiteSpace: "nowrap",
-              textShadow: "0 1px 2px #000",
+              fontSize: 12
             }}
           >
-            <span aria-hidden="true">💵</span>
-            £{cash.toLocaleString("en-GB")}
+            <span aria-hidden="true">☁</span>
+            <span>Overcast</span>
           </div>
+        </div>
 
-          {message && (
-            <div
-              role="alert"
-              style={{
-                width: "100%",
-                marginTop: 5,
-                padding: 8,
-                boxSizing: "border-box",
-                background: "#382522",
-                border: "1px solid #b18a5b",
-                color: "#f0c5b5",
-                borderRadius: 3,
-                textAlign: "center",
-                fontSize: 12,
-              }}
-            >
-              {message}
+        <div
+          className="city-era"
+          style={{
+            width: "auto",
+            marginLeft: "auto",
+            flexShrink: 0,
+            textAlign: "right",
+            lineHeight: 1.25
+          }}
+        >
+          <strong style={{ fontSize: 15 }}>
+            {ukClock}
+          </strong>
+          <span style={{ fontSize: 10 }}>
+            {ukDate} · UK TIME
+          </span>
+        </div>
+      </div>
+
+      {/* STATUS INDICATORS MOVED TO THE TOP */}
+      <div
+        className="game-status-strip"
+        style={{
+          display: "flex",
+          gap: 5,
+          padding: "6px 8px",
+          background: "#151310",
+          borderTop: "0",
+          borderBottom: "1px solid #494033"
+        }}
+      >
+        <div>
+          <span>Bank</span>
+          <strong>Ready</strong>
+        </div>
+
+        <div>
+          <span>Jail</span>
+          <strong>Free</strong>
+        </div>
+
+        <div>
+          <span>Organised Crime</span>
+          <strong>Ready</strong>
+        </div>
+
+        <div>
+          <span>Rackets</span>
+          <strong>Not active</strong>
+        </div>
+      </div>
+
+      <div className="game-layout">
+        <main className="main-content">
+          {section === "Home" && (
+            <>
+              <p className="lead">
+                The city is awake. Opportunity waits for nobody.
+              </p>
+
+              <div className="dash-grid">
+                <div className="dash-card">
+                  <h3>Your standing</h3>
+                  <p className="dash-rank">{rank}</p>
+
+                  <div className="xp-bar-wrap">
+                    <div className="xp-bar">
+                      <i style={{ width: `${xpProgress}%` }} />
+                    </div>
+
+                    <small>
+                      Level {rankLevel} ·{" "}
+                      {xpCurrent.toLocaleString()} /{" "}
+                      {xpNext.toLocaleString()} XP
+                    </small>
+                  </div>
+                </div>
+
+                <div className="dash-card">
+                  <h3>Energy</h3>
+                  <p className="dash-big">
+                    {energy}
+                    <span>/{player.maxEnergy}</span>
+                  </p>
+                  <small>Recovers 1 every 3 minutes</small>
+                </div>
+
+                <div className="dash-card">
+                  <h3>Cash</h3>
+                  <p className="dash-big">
+                    £{money.toLocaleString("en-GB")}
+                  </p>
+                  <small>
+                    Bank: £{bank.toLocaleString("en-GB")}
+                  </small>
+                </div>
+              </div>
+
+              <div className="news-line">
+                <b>DISPATCH</b>
+                <span>
+                  Keep your head down, choose your company carefully, and
+                  watch your back. Street work pays — higher ranks unlock
+                  bigger scores.
+                </span>
+              </div>
+
+              <h2>Recent activity</h2>
+
+              {localCrimes.length === 0 ? (
+                <p className="muted">
+                  No jobs logged yet. Try the Crimes section.
+                </p>
+              ) : (
+                <ul className="activity-list">
+                  {localCrimes.map((c, i) => (
+                    <li key={i}>
+                      <span className={c.success ? "ok" : "fail"}>
+                        {c.success ? "✓" : "✗"}
+                      </span>
+
+                      <span>
+                        {c.crimeType}
+                        {c.success
+                          ? ` · +£${c.cashChange.toLocaleString("en-GB")}`
+                          : " · failed"}
+                      </span>
+
+                      <time>
+                        {new Date(c.createdAt).toLocaleTimeString(
+                          "en-GB",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          }
+                        )}
+                      </time>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="quick-actions">
+                <button
+                  className="button"
+                  onClick={() => navigate("Crimes")}
+                >
+                  Go to Crimes
+                </button>
+
+                <button
+                  className="button secondary"
+                  onClick={() => navigate("Local Bank")}
+                >
+                  Local Bank
+                </button>
+
+                <button
+                  className="button secondary"
+                  onClick={() => navigate("Keno")}
+                >
+                  Casino
+                </button>
+              </div>
+            </>
+          )}
+
+          {section === "Crimes" && (
+            <>
+              <p className="lead">
+                Small jobs keep money moving. Bigger scores require rank
+                and energy. Heat rises with ambition.
+              </p>
+
+              {crimeCooldown > 0 && (
+                <div className="cooldown-banner">
+                  Cooldown: {crimeCooldown}s remaining before the next job.
+                </div>
+              )}
+
+              <div className="crime-list">
+                {availableCrimes.map((crime) => {
+                  const locked = rankLevel < crime.minRankLevel;
+
+                  return (
+                    <div
+                      key={crime.id}
+                      className={`crime-card ${locked ? "locked" : ""}`}
+                    >
+                      <div className="crime-info">
+                        <b>{crime.name}</b>
+                        <p>{crime.description}</p>
+
+                        <small>
+                          Energy {crime.energyCost} · Rank{" "}
+                          {crime.minRankLevel}+ · Pay £
+                          {crime.minCash.toLocaleString()}–£
+                          {crime.maxCash.toLocaleString()}
+                          {locked && " · LOCKED"}
+                        </small>
+                      </div>
+
+                      <button
+                        className="button"
+                        disabled={
+                          busy ||
+                          locked ||
+                          crimeCooldown > 0 ||
+                          energy < crime.energyCost
+                        }
+                        onClick={() => commitCrime(crime.id)}
+                      >
+                        {locked
+                          ? "Rank required"
+                          : busy
+                            ? "Working…"
+                            : "Attempt"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {notice && <p className="notice">{notice}</p>}
+            </>
+          )}
+
+          {section === "Local Bank" && (
+            <>
+              <p className="lead">
+                Cash on the street can be taken. Money in the bank is safer.
+              </p>
+
+              <div className="bank-panel">
+                <div className="bank-balances">
+                  <div>
+                    <span>On hand</span>
+                    <b>£{money.toLocaleString("en-GB")}</b>
+                  </div>
+
+                  <div>
+                    <span>In bank</span>
+                    <b>£{bank.toLocaleString("en-GB")}</b>
+                  </div>
+                </div>
+
+                <label>
+                  Amount (£)
+                  <input
+                    type="number"
+                    min="1"
+                    value={bankAmount}
+                    onChange={(e) => setBankAmount(e.target.value)}
+                  />
+                </label>
+
+                <div className="bank-actions">
+                  <button
+                    className="button"
+                    disabled={busy}
+                    onClick={() => bankAction("deposit")}
+                  >
+                    Deposit
+                  </button>
+
+                  <button
+                    className="button secondary"
+                    disabled={busy}
+                    onClick={() => bankAction("withdraw")}
+                  >
+                    Withdraw
+                  </button>
+                </div>
+              </div>
+
+              {notice && <p className="notice">{notice}</p>}
+            </>
+          )}
+
+          {section === "Keno" && (
+            <CasinoGames
+              game="Keno"
+              cash={money}
+              onCash={setMoney}
+            />
+          )}
+
+          {section === "Slot Machines" && (
+            <CasinoGames
+              game="Slots"
+              cash={money}
+              onCash={setMoney}
+            />
+          )}
+
+          {section === "Blackjack" && (
+            <p className="flavour">
+              Blackjack tables are being prepared.
+            </p>
+          )}
+
+          {section === "Roulette" && (
+            <p className="flavour">
+              European roulette wheel is under construction.
+            </p>
+          )}
+
+          {section === "Auto Theft" && (
+            <p className="flavour">
+              Steal cars, strip them, or sell them on the quiet. Coming soon.
+            </p>
+          )}
+
+          {section === "Bootlegging" && (
+            <p className="flavour">
+              Build stills and supply the city&apos;s demand for illegal liquor.
+            </p>
+          )}
+
+          {section === "Organised Crime" && (
+            <p className="flavour">
+              Four-player jobs with invitations and a 100% payout split.
+            </p>
+          )}
+
+          {section === "Whack" && (
+            <p className="flavour">
+              Player combat. Weapons, bullets and protection.
+            </p>
+          )}
+
+          {section === "Hitlist" && (
+            <p className="flavour">
+              View and manage your targets.
+            </p>
+          )}
+
+          {section === "Rackets" && (
+            <p className="flavour">
+              Own and protect criminal rackets for passive income.
+            </p>
+          )}
+
+          {section === "Marketplace" && (
+            <p className="flavour">
+              Buy and sell goods with other players.
+            </p>
+          )}
+
+          {section === "Gun Shop" && (
+            <p className="flavour">
+              Weapons and ammunition.
+            </p>
+          )}
+
+          {section === "Escrow" && (
+            <p className="flavour">
+              Secure player-to-player trading.
+            </p>
+          )}
+
+          {section === "Statistics" && (
+            <div>
+              <p className="lead">
+                Your criminal record so far.
+              </p>
+
+              <div className="stat-grid">
+                <div><span>Rank</span><b>{rank}</b></div>
+                <div><span>Level</span><b>{rankLevel}</b></div>
+                <div>
+                  <span>Experience</span>
+                  <b>{experience.toLocaleString()}</b>
+                </div>
+                <div><span>Health</span><b>{player.health}%</b></div>
+                <div>
+                  <span>Protection</span>
+                  <b>{player.protection}%</b>
+                </div>
+                <div>
+                  <span>Bullets</span>
+                  <b>{player.bullets}</b>
+                </div>
+              </div>
             </div>
           )}
-        </div>
+
+          {section === "Jail" && (
+            <p className="flavour">
+              You are currently free.
+            </p>
+          )}
+
+          {section === "Hospital" && (
+            <p className="flavour">
+              Your health is currently {player.health}%.
+            </p>
+          )}
+
+          {section === "Graveyard" && (
+            <p className="flavour">
+              Remember those who have fallen.
+            </p>
+          )}
+
+          {section === "Gymnasium" && (
+            <p className="flavour">
+              Train strength, stamina and accuracy. Coming later.
+            </p>
+          )}
+
+          {section === "Search" && (
+            <p className="flavour">
+              Search the city for opportunities.
+            </p>
+          )}
+
+          {section === "Updates" && (
+            <p className="flavour">
+              Development updates will be posted here.
+            </p>
+          )}
+
+          {section === "Cities" && (
+            <p className="flavour">
+              London, Birmingham, Manchester, Liverpool, Glasgow.
+            </p>
+          )}
+
+          {section === "Find Player" && (
+            <p className="flavour">
+              Search for another player by name.
+            </p>
+          )}
+
+          {section === "Mailbox" && (
+            <p className="flavour">
+              Your incoming messages.
+            </p>
+          )}
+
+          {section === "Send Letter" && (
+            <p className="flavour">
+              Write a letter to another player.
+            </p>
+          )}
+
+          {section === "Saved Mail" && (
+            <p className="flavour">
+              Your saved messages.
+            </p>
+          )}
+
+          {section === "Classifieds" && (
+            <p className="flavour">
+              Player advertisements and listings.
+            </p>
+          )}
+
+          {section === "Off Topic" && (
+            <p className="flavour">
+              General conversation away from the game.
+            </p>
+          )}
+
+          {section === "Crew" && (
+            <p className="flavour">
+              Your crew and criminal associates.
+            </p>
+          )}
+
+          {section === "Gold" && (
+            <p className="flavour">
+              Premium currency. Not yet active.
+            </p>
+          )}
+
+          {section === "Store" && (
+            <p className="flavour">
+              The Rumrunners store.
+            </p>
+          )}
+
+          {section === "Pawn Shop" && (
+            <p className="flavour">
+              Buy and sell items at the pawn shop.
+            </p>
+          )}
+
+          {section === "Stock Market" && (
+            <p className="flavour">
+              Investments and the stock market.
+            </p>
+          )}
+
+          {section === "Brothel" && (
+            <p className="flavour">
+              Visit the city&apos;s establishments.
+            </p>
+          )}
+
+          {section === "Lottery" && (
+            <p className="flavour">
+              The city lottery. Coming soon.
+            </p>
+          )}
+
+          {section === "Poker Run" && (
+            <p className="flavour">
+              Poker Run tables are being prepared.
+            </p>
+          )}
+
+          {section === "Race Track" && (
+            <p className="flavour">
+              Race Track betting will open later.
+            </p>
+          )}
+
+          {section === "Jacks or Better" && (
+            <p className="flavour">
+              Video poker. Coming soon.
+            </p>
+          )}
+
+          {section === "Sports Betting" && (
+            <p className="flavour">
+              Sports books are not yet open.
+            </p>
+          )}
+
+          {section === "Rumrunners Live" && (
+            <p className="flavour">
+              Live news from the underworld.
+            </p>
+          )}
+
+          {section === "Wiki" && (
+            <p className="flavour">
+              The Rumrunners game guide.
+            </p>
+          )}
+
+          {section === "Terms of Service" && (
+            <p className="flavour">
+              Game rules and terms of service.
+            </p>
+          )}
+
+          {section === "Help Desk" && (
+            <p className="flavour">
+              Help and support for players.
+            </p>
+          )}
+
+          {section === "Suggestion Box" && (
+            <p className="flavour">
+              Send suggestions for future improvements.
+            </p>
+          )}
+
+          {section === "Full Site" && (
+            <p className="flavour">
+              You are viewing the full Rumrunners game.
+            </p>
+          )}
+
+          {section === "Profile" && (
+            <p className="flavour">
+              Your player profile.
+            </p>
+          )}
+
+          {section === "Game" && (
+            <p className="flavour">
+              Game discussion board.
+            </p>
+          )}
+
+          {section !== "Home" &&
+            section !== "Crimes" &&
+            section !== "Local Bank" &&
+            notice && (
+              <p className="notice">{notice}</p>
+            )}
+        </main>
+
+        {/* MENU */}
+        <aside
+          className={`sidebar ${menuOpen ? "menu-open" : ""}`}
+        >
+          {selectedGroup === "" ? (
+            <>
+              <p className="side-heading">MENU</p>
+
+              <div className="category-grid">
+                {menuGroups.map((group) => (
+                  <button
+                    key={group.title}
+                    className="nav-category"
+                    onClick={() => setSelectedGroup(group.title)}
+                  >
+                    {group.title}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="category-content">
+              <button
+                className="category-back"
+                onClick={() => setSelectedGroup("")}
+              >
+                « {selectedGroup}
+              </button>
+
+              <div className="nav-buttons">
+                {menuGroups
+                  .find((g) => g.title === selectedGroup)
+                  ?.items.map((item) => (
+                    <button
+                      key={item}
+                      className={
+                        item === "Logout"
+                          ? "nav-item logout-menu-item"
+                          : section === item
+                            ? "nav-item active"
+                            : "nav-item"
+                      }
+                      onClick={() => navigate(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
 
-      {/* Machine ownership and betting limit */}
-      <div
-        style={{
-          width: "min(100%, 360px)",
-          padding: "17px 5px 0",
-          boxSizing: "border-box",
-          textAlign: "center",
-          fontSize: 13,
-          lineHeight: 1.7,
-          color: "#e6d4b1",
-        }}
-      >
-        <div>
-          This slot machine is owned by <strong>Rumrunners</strong>
-        </div>
-        <div>
-          The maximum bet is set at <strong>£1,000,000.</strong>
-        </div>
-      </div>
-    </section>
+      <footer className="footer">
+        RUMRUNNERS · A CITY WITH ITS OWN RULES
+      </footer>
+    </div>
   );
 }
