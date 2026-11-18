@@ -6,7 +6,8 @@ import {
   CRIMES,
   energyAfterRegen,
   levelFromXp,
-  rollCrime
+  playCrime,
+  streakFromLogs
 } from "@/lib/game";
 import { rankForLevel } from "@/lib/ranks";
 
@@ -71,9 +72,23 @@ export async function POST(req: Request) {
         throw new Error("RANK_TOO_LOW");
       }
 
-      const roll = rollCrime(crime, player.rankLevel);
+      const recent = await tx.crimeLog.findMany({
+        where: { playerId: player.id },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { success: true }
+      });
+      const streak = streakFromLogs(recent);
+
+      const roll = playCrime(
+        crime,
+        player.rankLevel,
+        streak,
+        player.money
+      );
       const newXp = player.experience + roll.xp;
-      const newLevel = levelFromXp(newXp);
+      // Never demote: a player keeps the rank they already hold.
+      const newLevel = Math.max(player.rankLevel, levelFromXp(newXp));
       const newRank = rankForLevel(newLevel);
 
       const updated = await tx.player.update({
@@ -81,7 +96,7 @@ export async function POST(req: Request) {
         data: {
           energy: regen.energy - crime.energyCost,
           lastEnergyAt: regen.lastEnergyAt,
-          money: { increment: roll.cash },
+          money: { increment: roll.cash }, // negative when caught and fined
           experience: newXp,
           rankLevel: newLevel,
           rank: newRank,
@@ -98,6 +113,8 @@ export async function POST(req: Request) {
         }
       });
 
+      const newStreak = roll.success ? Math.min(5, streak + 1) : 0;
+
       return {
         success: roll.success,
         cashChange: roll.cash,
@@ -108,7 +125,14 @@ export async function POST(req: Request) {
         rankLevel: updated.rankLevel,
         crimeName: crime.name,
         xpGained: roll.xp,
-        leveledUp: newLevel > player.rankLevel
+        leveledUp: newLevel > player.rankLevel,
+        tier: roll.tier,
+        label: roll.label,
+        sceneTitle: roll.sceneTitle,
+        setup: roll.setup,
+        result: roll.result,
+        streak: newStreak,
+        streakBonus: roll.streakBonus
       };
     });
 
