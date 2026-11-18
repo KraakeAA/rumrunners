@@ -209,7 +209,18 @@ export function CasinoSection({
   }
 
   // Everyone else: the game, with the owner and max bet shown.
-  const GameComponent = game === "Blackjack" || game === "Roulette" || game === "War" ? TableGames : CasinoGames;
+  const gameKey = `${casino.id}-${casino.ownerId ?? "house"}`;
+  const onPlayed = (info: { takeover: boolean; previousOwner: string | null; payout: number }) => {
+    if (info.takeover) {
+      setBanner({
+        text: `${info.previousOwner ?? "The owner"} couldn't cover the bet. You now own this casino!`,
+        good: true,
+      });
+    } else {
+      setBanner(null);
+    }
+    reload();
+  };
   return (
     <div>
       {banner && (
@@ -239,25 +250,27 @@ export function CasinoSection({
         </div>
       )}
 
-      <GameComponent
-        key={`${casino.id}-${casino.ownerId ?? "house"}`}
-        game={game as never}
-        cash={cash}
-        onCash={onCash}
-        ownerName={casino.ownerName}
-        maxBet={casino.maxBet}
-        onPlayed={(info) => {
-          if (info.takeover) {
-            setBanner({
-              text: `${info.previousOwner ?? "The owner"} couldn't cover the bet. You now own this casino!`,
-              good: true,
-            });
-          } else {
-            setBanner(null);
-          }
-          reload();
-        }}
-      />
+      {game === "Keno" || game === "Slots" ? (
+        <CasinoGames
+          key={gameKey}
+          game={game}
+          cash={cash}
+          onCash={onCash}
+          ownerName={casino.ownerName}
+          maxBet={casino.maxBet}
+          onPlayed={onPlayed}
+        />
+      ) : (
+        <TableGames
+          key={gameKey}
+          game={game}
+          cash={cash}
+          onCash={onCash}
+          ownerName={casino.ownerName}
+          maxBet={casino.maxBet}
+          onPlayed={onPlayed}
+        />
+      )}
     </div>
   );
 }
