@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -107,10 +108,10 @@ export async function runWager(
             // have and the casino changes hands.
             const owner = await tx.player.findUnique({
               where: { id: casino.ownerId },
-              select: { money: true, user: { select: { username: true } } },
+              select: { money: true, username: true },
             });
             payout = owner?.money ?? 0;
-            previousOwner = owner?.user.username ?? null;
+            previousOwner = owner?.username ?? null;
             await tx.player.update({
               where: { id: casino.ownerId },
               data: { money: 0 },
