@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -34,7 +33,11 @@ export async function POST(req: Request) {
     where: { username }
   });
 
-  if (existing || nameTaken) {
+  const ghostName = await prisma.pastLife.findUnique({
+    where: { username }
+  });
+
+  if (existing || nameTaken || ghostName) {
     return NextResponse.json(
       { error: "That email or username is already registered." },
       { status: 409 }
@@ -48,7 +51,10 @@ export async function POST(req: Request) {
       email,
       passwordHash,
       player: {
-        create: { username }
+        create: {
+          username,
+          shieldUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        }
       }
     }
   });
