@@ -38,10 +38,10 @@ type Props = {
 };
 
 const panel: CSSProperties = {
-  background: "#29231d",
-  border: "1px solid #3a342c",
+  background: "#1f2a25",
+  border: "1px solid #6b5d3a",
   marginBottom: 8,
-  color: "#e6d4b1",
+  color: "#f1e8d3",
   fontSize: 13,
 };
 const barStyle: CSSProperties = {
@@ -49,20 +49,20 @@ const barStyle: CSSProperties = {
   textAlign: "center",
   fontWeight: 700,
   fontSize: 13,
-  color: "#f0dfbd",
-  background: "linear-gradient(180deg, #725839, #392819)",
-  borderBottom: "1px solid #b49a70",
+  color: "#f7efdb",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  borderBottom: "1px solid #b0904a",
 };
 const btn: CSSProperties = {
   padding: "6px 12px",
-  border: "1px solid #b49a70",
+  border: "1px solid #b0904a",
   borderRadius: 3,
-  background: "linear-gradient(180deg, #725839, #392819)",
-  color: "#f0dfbd",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  color: "#f7efdb",
   fontSize: 13,
   cursor: "pointer",
 };
-const sub: CSSProperties = { fontSize: 12, color: "#c4b69f" };
+const sub: CSSProperties = { fontSize: 12, color: "#c9bfa6" };
 const TIER_NAMES = ["", "Common", "Decent", "Fine", "Grand"];
 
 type WorkshopCar = {
@@ -248,7 +248,7 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
                   gap: 8,
                   alignItems: "center",
                   padding: "7px 8px",
-                  borderBottom: "1px solid #3a342c",
+                  borderBottom: "1px solid #6b5d3a",
                   background: selected === c.id ? "#3a2f20" : "transparent",
                   cursor: "pointer",
                 }}
@@ -263,7 +263,7 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
                   <strong>{c.name}</strong> <span style={sub}>[{c.plate}]</span>
                   <div style={sub}>
                     Parked in{" "}
-                    <strong style={{ color: c.city === currentCity ? "#6fcf6f" : "#e6d4b1" }}>{c.city}</strong>
+                    <strong style={{ color: c.city === currentCity ? "#6fcf6f" : "#f1e8d3" }}>{c.city}</strong>
                   </div>
                   <HeatBar heat={c.heat} />
                   <DamageBar damage={c.damage} />
