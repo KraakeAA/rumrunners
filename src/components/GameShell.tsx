@@ -1827,11 +1827,7 @@ export default function GameShell({
           )}
 
           {section === "Find Player" && <FindPlayerSection />}
-            <p className="flavour">
-              Search for another player by name.
-            </p>
-          )}
-
+  
           {section === "Mailbox" && (
             <MailboxSection
               onOpenOc={() => navigate("Organised Crime")}
