@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import {
-  MAX_CARS,
   PLATE_COST,
   PLATE_HEAT_DROP,
   carModel,
@@ -21,7 +20,7 @@ export async function GET() {
   try {
     const player = await prisma.player.findUnique({
       where: { userId },
-      select: { id: true, money: true, currentCity: true },
+      select: { id: true, money: true, currentCity: true, garageSlots: true },
     });
     if (!player) {
       return NextResponse.json({ error: "Player not found." }, { status: 404 });
@@ -64,7 +63,7 @@ export async function GET() {
       money: player.money,
       currentCity: player.currentCity,
       cars,
-      maxCars: MAX_CARS,
+      maxCars: player.garageSlots,
       plateCost: PLATE_COST,
     });
   } catch (error) {
@@ -98,8 +97,6 @@ export async function POST(req: Request) {
       const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id } });
       const model = car ? carModel(car.model) : undefined;
       if (!car || !model) throw new Error("NO_CAR");
-      if (car.city !== player.currentCity) throw new Error("CAR_ELSEWHERE:" + car.city);
-
       const now = new Date();
 
       if (action === "plate") {
@@ -141,12 +138,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, money: player?.money ?? 0, ...result });
   } catch (error) {
     const m = error instanceof Error ? error.message : "";
-    if (m.startsWith("CAR_ELSEWHERE:")) {
-      return NextResponse.json(
-        { error: `That car is parked in ${m.split(":")[1]}. You must be there to work on it.` },
-        { status: 400 }
-      );
-    }
     const map: Record<string, [string, number]> = {
       NO_CAR: ["You do not own that car.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
