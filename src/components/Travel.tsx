@@ -136,8 +136,6 @@ export function TravelSection({
   onArrive: (city: string) => void;
 }) {
   const [data, setData] = useState<TravelData | null>(null);
-  const [cars, setCars] = useState<GarageCar[]>([]);
-  const [carId, setCarId] = useState("");
   const [destination, setDestination] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -152,8 +150,6 @@ export function TravelSection({
         return;
       }
       setData(t.body as TravelData);
-      const g = await getJson("/api/garage");
-      if (g.ok) setCars((g.body as GarageData).cars);
     } catch {
       setError("Unable to connect. Please try again.");
     }
@@ -171,9 +167,7 @@ export function TravelSection({
     ? Math.max(0, new Date(data.cooldownUntil).getTime() - now)
     : 0;
   const canTravel = remaining === 0;
-  const here = cars.filter((c) => c.city === data.currentCity);
-  const chosen = here.find((c) => c.id === carId);
-  const minutes = chosen ? chosen.minutes : RAIL_MINUTES;
+  const minutes = RAIL_MINUTES;
   const story = CITY_STORIES[data.currentCity];
 
   async function go() {
@@ -183,7 +177,6 @@ export function TravelSection({
     const { ok, body } = await postJson("/api/travel", {
       action: "travel",
       destination,
-      carId: carId || undefined,
     });
     setBusy(false);
 
@@ -208,7 +201,6 @@ export function TravelSection({
       canTravel: body.canTravel,
     });
     setDestination("");
-    setCarId("");
     onArrive(body.currentCity);
     load();
   }
@@ -245,38 +237,15 @@ export function TravelSection({
       </div>
 
       <div style={panel}>
-        <Bar>1. Choose your vehicle</Bar>
-        <label style={rowStyle(carId === "")}>
-          <input type="radio" name="vehicle" checked={carId === ""} onChange={() => setCarId("")} />
-          <span>
-            <strong>Railway</strong>
-            <div style={sub}>Instant · wait {RAIL_MINUTES} min before travelling again · no booze</div>
-          </span>
-        </label>
-        {here.map((c) => (
-          <label key={c.id} style={rowStyle(carId === c.id)}>
-            <input type="radio" name="vehicle" checked={carId === c.id} onChange={() => setCarId(c.id)} />
-            <span style={{ flex: 1 }}>
-              <strong>{c.name}</strong> <span style={sub}>[{c.plate}]</span>
-              <div style={sub}>
-                Instant · wait {c.minutes} min · {c.speed} mph · boot holds {c.boot} crates
-              </div>
-              <HeatBar heat={c.heat} />
-              <DamageBar damage={c.damage} />
-            </span>
-          </label>
-        ))}
-        {here.length === 0 && (
-          <div style={{ padding: 8, color: "#c9bfa6", fontSize: 12 }}>
-            {cars.length === 0
-              ? "You don't own a car yet. Steal one through Auto Theft."
-              : `None of your cars are in ${data.currentCity}.`}
-          </div>
-        )}
+        <Bar>The railway</Bar>
+        <div style={{ padding: 8, color: "#c9bfa6", fontSize: 12, lineHeight: 1.5 }}>
+          Every journey is by train: instant, then a {RAIL_MINUTES} minute wait before you can
+          travel again. Your booze travels with you, up to your rank&apos;s limit.
+        </div>
       </div>
 
       <div style={panel}>
-        <Bar>2. Choose your destination</Bar>
+        <Bar>Choose your destination</Bar>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: 8 }}>
           {data.cities
             .filter((c) => c !== data.currentCity)
@@ -311,18 +280,6 @@ export function TravelSection({
 }
 
 const sub: CSSProperties = { fontSize: 12, color: "#c9bfa6" };
-function rowStyle(active: boolean): CSSProperties {
-  return {
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-    padding: "7px 8px",
-    borderBottom: "1px solid #6b5d3a",
-    background: active ? "#3a2f20" : "transparent",
-    cursor: "pointer",
-  };
-}
-
 /* ------------------------------- Garage ------------------------------- */
 
 export function GarageSection() {
@@ -358,7 +315,7 @@ export function GarageSection() {
         </Bar>
         {data.cars.length === 0 && (
           <div style={{ padding: 8, color: "#c9bfa6" }}>
-            No cars yet. Steal one through Auto Theft (unlocked at rank 3).
+            No cars yet. Steal one through Auto Theft.
           </div>
         )}
         {data.cars.map((c) => (
@@ -366,23 +323,16 @@ export function GarageSection() {
             <strong>{c.name}</strong> <span style={sub}>({c.year})</span>
             <div style={{ fontWeight: 700, letterSpacing: 1 }}>Plate: {c.plate}</div>
             <div style={sub}>
-              Stolen in {c.originCity} · now in{" "}
-              <strong style={{ color: c.city === data.currentCity ? "#6fcf6f" : "#f1e8d3" }}>
-                {c.city}
-              </strong>
-            </div>
-            <div style={sub}>
-              {c.speed} mph · wait {c.minutes} min between journeys · boot holds {c.boot} crates ·
-              melts down for {c.scrap.toLocaleString("en-GB")} bullets
+              Stolen in {c.originCity} · melts down for{" "}
+              {c.scrap.toLocaleString("en-GB")} bullets
             </div>
             <HeatBar heat={c.heat} />
             <DamageBar damage={c.damage} />
           </div>
         ))}
         <div style={{ padding: 8, fontSize: 12, color: "#c9bfa6" }}>
-          Change plates and repair cars on the Auto Theft page.
-          Cars stay where you leave them. Drive a car to travel with it, or melt it down at the
-          Bullet Factory (Gun Shop) in the city where it is parked.
+          Cars are not driven. Melt them down for bullets at the Bullet Factory, or use them on
+          Organised Crime jobs. Need more room? Buy a bigger garage in the Store.
         </div>
       </div>
     </div>
