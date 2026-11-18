@@ -1,0 +1,162 @@
+import { NextResponse } from "next/server";
+import { getSessionUserId } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import {
+  MAX_CARS,
+  PLATE_COST,
+  PLATE_HEAT_DROP,
+  carModel,
+  currentHeat,
+  effectiveMinutes,
+  makePlate,
+  repairCost,
+} from "@/lib/era";
+
+export async function GET() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  }
+
+  try {
+    const player = await prisma.player.findUnique({
+      where: { userId },
+      select: { id: true, money: true, currentCity: true },
+    });
+    if (!player) {
+      return NextResponse.json({ error: "Player not found." }, { status: 404 });
+    }
+
+    const rows = await prisma.car.findMany({
+      where: { ownerId: player.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    // Give any car that has no plate yet one from the city it was stolen in.
+    for (const c of rows) {
+      if (!c.plate) {
+        c.plate = makePlate(c.originCity);
+        await prisma.car.update({ where: { id: c.id }, data: { plate: c.plate } });
+      }
+    }
+
+    const now = Date.now();
+    const cars = rows.flatMap((c) => {
+      const m = carModel(c.model);
+      if (!m) return [];
+      return [
+        {
+          id: c.id,
+          ...m,
+          originCity: c.originCity,
+          city: c.city,
+          plate: c.plate,
+          damage: c.damage,
+          baseMinutes: m.minutes,
+          minutes: effectiveMinutes(m, c.damage),
+          repairCost: repairCost(c.damage, m.tier),
+          heat: currentHeat(c.heat, c.heatAt, now),
+        },
+      ];
+    });
+
+    return NextResponse.json({
+      money: player.money,
+      currentCity: player.currentCity,
+      cars,
+      maxCars: MAX_CARS,
+      plateCost: PLATE_COST,
+    });
+  } catch (error) {
+    console.error("Garage load failed:", error);
+    return NextResponse.json(
+      { error: "The garage is unavailable right now." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const action = String(body?.action ?? "");
+  const carId = String(body?.carId ?? "");
+
+  if ((action !== "plate" && action !== "repair") || !carId) {
+    return NextResponse.json({ error: "Choose a car and a job." }, { status: 400 });
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const player = await tx.player.findUnique({ where: { userId } });
+      if (!player) throw new Error("PLAYER_NOT_FOUND");
+
+      const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id } });
+      const model = car ? carModel(car.model) : undefined;
+      if (!car || !model) throw new Error("NO_CAR");
+      if (car.city !== player.currentCity) throw new Error("CAR_ELSEWHERE:" + car.city);
+
+      const now = new Date();
+
+      if (action === "plate") {
+        const paid = await tx.player.updateMany({
+          where: { id: player.id, money: { gte: PLATE_COST } },
+          data: { money: { decrement: PLATE_COST } },
+        });
+        if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
+
+        const heat = Math.max(
+          0,
+          currentHeat(car.heat, car.heatAt, now.getTime()) - PLATE_HEAT_DROP
+        );
+        const plate = makePlate(player.currentCity);
+        await tx.car.update({
+          where: { id: car.id },
+          data: { plate, heat, heatAt: now },
+        });
+        return { plate, message: `Your ${model.name} now carries the plate ${plate}.` };
+      }
+
+      if (car.damage <= 0) throw new Error("NOT_DAMAGED");
+      const cost = repairCost(car.damage, model.tier);
+      const paid = await tx.player.updateMany({
+        where: { id: player.id, money: { gte: cost } },
+        data: { money: { decrement: cost } },
+      });
+      if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
+
+      await tx.car.update({ where: { id: car.id }, data: { damage: 0 } });
+      return { message: `Your ${model.name} is as good as new. Repairs cost £${cost.toLocaleString("en-GB")}.` };
+    });
+
+    const player = await prisma.player.findUnique({
+      where: { userId },
+      select: { money: true },
+    });
+
+    return NextResponse.json({ ok: true, money: player?.money ?? 0, ...result });
+  } catch (error) {
+    const m = error instanceof Error ? error.message : "";
+    if (m.startsWith("CAR_ELSEWHERE:")) {
+      return NextResponse.json(
+        { error: `That car is parked in ${m.split(":")[1]}. You must be there to work on it.` },
+        { status: 400 }
+      );
+    }
+    const map: Record<string, [string, number]> = {
+      NO_CAR: ["You do not own that car.", 400],
+      INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
+      NOT_DAMAGED: ["That car is not damaged.", 400],
+      PLAYER_NOT_FOUND: ["Player not found.", 404],
+    };
+    if (map[m]) {
+      return NextResponse.json({ error: map[m][0] }, { status: map[m][1] });
+    }
+    console.error("Garage job failed:", error);
+    return NextResponse.json({ error: "That could not be completed." }, { status: 500 });
+  }
+}
