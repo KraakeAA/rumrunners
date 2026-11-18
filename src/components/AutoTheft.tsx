@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_LEVELS } from "@/lib/era";
 import { clock } from "@/components/EnergyBar";
+import { rankForLevel } from "@/lib/ranks";
 import { DamageBar, HeatBar } from "@/components/Travel";
 
 type TheftResult = {
@@ -208,7 +209,7 @@ export default function AutoTheftSection({
             )}
             {result.jailSeconds ? (
               <div style={{ color: "#e08f7f", marginTop: 6 }}>
-                You were locked up for {Math.ceil(result.jailSeconds / 60)} minutes.
+                You were locked up for {result.jailSeconds >= 60 ? `${Math.ceil(result.jailSeconds / 60)} minutes` : `${result.jailSeconds} seconds`}.
               </div>
             ) : null}
             <div style={{ ...sub, marginTop: 6 }}>
@@ -224,13 +225,43 @@ export default function AutoTheftSection({
 
       <div style={{ ...panel, marginBottom: 6 }}>
         <div style={barStyle}>Auto Theft</div>
-        {!THEFT_LEVELS.some((l) => rankLevel >= l.minRank) && (
-          <div style={{ ...sub, padding: 10, textAlign: "center" }}>
-            Nobody will trust you with a job like this yet.
-          </div>
-        )}
         <div style={{ display: "grid", gap: 0 }}>
-          {THEFT_LEVELS.filter((l) => rankLevel >= l.minRank).map((l) => {
+          {THEFT_LEVELS.filter(
+            (l, i) => rankLevel >= l.minRank || (i === 0 || rankLevel >= THEFT_LEVELS[i - 1].minRank)
+          ).map((l) => {
+            if (rankLevel < l.minRank) {
+              return (
+                <div
+                  key={l.level}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "5px 8px",
+                    borderBottom: "1px solid #2b3630",
+                    opacity: 0.6,
+                    background: "#161b18",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#8a8470" }}>
+                      {l.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#8a8470" }}>
+                      Unlocks at {rankForLevel(l.minRank)}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="button"
+                    style={{ flexShrink: 0, width: 70, padding: "5px 0", fontSize: 12, opacity: 0.55 }}
+                    disabled
+                  >
+                    Locked
+                  </button>
+                </div>
+              );
+            }
             const wait = theftLeft(l.level);
             const tired = energy < l.energy;
             const disabled = busy || wait > 0 || tired || jailLeft > 0 || CARS.length === 0;
