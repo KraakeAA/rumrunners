@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { renderBB } from "@/lib/bbcode";
+import { wealthStatus } from "@/lib/wealth";
 
 const ONLINE_MS = 5 * 60 * 1000;
 
@@ -77,6 +78,8 @@ export default async function PlayerProfile({
       experience: true,
       health: true,
       protection: true,
+      money: true,
+      bank: true,
       createdAt: true,
       updatedAt: true,
       profileQuote: true,
@@ -269,6 +272,10 @@ export default async function PlayerProfile({
           <div style={row}>
             <div style={label}>Rank:</div>
             <div style={value}>{player.rank}</div>
+          </div>
+          <div style={row}>
+            <div style={label}>Wealth:</div>
+            <div style={value}>{wealthStatus(player.money, player.bank)}</div>
           </div>
           <div style={row}>
             <div style={label}>Last seen:</div>
