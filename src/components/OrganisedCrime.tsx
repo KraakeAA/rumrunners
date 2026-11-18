@@ -91,6 +91,7 @@ export default function OrganisedCrimeSection() {
   const [names, setNames] = useState<Record<string, string>>({});
   const [shares, setShares] = useState<Record<string, string>>({});
   const [carId, setCarId] = useState("");
+  const [confirmDisband, setConfirmDisband] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -340,8 +341,8 @@ export default function OrganisedCrimeSection() {
               {mySlot.role === "driver" ? (
                 cars.length === 0 && mySlot.state !== "ready" ? (
                   <p style={{ margin: 0, fontSize: 12, color: "#e08f7f" }}>
-                    You have no car in {oc.city} that is undamaged and free to use. Damaged
-                    cars can&apos;t be driven on a job. Repair them on the Auto Theft page.
+                    You have no undamaged car free to use. Damaged cars can&apos;t be
+                    driven on a job. Repair them on the Auto Theft page, or steal another.
                   </p>
                 ) : (
                   <div style={{ display: "flex", gap: 6 }}>
@@ -426,24 +427,49 @@ export default function OrganisedCrimeSection() {
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+          <div style={box}>
             {oc.isLeader ? (
-              <button
-                className="button secondary"
-                style={small}
-                disabled={busy}
-                onClick={() => {
-                  if (window.confirm("Disband the crew? Everyone is sent home and the start fee is not refunded.")) {
-                    act({ action: "disband" });
-                  }
-                }}
-              >
-                Disband crew
-              </button>
+              confirmDisband ? (
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontSize: 12, color: "#f0c2b8", textAlign: "center", lineHeight: 1.4 }}>
+                    Disband the crew? Everyone is sent home and the start fee is not refunded.
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      className="button"
+                      style={{ ...small, flex: 1, padding: "8px 0", opacity: busy ? 0.55 : 1 }}
+                      disabled={busy}
+                      onClick={() => {
+                        setConfirmDisband(false);
+                        act({ action: "disband" });
+                      }}
+                    >
+                      Yes, disband
+                    </button>
+                    <button
+                      className="button secondary"
+                      style={{ ...small, flex: 1, padding: "8px 0" }}
+                      disabled={busy}
+                      onClick={() => setConfirmDisband(false)}
+                    >
+                      Keep crew
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  className="button secondary"
+                  style={{ width: "100%", padding: "8px 0", fontSize: 13 }}
+                  disabled={busy}
+                  onClick={() => setConfirmDisband(true)}
+                >
+                  Disband crew
+                </button>
+              )
             ) : (
               <button
                 className="button secondary"
-                style={small}
+                style={{ width: "100%", padding: "8px 0", fontSize: 13 }}
                 disabled={busy}
                 onClick={() => act({ action: "leave" })}
               >
