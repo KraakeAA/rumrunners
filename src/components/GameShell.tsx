@@ -21,7 +21,6 @@ import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components
 import StoreSection from "@/components/Store";
 import LotterySection from "@/components/Lottery";
 import FindPlayerSection from "@/components/FindPlayer";
-
 import {
   CRIMES,
   MAX_STREAK,
@@ -1829,7 +1828,7 @@ export default function GameShell({
           )}
 
           {section === "Find Player" && <FindPlayerSection />}
-  
+
           {section === "Mailbox" && (
             <MailboxSection
               onOpenOc={() => navigate("Organised Crime")}
