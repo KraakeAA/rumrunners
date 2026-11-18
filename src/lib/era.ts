@@ -71,10 +71,10 @@ export type TheftLevel = {
 };
 
 export const THEFT_LEVELS: TheftLevel[] = [
-  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 2, baseChance: 0.75, weights: [70, 25, 4, 1], xp: 14, fine: 30, heat: [25, 35, 50, 65] },
-  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 3, baseChance: 0.78, weights: [40, 40, 16, 4], xp: 30, fine: 80, heat: [30, 40, 55, 70] },
-  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 4, baseChance: 0.8, weights: [15, 35, 35, 15], xp: 52, fine: 200, heat: [35, 45, 60, 75] },
-  { level: 4, name: "Society Motor Snatch", minRank: 9, blurb: "Take the grandest cars from outside the finest houses and hotels.", energy: 5, baseChance: 0.82, weights: [5, 20, 35, 40], xp: 80, fine: 500, heat: [40, 50, 65, 80] }
+  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 20, baseChance: 0.75, weights: [70, 25, 4, 1], xp: 14, fine: 30, heat: [25, 35, 50, 65] },
+  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 30, baseChance: 0.78, weights: [40, 40, 16, 4], xp: 30, fine: 80, heat: [30, 40, 55, 70] },
+  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 40, baseChance: 0.8, weights: [15, 35, 35, 15], xp: 52, fine: 200, heat: [35, 45, 60, 75] },
+  { level: 4, name: "Society Motor Snatch", minRank: 9, blurb: "Take the grandest cars from outside the finest houses and hotels.", energy: 50, baseChance: 0.82, weights: [5, 20, 35, 40], xp: 80, fine: 500, heat: [40, 50, 65, 80] }
 ];
 
 // Number plates: two letters and up to four digits, in the style of the 1930s.
