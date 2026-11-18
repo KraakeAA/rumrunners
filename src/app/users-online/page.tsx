@@ -135,28 +135,11 @@ export default function UsersOnlinePage() {
             color: "#8a8470",
             fontSize: 11,
             textAlign: "center",
-            margin: "12px 0",
+            margin: "12px 0 0",
           }}
         >
           The list refreshes automatically every 30 seconds.
         </p>
-
-        <Link
-          href="/"
-          style={{
-            display: "block",
-            padding: "14px",
-            textAlign: "center",
-            background: "linear-gradient(180deg, #2f4a3c 0%, #1a2b22 100%)",
-            border: "2px solid #b0904a",
-            color: "#f7efdb",
-            textDecoration: "none",
-            fontFamily: "Georgia, serif",
-            fontSize: 18,
-          }}
-        >
-          Return to the City
-        </Link>
       </div>
     </main>
   );
