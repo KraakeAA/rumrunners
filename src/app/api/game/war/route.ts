@@ -1,0 +1,8 @@
+import { playWar } from "@/lib/casino";
+import { runWager } from "@/lib/casino-action";
+
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => null);
+  const outcome = playWar();
+  return runWager("War", Number(body?.bet), outcome, outcome.multiplier);
+}
