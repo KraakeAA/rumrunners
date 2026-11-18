@@ -47,10 +47,10 @@ type Arrival = {
 };
 
 const panel: CSSProperties = {
-  background: "#29231d",
-  border: "1px solid #3a342c",
+  background: "#1f2a25",
+  border: "1px solid #6b5d3a",
   marginBottom: 8,
-  color: "#e6d4b1",
+  color: "#f1e8d3",
   fontSize: 13,
 };
 const barStyle: CSSProperties = {
@@ -58,16 +58,16 @@ const barStyle: CSSProperties = {
   textAlign: "center",
   fontWeight: 700,
   fontSize: 13,
-  color: "#f0dfbd",
-  background: "linear-gradient(180deg, #725839, #392819)",
-  borderBottom: "1px solid #b49a70",
+  color: "#f7efdb",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  borderBottom: "1px solid #b0904a",
 };
 const btn: CSSProperties = {
   padding: "6px 12px",
-  border: "1px solid #b49a70",
+  border: "1px solid #b0904a",
   borderRadius: 3,
-  background: "linear-gradient(180deg, #725839, #392819)",
-  color: "#f0dfbd",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  color: "#f7efdb",
   fontSize: 13,
   cursor: "pointer",
 };
@@ -80,8 +80,8 @@ export function HeatBar({ heat }: { heat: number }) {
   const colour = heat >= 70 ? "#e0584f" : heat >= 40 ? "#e0a24f" : "#6fcf6f";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-      <span style={{ fontSize: 11, color: "#c4b69f", width: 32 }}>Heat</span>
-      <div style={{ flex: 1, height: 7, background: "#14110d", border: "1px solid #5b4d3a" }}>
+      <span style={{ fontSize: 11, color: "#c9bfa6", width: 32 }}>Heat</span>
+      <div style={{ flex: 1, height: 7, background: "#0e1411", border: "1px solid #5b4d3a" }}>
         <div style={{ width: `${Math.max(0, Math.min(100, heat))}%`, height: "100%", background: colour }} />
       </div>
       <span style={{ fontSize: 11, color: colour, width: 30, textAlign: "right" }}>{heat}%</span>
@@ -94,8 +94,8 @@ export function DamageBar({ damage }: { damage: number }) {
   const colour = damage >= 35 ? "#e0584f" : damage >= 15 ? "#e0a24f" : "#6fcf6f";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-      <span style={{ fontSize: 11, color: "#c4b69f", width: 32 }}>Dmg</span>
-      <div style={{ flex: 1, height: 7, background: "#14110d", border: "1px solid #5b4d3a" }}>
+      <span style={{ fontSize: 11, color: "#c9bfa6", width: 32 }}>Dmg</span>
+      <div style={{ flex: 1, height: 7, background: "#0e1411", border: "1px solid #5b4d3a" }}>
         <div style={{ width: `${Math.min(100, damage * 2)}%`, height: "100%", background: colour }} />
       </div>
       <span style={{ fontSize: 11, color: colour, width: 30, textAlign: "right" }}>{damage}%</span>
@@ -220,7 +220,7 @@ export function TravelSection({
           <Bar>{arrival.welcome}</Bar>
           <div style={{ padding: 10, lineHeight: 1.5 }}>
             <div style={{ marginBottom: 6 }}>{arrival.history}</div>
-            <div style={{ color: "#c4b69f", fontSize: 12 }}>
+            <div style={{ color: "#c9bfa6", fontSize: 12 }}>
               You travelled by {arrival.vehicle}. You can travel again in {arrival.minutes} minutes.
             </div>
           </div>
@@ -234,7 +234,7 @@ export function TravelSection({
             You are in <strong>{data.currentCity}</strong>.
           </div>
           {!arrival && story && (
-            <div style={{ color: "#c4b69f", fontSize: 12 }}>{story.history}</div>
+            <div style={{ color: "#c9bfa6", fontSize: 12 }}>{story.history}</div>
           )}
           {!canTravel && (
             <div style={{ color: "#ddc18d", marginTop: 4 }}>
@@ -267,7 +267,7 @@ export function TravelSection({
           </label>
         ))}
         {here.length === 0 && (
-          <div style={{ padding: 8, color: "#c4b69f", fontSize: 12 }}>
+          <div style={{ padding: 8, color: "#c9bfa6", fontSize: 12 }}>
             {cars.length === 0
               ? "You don't own a car yet. Steal one through Auto Theft."
               : `None of your cars are in ${data.currentCity}.`}
@@ -310,14 +310,14 @@ export function TravelSection({
   );
 }
 
-const sub: CSSProperties = { fontSize: 12, color: "#c4b69f" };
+const sub: CSSProperties = { fontSize: 12, color: "#c9bfa6" };
 function rowStyle(active: boolean): CSSProperties {
   return {
     display: "flex",
     gap: 8,
     alignItems: "center",
     padding: "7px 8px",
-    borderBottom: "1px solid #3a342c",
+    borderBottom: "1px solid #6b5d3a",
     background: active ? "#3a2f20" : "transparent",
     cursor: "pointer",
   };
@@ -357,17 +357,17 @@ export function GarageSection() {
           Your Garage ({data.cars.length}/{data.maxCars})
         </Bar>
         {data.cars.length === 0 && (
-          <div style={{ padding: 8, color: "#c4b69f" }}>
+          <div style={{ padding: 8, color: "#c9bfa6" }}>
             No cars yet. Steal one through Auto Theft (unlocked at rank 3).
           </div>
         )}
         {data.cars.map((c) => (
-          <div key={c.id} style={{ padding: "7px 8px", borderBottom: "1px solid #3a342c" }}>
+          <div key={c.id} style={{ padding: "7px 8px", borderBottom: "1px solid #6b5d3a" }}>
             <strong>{c.name}</strong> <span style={sub}>({c.year})</span>
             <div style={{ fontWeight: 700, letterSpacing: 1 }}>Plate: {c.plate}</div>
             <div style={sub}>
               Stolen in {c.originCity} · now in{" "}
-              <strong style={{ color: c.city === data.currentCity ? "#6fcf6f" : "#e6d4b1" }}>
+              <strong style={{ color: c.city === data.currentCity ? "#6fcf6f" : "#f1e8d3" }}>
                 {c.city}
               </strong>
             </div>
@@ -379,7 +379,7 @@ export function GarageSection() {
             <DamageBar damage={c.damage} />
           </div>
         ))}
-        <div style={{ padding: 8, fontSize: 12, color: "#c4b69f" }}>
+        <div style={{ padding: 8, fontSize: 12, color: "#c9bfa6" }}>
           Change plates and repair cars on the Auto Theft page.
           Cars stay where you leave them. Drive a car to travel with it, or melt it down at the
           Bullet Factory (Gun Shop) in the city where it is parked.
