@@ -1055,56 +1055,53 @@ export default function GameShell({
           {/* MENU SCREEN */}
           {menuOpen && (
             <div className="menu-screen">
-              <p className="side-heading">MENU</p>
+              {menuGroup === "" ? (
+                <>
+                  <p className="side-heading">MENU</p>
 
-              <div className="category-grid">
-                {menuGroups.map((group) => (
-                  <button
-                    key={group.title}
-                    type="button"
-                    className="nav-category"
-                    aria-expanded={menuGroup === group.title}
-                    onClick={() =>
-                      setMenuGroup(
-                        menuGroup === group.title ? "" : group.title
-                      )
-                    }
-                    style={
-                      menuGroup === group.title
-                        ? {
-                            background: "#332b20",
-                            borderColor: "#b99557",
-                            color: "#e4c58d"
-                          }
-                        : undefined
-                    }
-                  >
-                    {group.title}
-                  </button>
-                ))}
-              </div>
-
-              {menuGroup !== "" && (
-                <div
-                  className="nav-buttons"
-                  style={{ marginTop: 12 }}
-                >
-                  {menuGroups
-                    .find((g) => g.title === menuGroup)
-                    ?.items.map((item) => (
+                  <div className="category-grid">
+                    {menuGroups.map((group) => (
                       <button
-                        key={item}
+                        key={group.title}
                         type="button"
-                        className={
-                          item === "Logout"
-                            ? "nav-item logout-menu-item"
-                            : "nav-item"
-                        }
-                        onClick={() => navigate(item)}
+                        className="nav-category"
+                        onClick={() => setMenuGroup(group.title)}
                       >
-                        {item}
+                        {group.title}
                       </button>
                     ))}
+                  </div>
+                </>
+              ) : (
+                <div className="category-content">
+                  <button
+                    type="button"
+                    className="category-back"
+                    onClick={() => setMenuGroup("")}
+                  >
+                    « {menuGroup}
+                  </button>
+
+                  <div className="nav-buttons">
+                    {menuGroups
+                      .find((g) => g.title === menuGroup)
+                      ?.items.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          className={
+                            item === "Logout"
+                              ? "nav-item logout-menu-item"
+                              : section === item
+                                ? "nav-item active"
+                                : "nav-item"
+                          }
+                          onClick={() => navigate(item)}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                  </div>
                 </div>
               )}
 
