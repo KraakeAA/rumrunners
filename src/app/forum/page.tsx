@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import Forum from "@/components/Forum";
+import { maxEnergyFor } from "@/lib/game";
 
 export default async function ForumPage() {
   const userId = await getSessionUserId();
@@ -27,8 +28,9 @@ export default async function ForumPage() {
   }
 
   const health = Math.max(0, Math.min(100, player.health));
-  const energyPercent = player.maxEnergy > 0
-    ? Math.max(0, Math.min(100, (player.energy / player.maxEnergy) * 100))
+  const maxEnergy = maxEnergyFor(player.rankLevel);
+  const energyPercent = maxEnergy > 0
+    ? Math.max(0, Math.min(100, (player.energy / maxEnergy) * 100))
     : 0;
 
   return (
@@ -62,7 +64,7 @@ export default async function ForumPage() {
         </div>
 
         <div className="status-resource">
-          <strong>{player.energy}/{player.maxEnergy}</strong>
+          <strong>{player.energy}/{maxEnergy}</strong>
           <span>Energy</span>
           <div className="status-energy-track">
             <div
