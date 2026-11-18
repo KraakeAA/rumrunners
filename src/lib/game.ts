@@ -1,8 +1,17 @@
+// Energy: 10 points every 40 seconds, so one point every 4 seconds.
+export const ENERGY_REGEN_MS = 4_000;
+// Job costs are written in energy points; one "unit" of effort is 10 points.
+export const ENERGY_UNIT = 10;
+
+// Everyone starts with 400 energy, and every rank adds 50 more.
+export function maxEnergyFor(rankLevel: number): number {
+  return 400 + Math.max(0, rankLevel - 1) * 50;
+}
+
 // Each job has its own cooldown. Bigger jobs take longer to recover from.
 export function crimeCooldownSeconds(energyCost: number): number {
-  return 10 + energyCost * 10;
+  return 10 + (energyCost / ENERGY_UNIT) * 10;
 }
-export const ENERGY_REGEN_MS = 180_000; // 3 minutes per energy
 
 export type CrimeScene = {
   title: string;
@@ -34,7 +43,7 @@ export const CRIMES: CrimeDef[] = [
     id: "pickpocket",
     name: "Pickpocket",
     description: "Lift a wallet from a distracted mark in the crowd.",
-    energyCost: 1,
+    energyCost: 10,
     minRankLevel: 1,
     baseSuccess: 0.82,
     minCash: 25,
@@ -76,7 +85,7 @@ export const CRIMES: CrimeDef[] = [
     id: "street_robbery",
     name: "Street Robbery",
     description: "A quick stick-up on a quiet side street. Fast money, some risk.",
-    energyCost: 1,
+    energyCost: 10,
     minRankLevel: 1,
     baseSuccess: 0.72,
     minCash: 80,
@@ -118,7 +127,7 @@ export const CRIMES: CrimeDef[] = [
     id: "shop_job",
     name: "Shop Job",
     description: "Hit a small corner store after hours. Better pay, tighter window.",
-    energyCost: 2,
+    energyCost: 20,
     minRankLevel: 2,
     baseSuccess: 0.65,
     minCash: 180,
@@ -160,7 +169,7 @@ export const CRIMES: CrimeDef[] = [
     id: "car_breakin",
     name: "Car Break-In",
     description: "Pop a parked motor and see what the owner left behind.",
-    energyCost: 2,
+    energyCost: 20,
     minRankLevel: 3,
     baseSuccess: 0.62,
     minCash: 260,
@@ -202,7 +211,7 @@ export const CRIMES: CrimeDef[] = [
     id: "warehouse",
     name: "Warehouse Score",
     description: "Break into a goods warehouse on the docks. Serious cash if you get clean.",
-    energyCost: 3,
+    energyCost: 30,
     minRankLevel: 4,
     baseSuccess: 0.55,
     minCash: 400,
@@ -244,7 +253,7 @@ export const CRIMES: CrimeDef[] = [
     id: "pub_shakedown",
     name: "Pub Shakedown",
     description: "Lean on a landlord who'd rather not see the law.",
-    energyCost: 3,
+    energyCost: 30,
     minRankLevel: 5,
     baseSuccess: 0.56,
     minCash: 600,
@@ -286,7 +295,7 @@ export const CRIMES: CrimeDef[] = [
     id: "lorry_hijack",
     name: "Lorry Hijack",
     description: "Stop a delivery lorry and drive off with the cargo.",
-    energyCost: 3,
+    energyCost: 30,
     minRankLevel: 6,
     baseSuccess: 0.52,
     minCash: 750,
@@ -328,7 +337,7 @@ export const CRIMES: CrimeDef[] = [
     id: "armoured",
     name: "Armoured Van",
     description: "Intercept a cash run. High reward, high chance of heat.",
-    energyCost: 4,
+    energyCost: 40,
     minRankLevel: 7,
     baseSuccess: 0.46,
     minCash: 1100,
@@ -370,7 +379,7 @@ export const CRIMES: CrimeDef[] = [
     id: "jewellery",
     name: "Jewellery Heist",
     description: "Diamonds, pearls and a very quiet exit.",
-    energyCost: 4,
+    energyCost: 40,
     minRankLevel: 8,
     baseSuccess: 0.44,
     minCash: 2200,
@@ -412,7 +421,7 @@ export const CRIMES: CrimeDef[] = [
     id: "dockside_run",
     name: "Dockside Smuggling Run",
     description: "Move contraband past the customs men.",
-    energyCost: 4,
+    energyCost: 40,
     minRankLevel: 9,
     baseSuccess: 0.42,
     minCash: 3500,
@@ -454,7 +463,7 @@ export const CRIMES: CrimeDef[] = [
     id: "bank_job",
     name: "Bank Job",
     description: "Vaults, tunnels and a getaway car with the engine running.",
-    energyCost: 5,
+    energyCost: 50,
     minRankLevel: 10,
     baseSuccess: 0.4,
     minCash: 5500,
@@ -496,7 +505,7 @@ export const CRIMES: CrimeDef[] = [
     id: "train_robbery",
     name: "Train Robbery",
     description: "Stop a train in the dark and take what's in the van.",
-    energyCost: 5,
+    energyCost: 50,
     minRankLevel: 11,
     baseSuccess: 0.38,
     minCash: 9000,
@@ -538,7 +547,7 @@ export const CRIMES: CrimeDef[] = [
     id: "casino_heist",
     name: "Casino Heist",
     description: "Where the money flows, so can you.",
-    energyCost: 6,
+    energyCost: 60,
     minRankLevel: 12,
     baseSuccess: 0.36,
     minCash: 14000,
@@ -580,7 +589,7 @@ export const CRIMES: CrimeDef[] = [
     id: "bullion_heist",
     name: "Gold Bullion Heist",
     description: "The biggest score in Britain. Don't get greedy.",
-    energyCost: 6,
+    energyCost: 60,
     minRankLevel: 13,
     baseSuccess: 0.33,
     minCash: 22000,
@@ -886,7 +895,14 @@ export const MAX_LEVEL = 13;
 const FAST_LEVELS = 5;
 const LEVEL_GAP_GROWTH = 1.8;
 
+// Ranks are slow to earn: every level needs three times the XP it used to.
+const XP_SLOWDOWN = 3;
+
 export function xpForLevel(level: number): number {
+  return Math.floor(baseXpForLevel(level) * XP_SLOWDOWN);
+}
+
+function baseXpForLevel(level: number): number {
   if (level <= 1) return 0;
 
   const capped = Math.min(level, MAX_LEVEL);
