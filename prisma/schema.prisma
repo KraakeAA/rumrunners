@@ -42,6 +42,19 @@ model Player {
   jailReason   String?
   jailSecurity Int      @default(1)
   selfBustUsed Boolean  @default(false)
+  // How many cars the garage holds (the Store sells more), and the booze being carried.
+  garageSlots  Int      @default(5)
+  cargo        Json?
+  // Lifetime counters shown on the statistics page.
+  theftWins     Int @default(0)
+  theftFails    Int @default(0)
+  boozeBought   Int @default(0) // crates
+  boozeSold     Int @default(0) // crates
+  boozeSpent    Int @default(0)
+  boozeEarned   Int @default(0)
+  ocsDone       Int @default(0)
+  ocsLed        Int @default(0)
+  ocEarned      Int @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -85,6 +98,9 @@ model Player {
   ocLed    OrganisedCrime?
   ocSlots  OcSlot[]  @relation("OcMember")
   inbox    Message[] @relation("MailTo")
+
+  bjHand        BlackjackHand?
+  lotteryTickets LotteryTicket[]
 }
 
 // A car in a player's garage. The model key points into src/lib/era.ts.
@@ -253,4 +269,42 @@ model Message {
   to Player @relation("MailTo", fields: [toId], references: [id], onDelete: Cascade)
 
   @@index([toId, createdAt])
+}
+
+// A blackjack hand in progress. The bet is held here until the hand ends.
+model BlackjackHand {
+  id        String   @id @default(cuid())
+  playerId  String   @unique
+  city      String
+  bet       Int
+  deck      Json
+  player    Json
+  dealer    Json
+  createdAt DateTime @default(now())
+
+  owner Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+// One ticket in the weekly lottery. drawAt is the Wednesday draw it is entered in.
+model LotteryTicket {
+  id        String   @id @default(cuid())
+  playerId  String
+  drawAt    DateTime
+  createdAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([drawAt])
+  @@index([playerId, drawAt])
+}
+
+// The result of a weekly lottery draw. One row per draw, so it only runs once.
+model LotteryDraw {
+  id         String   @id @default(cuid())
+  drawAt     DateTime @unique
+  tickets    Int
+  pot        Int
+  prize      Int
+  winnerName String?
+  drawnAt    DateTime @default(now())
 }
