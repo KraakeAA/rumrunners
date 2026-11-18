@@ -36,10 +36,11 @@ export function carModel(key: string): CarModel | undefined {
   return CARS.find((c) => c.key === key);
 }
 
-// Travel is instant. Driving a car sets how long you must wait before you can
-// travel again; the railway is always 60 minutes and cannot carry spirits.
+// Travel is by railway only and is instant; after a journey you must wait
+// RAIL_MINUTES before travelling again. Cars are never driven: they are kept
+// in the garage and melted down for bullets (or used by a driver in a crew job).
 export const RAIL_MINUTES = 60;
-export const MAX_CARS = 12;
+export const BASE_GARAGE_SLOTS = 5;
 
 export function travelMinutes(car: CarModel | undefined): number {
   return car ? car.minutes : RAIL_MINUTES;
@@ -154,7 +155,7 @@ export const ARMS: Arm[] = [
   { name: "Enfield No. 2 Mk I Revolver", maker: "Royal Small Arms Factory", calibre: ".38", note: "Adopted by the army in 1932." },
   { name: "Colt M1911", maker: "Colt", calibre: ".45 ACP", note: "American automatic pistol, smuggled in from across the Atlantic." },
   { name: "Mauser C96 'Broomhandle'", maker: "Mauser", calibre: "7.63mm", note: "The long-barrelled German pistol with a wooden holster stock." },
-  { name: "Greener Police Shotgun", maker: "W.W. Greener", calibre: "12-bore", note: "A Birmingham-made shotgun, used by police and gangs alike." },
+  { name: "Greener Police Shotgun", maker: "W.W. Greener", calibre: ".303".replace(".303", "12-bore"), note: "A Birmingham-made shotgun, used by police and gangs alike." },
   { name: "Short Magazine Lee-Enfield", maker: "Enfield", calibre: ".303", note: "The army rifle of two wars." },
   { name: "Thompson Submachine Gun", maker: "Auto-Ordnance", calibre: ".45 ACP", note: "The 'Tommy gun'. Rare and feared, and the IRA bought some." }
 ];
