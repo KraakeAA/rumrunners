@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -22,6 +23,9 @@ import StoreSection from "@/components/Store";
 import LotterySection from "@/components/Lottery";
 import FindPlayerSection from "@/components/FindPlayer";
 import CharacterPanel from "@/components/CharacterPanel";
+import WhackSection from "@/components/WhackSection";
+import HospitalSection from "@/components/HospitalSection";
+import { wealthStatus } from "@/lib/wealth";
 import {
   CRIMES,
   MAX_STREAK,
@@ -703,6 +707,7 @@ export default function GameShell({
             ))}
           </select>
         </div>
+
         <div style={{ border: "1px solid #6b5d3a", borderBottom: 0 }}>
           {statsCategory === "Current" && (
             <>
@@ -731,6 +736,7 @@ export default function GameShell({
               <StatGroup title="Character" />
               <StatRow label="Rank" value={rank} />
               <StatRow label="Level" value={rankLevel} />
+              <StatRow label="Wealth" value={wealthStatus(money, bank)} />
               <StatRow
                 label="Experience"
                 value={`${xpCurrent.toLocaleString("en-GB")} / ${xpNext.toLocaleString("en-GB")}`}
@@ -813,6 +819,7 @@ export default function GameShell({
               <StatRow label="Cash on hand" value={gbp(money)} />
               <StatRow label="In bank" value={gbp(bank)} />
               <StatRow label="Cash and bank total" value={gbp(money + bank)} />
+              <StatRow label="Wealth status" value={wealthStatus(money, bank)} />
               <StatRow label="Gold" value={player.gold.toLocaleString("en-GB")} />
 
               <StatGroup title="Earnings" />
@@ -1411,6 +1418,7 @@ export default function GameShell({
               </div>
             </div>
           )}
+
           {!menuOpen && (
           <>
           {status.jailLeft > 0 && JAIL_BLOCKED.has(section) ? (
@@ -1782,11 +1790,7 @@ export default function GameShell({
 
           {section === "Organised Crime" && <OrganisedCrimeSection />}
 
-          {section === "Whack" && (
-            <p className="flavour">
-              Player combat. Weapons, bullets and protection.
-            </p>
-          )}
+          {section === "Whack" && <WhackSection onCash={setMoney} />}
 
           {section === "Hitlist" && (
             <p className="flavour">
@@ -1829,11 +1833,7 @@ export default function GameShell({
             <JailSection onChanged={status.refresh} />
           )}
 
-          {section === "Hospital" && (
-            <p className="flavour">
-              Your health is currently {player.health}%.
-            </p>
-          )}
+          {section === "Hospital" && <HospitalSection onCash={setMoney} />}
 
           {section === "Graveyard" && (
             <p className="flavour">
