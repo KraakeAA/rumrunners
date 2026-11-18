@@ -107,7 +107,8 @@ export function effectiveMinutes(car: CarModel | undefined, damage: number): num
   return Math.round(travelMinutes(car) * (car ? 1 + damage / 100 : 1));
 }
 
-export const THEFT_COOLDOWN_SECONDS = 120;
+// Each theft level has its own cooldown.
+export const THEFT_COOLDOWNS: Record<number, number> = { 1: 30, 2: 45, 3: 60, 4: 90 };
 
 export function theftChance(level: TheftLevel, tier: number): number {
   const gap = Math.max(0, tier - level.level);
