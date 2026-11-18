@@ -2,14 +2,87 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import {
-  CRIME_COOLDOWN_SECONDS,
   CRIMES,
+  ENERGY_REGEN_MS,
+  crimeCooldownSeconds,
   energyAfterRegen,
   levelFromXp,
   playCrime,
   streakFromLogs
 } from "@/lib/game";
 import { rankForLevel } from "@/lib/ranks";
+import { THEFT_COOLDOWNS } from "@/lib/era";
+import { jailRemaining, sendToJail, sentenceFor } from "@/lib/jail";
+
+// Energy, and how long until each job can be tried again.
+export async function GET() {
+  const userId = await getSessionUserId();
+
+  if (!userId) {
+    return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  }
+
+  const player = await prisma.player.findUnique({ where: { userId } });
+
+  if (!player) {
+    return NextResponse.json({ error: "Player not found." }, { status: 404 });
+  }
+
+  const now = new Date();
+  const regen = energyAfterRegen(
+    player.energy,
+    player.maxEnergy,
+    player.lastEnergyAt,
+    now
+  );
+  const nextEnergyIn =
+    regen.energy >= player.maxEnergy
+      ? 0
+      : Math.max(
+          1,
+          Math.ceil(
+            (ENERGY_REGEN_MS - (now.getTime() - regen.lastEnergyAt.getTime())) / 1000
+          )
+        );
+
+  const last = await prisma.crimeLog.groupBy({
+    by: ["crimeType"],
+    where: { playerId: player.id },
+    _max: { createdAt: true }
+  });
+  const lastByName = new Map(last.map((l) => [l.crimeType, l._max.createdAt]));
+
+  const crimes: Record<string, number> = {};
+  for (const c of CRIMES) {
+    const at = lastByName.get(c.name);
+    if (!at) continue;
+    const left = Math.ceil(
+      (crimeCooldownSeconds(c.energyCost) * 1000 - (now.getTime() - at.getTime())) / 1000
+    );
+    if (left > 0) crimes[c.id] = left;
+  }
+
+  const times =
+    player.theftTimes && typeof player.theftTimes === "object"
+      ? (player.theftTimes as Record<string, string>)
+      : {};
+  const thefts: Record<string, number> = {};
+  for (const [level, secs] of Object.entries(THEFT_COOLDOWNS)) {
+    const at = times[level] ? new Date(times[level]) : null;
+    if (!at) continue;
+    const left = Math.ceil((secs * 1000 - (now.getTime() - at.getTime())) / 1000);
+    if (left > 0) thefts[level] = left;
+  }
+
+  return NextResponse.json({
+    jail: jailRemaining(player.jailUntil, now),
+    energy: regen.energy,
+    maxEnergy: player.maxEnergy,
+    nextEnergyIn,
+    crimes,
+    thefts
+  });
+}
 
 export async function POST(req: Request) {
   const userId = await getSessionUserId();
@@ -44,15 +117,20 @@ export async function POST(req: Request) {
 
       const now = new Date();
 
-      if (
-        player.lastCrimeAt &&
-        now.getTime() - player.lastCrimeAt.getTime() <
-          CRIME_COOLDOWN_SECONDS * 1000
-      ) {
+      if (jailRemaining(player.jailUntil, now) > 0) {
+        throw new Error("JAILED");
+      }
+
+      const lastTry = await tx.crimeLog.findFirst({
+        where: { playerId: player.id, crimeType: crime.name },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true }
+      });
+      const cooldownMs = crimeCooldownSeconds(crime.energyCost) * 1000;
+
+      if (lastTry && now.getTime() - lastTry.createdAt.getTime() < cooldownMs) {
         const remaining = Math.ceil(
-          (CRIME_COOLDOWN_SECONDS * 1000 -
-            (now.getTime() - player.lastCrimeAt.getTime())) /
-            1000
+          (cooldownMs - (now.getTime() - lastTry.createdAt.getTime())) / 1000
         );
         throw new Error(`COOLDOWN:${remaining}`);
       }
@@ -95,7 +173,9 @@ export async function POST(req: Request) {
         where: { id: player.id },
         data: {
           energy: regen.energy - crime.energyCost,
-          lastEnergyAt: regen.lastEnergyAt,
+          // A full tank has no running clock, so start one when energy is spent.
+          lastEnergyAt:
+            regen.energy >= player.maxEnergy ? now : regen.lastEnergyAt,
           money: { increment: roll.cash }, // negative when caught and fined
           experience: newXp,
           rankLevel: newLevel,
@@ -103,6 +183,20 @@ export async function POST(req: Request) {
           lastCrimeAt: now
         }
       });
+
+      let jailSeconds = 0;
+      if (roll.tier === "caught") {
+        const sentence = sentenceFor(crime.energyCost);
+        jailSeconds = sentence.seconds;
+        await sendToJail(
+          tx,
+          player.id,
+          sentence.seconds,
+          sentence.security,
+          `Caught during ${crime.name}`,
+          now
+        );
+      }
 
       await tx.crimeLog.create({
         data: {
@@ -132,7 +226,9 @@ export async function POST(req: Request) {
         setup: roll.setup,
         result: roll.result,
         streak: newStreak,
-        streakBonus: roll.streakBonus
+        streakBonus: roll.streakBonus,
+        cooldown: crimeCooldownSeconds(crime.energyCost),
+        jailSeconds
       };
     });
 
@@ -147,6 +243,10 @@ export async function POST(req: Request) {
         { error: "COOLDOWN", remaining: Number(remaining) },
         { status: 429 }
       );
+    }
+
+    if (message === "JAILED") {
+      return NextResponse.json({ error: "JAILED" }, { status: 403 });
     }
 
     if (message === "NO_ENERGY") {
