@@ -3,12 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { energyAfterRegen, levelFromXp } from "@/lib/game";
 import { rankForLevel } from "@/lib/ranks";
+import { jailRemaining, sendToJail } from "@/lib/jail";
 import {
   CARS,
   MAX_DAMAGE,
   makePlate,
   MAX_CARS,
-  THEFT_COOLDOWN_SECONDS,
+  THEFT_COOLDOWNS,
   THEFT_LEVELS,
   theftChance,
 } from "@/lib/era";
@@ -46,12 +47,20 @@ export async function POST(req: Request) {
 
       const now = new Date();
 
-      if (
-        player.lastTheftAt &&
-        now.getTime() - player.lastTheftAt.getTime() < THEFT_COOLDOWN_SECONDS * 1000
-      ) {
+      if (jailRemaining(player.jailUntil, now) > 0) throw new Error("JAILED");
+
+      const times =
+        player.theftTimes && typeof player.theftTimes === "object"
+          ? (player.theftTimes as Record<string, string>)
+          : {};
+      const cooldownMs = (THEFT_COOLDOWNS[level.level] ?? 60) * 1000;
+      const lastTry = times[String(level.level)]
+        ? new Date(times[String(level.level)])
+        : null;
+
+      if (lastTry && now.getTime() - lastTry.getTime() < cooldownMs) {
         const remaining = Math.ceil(
-          (THEFT_COOLDOWN_SECONDS * 1000 - (now.getTime() - player.lastTheftAt.getTime())) / 1000
+          (cooldownMs - (now.getTime() - lastTry.getTime())) / 1000
         );
         throw new Error(`COOLDOWN:${remaining}`);
       }
@@ -88,14 +97,30 @@ export async function POST(req: Request) {
         where: { id: player.id },
         data: {
           energy: regen.energy - level.energy,
-          lastEnergyAt: regen.lastEnergyAt,
+          // A full tank has no running clock, so start one when energy is spent.
+          lastEnergyAt:
+            regen.energy >= player.maxEnergy ? now : regen.lastEnergyAt,
           money: { decrement: fine },
           experience: newXp,
           rankLevel: newLevel,
           rank: rankForLevel(newLevel),
           lastTheftAt: now,
+          theftTimes: { ...times, [String(level.level)]: now.toISOString() },
         },
       });
+
+      let jailSeconds = 0;
+      if (!success && Math.random() < 0.4) {
+        jailSeconds = (3 + level.level * 3) * 60;
+        await sendToJail(
+          tx,
+          player.id,
+          jailSeconds,
+          Math.min(5, level.level + 1),
+          `Caught stealing a car (${level.name})`,
+          now
+        );
+      }
 
       let carId: string | null = null;
       let heat = 0;
@@ -138,6 +163,7 @@ export async function POST(req: Request) {
         rank: updated.rank,
         rankLevel: updated.rankLevel,
         leveledUp: newLevel > player.rankLevel,
+        jailSeconds,
       };
     });
 
@@ -148,6 +174,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "COOLDOWN", remaining: Number(m.split(":")[1]) }, { status: 429 });
     }
     const map: Record<string, [string, number]> = {
+      JAILED: ["You're locked up. Wait out your sentence or try to break out.", 403],
       NO_ENERGY: ["You're exhausted. Wait for your energy to recover.", 400],
       RANK_TOO_LOW: ["You need a higher rank for that job.", 403],
       GARAGE_FULL: [`Your garage only holds ${MAX_CARS} cars. Melt one down first.`, 400],
