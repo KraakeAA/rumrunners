@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_LEVELS, theftChance } from "@/lib/era";
+import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_LEVELS } from "@/lib/era";
+import { clock } from "@/components/EnergyBar";
 import { DamageBar, HeatBar } from "@/components/Travel";
 
 type TheftResult = {
@@ -14,6 +15,7 @@ type TheftResult = {
   plate: string;
   damage: number;
   fine: number;
+  jailSeconds?: number;
   xpGained: number;
   leveledUp: boolean;
   energy: number;
@@ -26,6 +28,9 @@ type TheftResult = {
 type Props = {
   rankLevel: number;
   energy: number;
+  theftLeft: (level: number) => number;
+  jailLeft: number;
+  onActed: () => void;
   currentCity: string;
   onCash: (cash: number) => void;
   onResult: (r: {
@@ -40,9 +45,9 @@ type Props = {
 const panel: CSSProperties = {
   background: "#1f2a25",
   border: "1px solid #6b5d3a",
-  marginBottom: 8,
+  marginBottom: 6,
   color: "#f1e8d3",
-  fontSize: 13,
+  fontSize: 12,
 };
 const barStyle: CSSProperties = {
   padding: "4px 8px",
@@ -62,7 +67,7 @@ const btn: CSSProperties = {
   fontSize: 13,
   cursor: "pointer",
 };
-const sub: CSSProperties = { fontSize: 12, color: "#c9bfa6" };
+const sub: CSSProperties = { fontSize: 11, color: "#c9bfa6" };
 const TIER_NAMES = ["", "Common", "Decent", "Fine", "Grand"];
 
 type WorkshopCar = {
@@ -75,7 +80,16 @@ type WorkshopCar = {
   repairCost: number;
 };
 
-export default function AutoTheftSection({ rankLevel, energy, currentCity, onCash, onResult }: Props) {
+export default function AutoTheftSection({
+  rankLevel,
+  energy,
+  theftLeft,
+  jailLeft,
+  onActed,
+  currentCity,
+  onCash,
+  onResult,
+}: Props) {
   const [cars, setCars] = useState<WorkshopCar[]>([]);
   const [selected, setSelected] = useState("");
   const [shopMsg, setShopMsg] = useState("");
@@ -137,14 +151,16 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
       const data = await response.json();
       if (!response.ok) {
         setResult(null);
+        onActed();
         setError(
           data.error === "COOLDOWN"
-            ? `The police are about. Wait ${data.remaining ?? "a few"} seconds.`
+            ? `You can't try that again yet. Wait ${data.remaining ?? "a few"} seconds.`
             : data.error || "The job failed."
         );
         return;
       }
       setResult(data as TheftResult);
+      onActed();
       loadCars();
       onResult({
         energy: data.energy,
@@ -161,7 +177,7 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
   }
 
   return (
-    <div>
+    <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       {result && (
         <div style={{ ...panel, textAlign: "center" }}>
           <div style={barStyle}>{result.success ? "You got away with it!" : "Caught!"}</div>
@@ -190,6 +206,11 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
                   : " You had nothing to be fined."}
               </div>
             )}
+            {result.jailSeconds ? (
+              <div style={{ color: "#e08f7f", marginTop: 6 }}>
+                You were locked up for {Math.ceil(result.jailSeconds / 60)} minutes.
+              </div>
+            ) : null}
             <div style={{ ...sub, marginTop: 6 }}>
               +{result.xpGained} XP{result.leveledUp ? ` · Promoted to ${result.rank}!` : ""}
             </div>
@@ -201,39 +222,57 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
         <div style={{ ...panel, padding: 8, textAlign: "center", color: "#e0584f" }}>{error}</div>
       )}
 
-      {THEFT_LEVELS.map((l) => {
-        const locked = rankLevel < l.minRank;
-        const nothing = CARS.length === 0;
-        return (
-          <div key={l.level} style={{ ...panel, opacity: locked ? 0.6 : 1 }}>
-            <div style={barStyle}>
-              Level {l.level}: {l.name}
-            </div>
-            <div style={{ padding: 8 }}>
-              <div>{l.blurb}</div>
-              <div style={sub}>
-                Costs {l.energy} energy · {l.xp}+ XP · fine if caught £{l.fine.toLocaleString("en-GB")}
-              </div>
-              <div style={sub}>
-                Odds: common cars {Math.round(theftChance(l, 1) * 100)}% · grand cars{" "}
-                {Math.round(theftChance(l, 4) * 100)}%
-              </div>
-              {locked ? (
-                <div style={{ marginTop: 6, color: "#ddc18d" }}>Unlocked at rank {l.minRank}.</div>
-              ) : (
+      <div style={{ ...panel, marginBottom: 6 }}>
+        <div style={barStyle}>Auto Theft</div>
+        {!THEFT_LEVELS.some((l) => rankLevel >= l.minRank) && (
+          <div style={{ ...sub, padding: 10, textAlign: "center" }}>
+            Nobody will trust you with a job like this yet.
+          </div>
+        )}
+        <div style={{ display: "grid", gap: 0 }}>
+          {THEFT_LEVELS.filter((l) => rankLevel >= l.minRank).map((l) => {
+            const wait = theftLeft(l.level);
+            const tired = energy < l.energy;
+            const disabled = busy || wait > 0 || tired || jailLeft > 0 || CARS.length === 0;
+            return (
+              <div
+                key={l.level}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "5px 8px",
+                  borderBottom: "1px solid #2b3630",
+                  opacity: wait > 0 ? 0.75 : 1,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#f7efdb" }}>
+                    {l.name}
+                  </div>
+                  <div style={{ ...sub, lineHeight: 1.3 }}>{l.blurb}</div>
+                </div>
+                <span title="Energy cost" style={{ flexShrink: 0, fontSize: 12, color: tired ? "#e08f7f" : "#e4c04d" }}>
+                  ⚡{l.energy}
+                </span>
                 <button
                   type="button"
-                  style={{ ...btn, marginTop: 6, opacity: busy || energy < l.energy || nothing ? 0.5 : 1 }}
-                  disabled={busy || energy < l.energy || nothing}
+                  className="button"
+                  style={{ flexShrink: 0, width: 70, padding: "5px 0", fontSize: 12, opacity: disabled ? 0.55 : 1 }}
+                  disabled={disabled}
                   onClick={() => steal(l.level)}
                 >
-                  Steal a car in {currentCity}
+                  {jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : tired ? "Tired" : "Steal"}
                 </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ ...sub, padding: "6px 8px", textAlign: "center" }}>
+          You&apos;ll be working the streets of {currentCity}.
+        </div>
+      </div>
+
       <div style={panel}>
         <div style={barStyle}>Your cars: number plates and repairs</div>
         {cars.length === 0 ? (
@@ -247,7 +286,7 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
                   display: "flex",
                   gap: 8,
                   alignItems: "center",
-                  padding: "7px 8px",
+                  padding: "5px 8px",
                   borderBottom: "1px solid #6b5d3a",
                   background: selected === c.id ? "#3a2f20" : "transparent",
                   cursor: "pointer",
@@ -309,10 +348,6 @@ export default function AutoTheftSection({ rankLevel, energy, currentCity, onCas
         )}
       </div>
 
-      <p style={{ ...sub, textAlign: "center" }}>
-        Any car can turn up at any level, but the finest motors are far harder to take on the
-        lower levels.
-      </p>
     </div>
   );
 }
