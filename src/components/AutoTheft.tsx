@@ -8,7 +8,7 @@ import { DamageBar, HeatBar } from "@/components/Travel";
 
 type TheftResult = {
   success: boolean;
-  car: { name: string; year: string; speed: number; boot: number; tier: number };
+  car: { name: string; year: string; speed: number; boot: number; tier: number; scrap: number };
   place: string;
   city: string;
   chance: number;
@@ -134,7 +134,7 @@ export default function AutoTheftSection({
   }
 
   const picked = cars.find((c) => c.id === selected);
-  const pickedHere = picked ? picked.city === currentCity : false;
+  const pickedHere = !!picked;
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -190,8 +190,8 @@ export default function AutoTheftSection({
                   garage in {result.city}, plate {result.plate}.
                 </div>
                 <div style={sub}>
-                  {TIER_NAMES[result.car.tier]} motor · {result.car.speed} mph · boot holds{" "}
-                  {result.car.boot} crates
+                  {TIER_NAMES[result.car.tier]} motor · melts down for{" "}
+                  {result.car.scrap.toLocaleString("en-GB")} bullets
                 </div>
                 <div style={{ maxWidth: 260, margin: "6px auto 0" }}>
                   <HeatBar heat={result.heat} />
@@ -331,21 +331,12 @@ export default function AutoTheftSection({
                 />
                 <span style={{ flex: 1 }}>
                   <strong>{c.name}</strong> <span style={sub}>[{c.plate}]</span>
-                  <div style={sub}>
-                    Parked in{" "}
-                    <strong style={{ color: c.city === currentCity ? "#6fcf6f" : "#f1e8d3" }}>{c.city}</strong>
-                  </div>
                   <HeatBar heat={c.heat} />
                   <DamageBar damage={c.damage} />
                 </span>
               </label>
             ))}
             <div style={{ padding: 8 }}>
-              {picked && !pickedHere && (
-                <div style={{ color: "#ddc18d", marginBottom: 6 }}>
-                  That car is in {picked.city}. You must be there to work on it.
-                </div>
-              )}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <button
                   type="button"
