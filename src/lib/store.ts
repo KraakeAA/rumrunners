@@ -50,3 +50,67 @@ export const itemKey = (item: { kind: StoreKind; key: string }) => `${item.kind}
 export function findItem(kind: string, key: string): StoreItem | undefined {
   return CATALOGUE.find((i) => i.kind === kind && i.key === key);
 }
+
+// Equipment slots on the Character screen.
+export type SlotKey = "hat" | "body" | "guard" | "home" | "motor" | "primary" | "sidearm";
+
+export const SLOTS: { key: SlotKey; label: string; side: "left" | "right" }[] = [
+  { key: "hat", label: "Hat", side: "left" },
+  { key: "body", label: "Body", side: "left" },
+  { key: "guard", label: "Guard", side: "left" },
+  { key: "home", label: "Home", side: "left" },
+  { key: "motor", label: "Motor", side: "left" },
+  { key: "primary", label: "Primary Gun", side: "right" },
+  { key: "sidearm", label: "Sidearm", side: "right" }
+];
+
+const SLOT_OF: Record<string, SlotKey> = {
+  "gun:webley": "sidearm",
+  "gun:enfield": "sidearm",
+  "gun:colt": "sidearm",
+  "gun:mauser": "sidearm",
+  "gun:greener": "primary",
+  "gun:lee_enfield": "primary",
+  "gun:thompson": "primary",
+  "protection:steel_hat": "hat",
+  "protection:plated_jacket": "body",
+  "protection:vest": "body",
+  "protection:guard_dog": "guard",
+  "protection:bodyguard": "guard",
+  "protection:iron_door": "home",
+  "protection:limousine": "motor"
+};
+
+// Garages are not worn or carried, so they have no slot.
+export function slotOf(typeKey: string): SlotKey | null {
+  return SLOT_OF[typeKey] ?? null;
+}
+
+export function findByType(typeKey: string): StoreItem | undefined {
+  return CATALOGUE.find((i) => itemKey(i) === typeKey);
+}
+
+export type Equipped = Partial<Record<SlotKey, string>>;
+
+// Firepower = the guns in hand. Defence = protection from everything equipped.
+export function equipmentStats(equipped: Equipped): { firepower: number; protection: number } {
+  let firepower = 0;
+  let protection = 0;
+  for (const typeKey of Object.values(equipped)) {
+    if (!typeKey) continue;
+    const item = findByType(typeKey);
+    if (!item) continue;
+    if (item.kind === "gun") firepower += item.value;
+    if (item.kind === "protection") protection += item.value;
+  }
+  return { firepower, protection: Math.min(PROTECTION_CAP, protection) };
+}
+
+export function cleanEquipped(raw: unknown): Equipped {
+  const out: Equipped = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [slot, typeKey] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof typeKey === "string" && slotOf(typeKey) === slot) out[slot as SlotKey] = typeKey;
+  }
+  return out;
+}
