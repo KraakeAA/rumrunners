@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { energyAfterRegen, levelFromXp } from "@/lib/game";
+import { energyAfterRegen, levelFromXp, maxEnergyFor } from "@/lib/game";
 import { rankForLevel } from "@/lib/ranks";
-import { jailRemaining, sendToJail } from "@/lib/jail";
+import { jailRemaining, sendToJail, sentenceFor } from "@/lib/jail";
+import { notifyPromotion } from "@/lib/promotion";
 import {
   CARS,
   MAX_DAMAGE,
@@ -65,7 +66,8 @@ export async function POST(req: Request) {
         throw new Error(`COOLDOWN:${remaining}`);
       }
 
-      const regen = energyAfterRegen(player.energy, player.maxEnergy, player.lastEnergyAt, now);
+      const maxEnergy = maxEnergyFor(player.rankLevel);
+      const regen = energyAfterRegen(player.energy, maxEnergy, player.lastEnergyAt, now);
       if (regen.energy < level.energy) throw new Error("NO_ENERGY");
 
       const owned = await tx.car.count({ where: { ownerId: player.id } });
@@ -97,9 +99,10 @@ export async function POST(req: Request) {
         where: { id: player.id },
         data: {
           energy: regen.energy - level.energy,
+          maxEnergy: maxEnergyFor(newLevel),
           // A full tank has no running clock, so start one when energy is spent.
           lastEnergyAt:
-            regen.energy >= player.maxEnergy ? now : regen.lastEnergyAt,
+            regen.energy >= maxEnergy ? now : regen.lastEnergyAt,
           money: { decrement: fine },
           experience: newXp,
           rankLevel: newLevel,
@@ -109,14 +112,17 @@ export async function POST(req: Request) {
         },
       });
 
+      await notifyPromotion(tx, player.id, player.rankLevel, newLevel);
+
       let jailSeconds = 0;
       if (!success && Math.random() < 0.4) {
-        jailSeconds = (3 + level.level * 3) * 60;
+        const sentence = sentenceFor(level.level + 1, player.rankLevel);
+        jailSeconds = sentence.seconds;
         await sendToJail(
           tx,
           player.id,
           jailSeconds,
-          Math.min(5, level.level + 1),
+          sentence.security,
           `Caught stealing a car (${level.name})`,
           now
         );
@@ -158,6 +164,7 @@ export async function POST(req: Request) {
         fine,
         xpGained: xp,
         energy: updated.energy,
+        maxEnergy: updated.maxEnergy,
         money: updated.money,
         experience: updated.experience,
         rank: updated.rank,
