@@ -4,6 +4,8 @@ import { getSessionUserId } from "@/lib/session";
 import {
   CRIMES,
   ENERGY_REGEN_MS,
+  ENERGY_UNIT,
+  maxEnergyFor,
   crimeCooldownSeconds,
   energyAfterRegen,
   levelFromXp,
@@ -13,6 +15,7 @@ import {
 import { rankForLevel } from "@/lib/ranks";
 import { THEFT_COOLDOWNS } from "@/lib/era";
 import { jailRemaining, sendToJail, sentenceFor } from "@/lib/jail";
+import { notifyPromotion } from "@/lib/promotion";
 
 // Energy, and how long until each job can be tried again.
 export async function GET() {
@@ -29,14 +32,18 @@ export async function GET() {
   }
 
   const now = new Date();
+  const maxEnergy = maxEnergyFor(player.rankLevel);
   const regen = energyAfterRegen(
     player.energy,
-    player.maxEnergy,
+    maxEnergy,
     player.lastEnergyAt,
     now
   );
+  const unreadMail = await prisma.message.count({
+    where: { toId: player.id, readAt: null }
+  });
   const nextEnergyIn =
-    regen.energy >= player.maxEnergy
+    regen.energy >= maxEnergy
       ? 0
       : Math.max(
           1,
@@ -77,7 +84,9 @@ export async function GET() {
   return NextResponse.json({
     jail: jailRemaining(player.jailUntil, now),
     energy: regen.energy,
-    maxEnergy: player.maxEnergy,
+    maxEnergy,
+    regenMs: ENERGY_REGEN_MS,
+    unreadMail,
     nextEnergyIn,
     crimes,
     thefts
@@ -135,9 +144,10 @@ export async function POST(req: Request) {
         throw new Error(`COOLDOWN:${remaining}`);
       }
 
+      const maxEnergy = maxEnergyFor(player.rankLevel);
       const regen = energyAfterRegen(
         player.energy,
-        player.maxEnergy,
+        maxEnergy,
         player.lastEnergyAt,
         now
       );
@@ -173,9 +183,10 @@ export async function POST(req: Request) {
         where: { id: player.id },
         data: {
           energy: regen.energy - crime.energyCost,
+          maxEnergy: maxEnergyFor(newLevel),
           // A full tank has no running clock, so start one when energy is spent.
           lastEnergyAt:
-            regen.energy >= player.maxEnergy ? now : regen.lastEnergyAt,
+            regen.energy >= maxEnergy ? now : regen.lastEnergyAt,
           money: { increment: roll.cash }, // negative when caught and fined
           experience: newXp,
           rankLevel: newLevel,
@@ -184,9 +195,11 @@ export async function POST(req: Request) {
         }
       });
 
+      await notifyPromotion(tx, player.id, player.rankLevel, newLevel);
+
       let jailSeconds = 0;
       if (roll.tier === "caught") {
-        const sentence = sentenceFor(crime.energyCost);
+        const sentence = sentenceFor(crime.energyCost / ENERGY_UNIT, player.rankLevel);
         jailSeconds = sentence.seconds;
         await sendToJail(
           tx,
@@ -213,6 +226,7 @@ export async function POST(req: Request) {
         success: roll.success,
         cashChange: roll.cash,
         energy: updated.energy,
+        maxEnergy: updated.maxEnergy,
         money: updated.money,
         experience: updated.experience,
         rank: updated.rank,
