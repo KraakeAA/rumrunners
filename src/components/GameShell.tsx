@@ -1826,7 +1826,7 @@ export default function GameShell({
             <CitiesSection onGo={(target) => navigate(target)} />
           )}
 
-          {section === "Find Player" && (
+          {section === "Find Player" && <FindPlayerSection />}
             <p className="flavour">
               Search for another player by name.
             </p>
