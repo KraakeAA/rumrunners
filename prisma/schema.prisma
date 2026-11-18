@@ -32,6 +32,14 @@ model Player {
   protection   Int      @default(0)
   // What the player is wearing or carrying: slot name -> store item key (e.g. {"hat":"protection:steel_hat"}).
   equipped     Json?
+  // New-player protection from attack, set at sign-up and again after each rebirth.
+  shieldUntil  DateTime?
+  // Set when health reaches 0. Cleared by rebirth.
+  diedAt       DateTime?
+  killedBy     String?
+  // Health heals slowly; healthAt is when the last point was gained. kills is a lifetime count.
+  healthAt     DateTime?
+  kills        Int      @default(0)
   energy       Int      @default(400)
   maxEnergy    Int      @default(400)
   experience   Int      @default(0)
@@ -310,4 +318,38 @@ model LotteryDraw {
   prize      Int
   winnerName String?
   drawnAt    DateTime @default(now())
+}
+
+// A name that has died. Names are kept so they stay reserved and can be revived.
+model PastLife {
+  id        String    @id @default(cuid())
+  userId    String
+  username  String    @unique
+  rank      String
+  rankLevel Int       @default(1)
+  diedAt    DateTime  @default(now())
+  killedBy  String?
+  revivedAt DateTime?
+
+  @@index([userId])
+}
+
+// A detective hired to find another player. When found there is a window to shoot them.
+// status: searching, found, done, lost, expired.
+model Hunt {
+  id          String    @id @default(cuid())
+  hunterId    String
+  targetId    String
+  targetName  String
+  tier        String
+  cost        Int
+  createdAt   DateTime  @default(now())
+  foundAt     DateTime
+  status      String    @default("searching")
+  foundCity   String?
+  windowEndsAt DateTime?
+  shots       Int       @default(0)
+
+  @@index([hunterId, createdAt])
+  @@index([targetId])
 }
