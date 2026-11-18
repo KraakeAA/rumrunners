@@ -9,7 +9,6 @@ import {
   CARS,
   MAX_DAMAGE,
   makePlate,
-  MAX_CARS,
   THEFT_COOLDOWNS,
   THEFT_LEVELS,
   theftChance,
@@ -71,7 +70,7 @@ export async function POST(req: Request) {
       if (regen.energy < level.energy) throw new Error("NO_ENERGY");
 
       const owned = await tx.car.count({ where: { ownerId: player.id } });
-      if (owned >= MAX_CARS) throw new Error("GARAGE_FULL");
+      if (owned >= player.garageSlots) throw new Error(`GARAGE_FULL:${player.garageSlots}`);
 
       // Which car turns up: every model is possible, weighted by level.
       const weighted = CARS.map((c) => ({ c, w: level.weights[c.tier - 1] }));
@@ -108,6 +107,7 @@ export async function POST(req: Request) {
           rankLevel: newLevel,
           rank: rankForLevel(newLevel),
           lastTheftAt: now,
+          ...(success ? { theftWins: { increment: 1 } } : { theftFails: { increment: 1 } }),
           theftTimes: { ...times, [String(level.level)]: now.toISOString() },
         },
       });
@@ -180,11 +180,16 @@ export async function POST(req: Request) {
     if (m.startsWith("COOLDOWN:")) {
       return NextResponse.json({ error: "COOLDOWN", remaining: Number(m.split(":")[1]) }, { status: 429 });
     }
+    if (m.startsWith("GARAGE_FULL:")) {
+      return NextResponse.json(
+        { error: `Your garage only holds ${m.split(":")[1]} cars. Melt one down, or buy a bigger garage in the Store.` },
+        { status: 400 }
+      );
+    }
     const map: Record<string, [string, number]> = {
       JAILED: ["You're locked up. Wait out your sentence or try to break out.", 403],
       NO_ENERGY: ["You're exhausted. Wait for your energy to recover.", 400],
       RANK_TOO_LOW: ["You need a higher rank for that job.", 403],
-      GARAGE_FULL: [`Your garage only holds ${MAX_CARS} cars. Melt one down first.`, 400],
       PLAYER_NOT_FOUND: ["Player not found.", 404],
     };
     if (map[m]) {
