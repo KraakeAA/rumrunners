@@ -1,0 +1,133 @@
+/* Rumrunners look: 1930s Britain. Bottle green, dull brass and cream on a
+   near-black page, with serif headings. Loaded after globals.css so it wins. */
+
+:root {
+  --bg: #0b0f0d;
+  --panel: #1f2a25;
+  --panel2: #2a3832;
+  --line: #6b5d3a;
+  --text: #f1e8d3;
+  --muted: #b7ad93;
+  --gold: #c9a45a;
+  --red: #8f2a24;
+  --blue: #47718a;
+}
+
+html,
+body {
+  background: #0b0f0d;
+  color: #f1e8d3;
+  font-family: "DejaVu Sans", Verdana, "Trebuchet MS", Arial, sans-serif;
+}
+
+.landing { background: #0b0f0d; }
+
+.landing h1,
+.auth-panel h1,
+.page-heading h1,
+.main-content .lead,
+.bank-balances b,
+.brand span,
+.brand strong,
+.landing-mark {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.game { background: #0b0f0d; max-width: 900px; }
+
+.topbar { background: #0b0f0d; border-bottom: 1px solid #2a3a30; }
+
+.city-strip { background: #0b0f0d !important; border-bottom: 0 !important; }
+.city-location strong { color: #f7efdb; font-size: 20px; font-family: Georgia, serif; }
+.city-location span, .city-era span, .city-weather { color: #c9bfa6; }
+.city-era strong { color: #f7efdb; }
+
+.game-layout { display: block; }
+.sidebar { display: none !important; }
+.main-content { padding: 8px 8px 24px; }
+.main-content p, .flavour { color: #e4dac3; }
+
+.button {
+  background: linear-gradient(180deg, #2f4a3c 0%, #1a2b22 100%);
+  border: 2px solid #b0904a;
+  color: #f7efdb;
+  border-radius: 0;
+}
+.button:hover { background: linear-gradient(180deg, #3a5a49 0%, #213629 100%); }
+.button.secondary { background: linear-gradient(180deg, #2a3832, #1c2622); }
+
+.menu-screen { padding: 4px 0; }
+.side-heading { display: none; }
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.nav-category,
+.nav-item,
+.category-back {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.3)),
+    #25382e;
+  border: 2px solid #a08340;
+  border-radius: 0;
+  color: #f7efdb;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  font-weight: 400;
+  padding: 24px 10px;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+}
+
+.nav-item {
+  text-align: left;
+  padding: 24px 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.35)),
+    #1b2822;
+}
+
+.nav-category:hover,
+.nav-category:active,
+.nav-item:hover,
+.nav-item.active,
+.category-back:hover {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.2)),
+    #35503f;
+  border-color: #d2b27a;
+  color: #fff;
+}
+
+.nav-item.logout-menu-item { color: #f09a8c; }
+.category-back { text-align: left; padding: 24px 16px; }
+.nav-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+.game-status-strip {
+  background: transparent !important;
+  border: 0 !important;
+  gap: 8px !important;
+  padding: 8px 6px !important;
+}
+.game-status-strip button {
+  flex: 1 1 22% !important;
+  flex-direction: column !important;
+  padding: 6px 4px !important;
+  border: 2px solid #a08340 !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #2f5a3a, #183422) !important;
+  color: #f7efdb !important;
+  font-size: 13px !important;
+}
+.game-status-strip button span { color: #f7efdb !important; }
+.game-status-strip button strong { color: #c4f0c8 !important; font-size: 14px !important; font-weight: 700 !important; }
+
+.footer { color: #8a8470; border-top: 1px solid #2a3a30; }
+
+.notice { background: #2a3832; border: 1px solid #a08340; color: #f7efdb; }
+
+.bank-panel, .stat-grid > div, .dash-card { background: #1f2a25; border: 1px solid #a08340; }
+.bank-panel input, .auth-panel input { background: #0e1411; border: 1px solid #a08340; color: #f7efdb; }
