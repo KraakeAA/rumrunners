@@ -20,6 +20,8 @@ import { GarageSection, TravelSection } from "@/components/Travel";
 import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components/Venues";
 import StoreSection from "@/components/Store";
 import LotterySection from "@/components/Lottery";
+import FindPlayerSection from "@/components/FindPlayer";
+
 import {
   CRIMES,
   MAX_STREAK,
