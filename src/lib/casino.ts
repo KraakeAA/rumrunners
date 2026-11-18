@@ -1,4 +1,3 @@
-
 import { randomInt } from "crypto";
 
 export const KENO_PAYOUTS: Record<number, number> = {
@@ -103,4 +102,125 @@ export function spinSlots() {
   }
 
   return { reels, multiplier, combination };
+}
+
+/* ------------------------------- Roulette ------------------------------- */
+// European single-zero wheel: 0-36.
+
+const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+
+export const ROULETTE_BETS = [
+  "number", "red", "black", "odd", "even", "low", "high",
+  "dozen1", "dozen2", "dozen3", "col1", "col2", "col3"
+] as const;
+
+export type RouletteBet = (typeof ROULETTE_BETS)[number];
+
+export function rouletteColour(n: number): "green" | "red" | "black" {
+  return n === 0 ? "green" : RED.has(n) ? "red" : "black";
+}
+
+export function spinRoulette(type: string, number?: number) {
+  if (!ROULETTE_BETS.includes(type as RouletteBet)) {
+    throw new Error("Choose a bet on the table.");
+  }
+  if (type === "number" && (!Number.isInteger(number) || (number as number) < 0 || (number as number) > 36)) {
+    throw new Error("Pick a number from 0 to 36.");
+  }
+
+  const result = randomInt(37);
+  const colour = rouletteColour(result);
+  let win = false;
+  let multiplier = 0;
+
+  switch (type) {
+    case "number": win = result === number; multiplier = 36; break;
+    case "red": win = colour === "red"; multiplier = 2; break;
+    case "black": win = colour === "black"; multiplier = 2; break;
+    case "odd": win = result !== 0 && result % 2 === 1; multiplier = 2; break;
+    case "even": win = result !== 0 && result % 2 === 0; multiplier = 2; break;
+    case "low": win = result >= 1 && result <= 18; multiplier = 2; break;
+    case "high": win = result >= 19 && result <= 36; multiplier = 2; break;
+    case "dozen1": win = result >= 1 && result <= 12; multiplier = 3; break;
+    case "dozen2": win = result >= 13 && result <= 24; multiplier = 3; break;
+    case "dozen3": win = result >= 25 && result <= 36; multiplier = 3; break;
+    case "col1": win = result !== 0 && result % 3 === 1; multiplier = 3; break;
+    case "col2": win = result !== 0 && result % 3 === 2; multiplier = 3; break;
+    case "col3": win = result !== 0 && result % 3 === 0; multiplier = 3; break;
+  }
+
+  return { result, colour, betType: type, betNumber: number ?? null, win, multiplier: win ? multiplier : 0 };
+}
+
+/* --------------------------------- Cards -------------------------------- */
+
+export type Card = { r: number; s: number }; // r: 1 (ace) to 13 (king), s: 0-3
+
+export function freshDeck(): Card[] {
+  const deck: Card[] = [];
+  for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ r, s });
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+/* ---------------------------------- War --------------------------------- */
+// Ace is high. A tie goes to war: one more card each, and the player wins
+// the war on a tie or better. A won war pays 1.5x the bet.
+
+const warValue = (c: Card) => (c.r === 1 ? 14 : c.r);
+
+export function playWar() {
+  const deck = freshDeck();
+  const player = deck[0];
+  const dealer = deck[1];
+  const a = warValue(player);
+  const b = warValue(dealer);
+
+  if (a !== b) {
+    return { player, dealer, war: false, warPlayer: null, warDealer: null, win: a > b, multiplier: a > b ? 2 : 0 };
+  }
+
+  const warPlayer = deck[8];
+  const warDealer = deck[9];
+  const win = warValue(warPlayer) >= warValue(warDealer);
+  return { player, dealer, war: true, warPlayer, warDealer, win, multiplier: win ? 1.5 : 0 };
+}
+
+/* ------------------------------- Blackjack ------------------------------ */
+
+export function handValue(hand: Card[]) {
+  let total = 0;
+  let aces = 0;
+  for (const c of hand) {
+    if (c.r === 1) { aces++; total += 11; }
+    else total += Math.min(c.r, 10);
+  }
+  while (total > 21 && aces > 0) { total -= 10; aces--; }
+  return total;
+}
+
+export const isBlackjack = (hand: Card[]) => hand.length === 2 && handValue(hand) === 21;
+
+// Dealer stands on all 17s. Returns the dealer's finished hand.
+export function dealerPlay(dealer: Card[], deck: Card[]) {
+  const hand = [...dealer];
+  const rest = [...deck];
+  while (handValue(hand) < 17) hand.push(rest.shift() as Card);
+  return { hand, rest };
+}
+
+// Multiplier of the bet returned: 0 lose, 1 push, 2 win, 2.5 blackjack.
+export function blackjackResult(player: Card[], dealer: Card[]) {
+  const p = handValue(player);
+  const d = handValue(dealer);
+  if (p > 21) return { multiplier: 0, label: "Bust" };
+  if (isBlackjack(player) && !isBlackjack(dealer)) return { multiplier: 2.5, label: "Blackjack!" };
+  if (isBlackjack(dealer) && !isBlackjack(player)) return { multiplier: 0, label: "Dealer has blackjack" };
+  if (d > 21) return { multiplier: 2, label: "Dealer busts" };
+  if (p > d) return { multiplier: 2, label: "You win" };
+  if (p === d) return { multiplier: 1, label: "Push" };
+  return { multiplier: 0, label: "Dealer wins" };
 }
