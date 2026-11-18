@@ -7,8 +7,20 @@ import {
   type CSSProperties,
   type ReactNode
 } from "react";
-import CasinoGames from "@/components/CasinoGames";
-import { CRIMES, xpForLevel } from "@/lib/game";
+import AutoTheftSection from "@/components/AutoTheft";
+import { GarageSection, TravelSection } from "@/components/Travel";
+import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components/Venues";
+import {
+  CRIMES,
+  MAX_STREAK,
+  crimePayRange,
+  streakBonusFor,
+  streakFromLogs,
+  successChance,
+  xpForLevel,
+  xpScale
+} from "@/lib/game";
+import { rankForLevel } from "@/lib/ranks";
 
 type Player = {
   username: string;
@@ -32,6 +44,31 @@ type CrimeLog = {
   success: boolean;
   cashChange: number;
   createdAt: string;
+};
+
+type CrimeResult = {
+  crimeName: string;
+  label: string;
+  tier: string;
+  sceneTitle: string;
+  setup: string;
+  result: string;
+  success: boolean;
+  cashChange: number;
+  xpGained: number;
+  streak: number;
+  streakBonus: number;
+  leveledUp: boolean;
+  rank: string;
+};
+
+const TIER_COLOURS: Record<string, string> = {
+  perfect: "#e4c04d",
+  clean: "#7fe08f",
+  messy: "#d9a441",
+  backed_off: "#b9a783",
+  got_away: "#e0a07f",
+  caught: "#e06b5e"
 };
 
 type CrimeTypeStat = {
@@ -255,7 +292,7 @@ const menuGroups = [
     items: [
       "Gun Shop", "Escrow", "Store", "Gold",
       "Marketplace", "Hospital", "Jail", "Local Bank",
-      "Pawn Shop", "Stock Market", "Railway", "Brothel"
+      "Pawn Shop", "Stock Market", "Railway", "Garage", "Brothel"
     ]
   },
   {
@@ -288,6 +325,7 @@ export default function GameShell({
   const [notice, setNotice] = useState("");
   const [energy, setEnergy] = useState(player.energy);
   const [money, setMoney] = useState(player.money);
+  const [bullets, setBullets] = useState(player.bullets);
   const [bank, setBank] = useState(player.bank);
   const [rank, setRank] = useState(player.rank);
   const [rankLevel, setRankLevel] = useState(player.rankLevel);
@@ -301,6 +339,8 @@ export default function GameShell({
   const [bankAmount, setBankAmount] = useState("100");
   const [localCrimes, setLocalCrimes] = useState(recentCrimes);
   const [crimeByType, setCrimeByType] = useState(stats.crimeByType);
+  const [outcome, setOutcome] = useState<CrimeResult | null>(null);
+  const [streak, setStreak] = useState(() => streakFromLogs(recentCrimes));
   const [statsCategory, setStatsCategory] = useState("Current");
 
   useEffect(() => {
@@ -390,8 +430,11 @@ export default function GameShell({
     xpNext > xpPrev
       ? Math.min(
           100,
-          Math.floor(
-            ((xpCurrent - xpPrev) / (xpNext - xpPrev)) * 100
+          Math.max(
+            0,
+            Math.floor(
+              ((xpCurrent - xpPrev) / (xpNext - xpPrev)) * 100
+            )
           )
         )
       : 100;
@@ -474,19 +517,27 @@ export default function GameShell({
         );
       });
 
-      if (data.leveledUp) {
-        setNotice(
-          data.success
-            ? `Job successful. You took £${data.cashChange.toLocaleString("en-GB")}. Rank up — you are now ${data.rank}.`
-            : `The job went wrong, but you still gained experience. Rank up — you are now ${data.rank}.`
-        );
-      } else {
-        setNotice(
-          data.success
-            ? `Job successful. You pocketed £${data.cashChange.toLocaleString("en-GB")} (+${data.xpGained} XP).`
-            : `The job went wrong. You got away empty-handed (+${data.xpGained} XP).`
-        );
-      }
+      setStreak(typeof data.streak === "number" ? data.streak : 0);
+
+      setOutcome({
+        crimeName: data.crimeName,
+        label: data.label ?? (data.success ? "Job done" : "Job failed"),
+        tier: data.tier ?? (data.success ? "clean" : "got_away"),
+        sceneTitle: data.sceneTitle ?? data.crimeName,
+        setup: data.setup ?? "",
+        result: data.result ?? "",
+        success: Boolean(data.success),
+        cashChange: data.cashChange,
+        xpGained: data.xpGained,
+        streak: typeof data.streak === "number" ? data.streak : 0,
+        streakBonus: data.streakBonus ?? 0,
+        leveledUp: Boolean(data.leveledUp),
+        rank: data.rank
+      });
+
+      setNotice(
+        data.leveledUp ? `Rank up — you are now ${data.rank}.` : ""
+      );
     } catch {
       setNotice("Unable to connect. Please try again.");
     } finally {
@@ -538,6 +589,7 @@ export default function GameShell({
 
   function navigate(item: string) {
     setNotice("");
+    setOutcome(null);
     setMenuOpen(false);
     setSelectedGroup("");
     setMenuGroup("");
@@ -563,11 +615,6 @@ export default function GameShell({
       return;
     }
 
-    if (item === "Railway") {
-      window.location.href = "/railway";
-      return;
-    }
-
     setSection(item);
   }
 
@@ -576,6 +623,7 @@ export default function GameShell({
     setMenuGroup("");
     setMenuOpen((open) => !open);
   }
+
   function renderStatistics() {
     const attempts = crimeByType.reduce((n, c) => n + c.attempts, 0);
     const succeeded = crimeByType.reduce((n, c) => n + c.successes, 0);
@@ -648,7 +696,7 @@ export default function GameShell({
               <StatRow label="Energy" value={`${energy} / ${player.maxEnergy}`} />
               <StatRow label="Health" value={`${player.health}%`} />
               <StatRow label="Protection" value={`${player.protection}%`} />
-              <StatRow label="Bullets" value={player.bullets.toLocaleString("en-GB")} />
+              <StatRow label="Bullets" value={bullets.toLocaleString("en-GB")} />
               <StatRow label="Location" value={currentCity} />
             </>
           )}
@@ -1175,11 +1223,25 @@ export default function GameShell({
             renderStatistics()}
 
           {section === "Crimes" && (
-            <>
-              <p className="lead">
-                Small jobs keep money moving. Bigger scores require rank
-                and energy. Heat rises with ambition.
-              </p>
+            <div style={{ width: "100%", minWidth: 0 }}>
+              <TitleBar>Crimes</TitleBar>
+
+              <div style={{ border: "1px solid #3a342c", borderBottom: 0 }}>
+                <StatRow label="Rank" value={rank} />
+                <StatRow
+                  label="Energy"
+                  value={`${energy} / ${player.maxEnergy}`}
+                />
+                <StatRow
+                  label="Streak"
+                  value={
+                    streak > 0
+                      ? `${streak}/${MAX_STREAK} · +${Math.round(streakBonusFor(streak) * 100)}% payout`
+                      : "None — land a job to start one"
+                  }
+                  tone={streak > 0 ? "good" : undefined}
+                />
+              </div>
 
               {crimeCooldown > 0 && (
                 <div className="cooldown-banner">
@@ -1187,52 +1249,197 @@ export default function GameShell({
                 </div>
               )}
 
-              <div className="crime-list">
+              {outcome && (
+                <div
+                  style={{
+                    margin: "8px 0",
+                    border: `1px solid ${TIER_COLOURS[outcome.tier] ?? "#65543b"}`,
+                    background: "#171410"
+                  }}
+                >
+                  <div
+                    style={{
+                      ...titleBarStyle,
+                      color: TIER_COLOURS[outcome.tier] ?? "#f0dfc0"
+                    }}
+                  >
+                    {outcome.label}
+                  </div>
+
+                  <div style={{ padding: "8px 10px" }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#b9a783",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5
+                      }}
+                    >
+                      {outcome.crimeName} · {outcome.sceneTitle}
+                    </div>
+
+                    {outcome.setup && (
+                      <p
+                        style={{
+                          margin: "6px 0",
+                          fontStyle: "italic",
+                          color: "#c7bba7",
+                          lineHeight: 1.45
+                        }}
+                      >
+                        {outcome.setup}
+                      </p>
+                    )}
+
+                    <p
+                      style={{
+                        margin: "6px 0",
+                        color: "#ead9b8",
+                        lineHeight: 1.45
+                      }}
+                    >
+                      {outcome.result}
+                    </p>
+                  </div>
+
+                  <StatRow
+                    label={
+                      outcome.cashChange < 0
+                        ? "Fined"
+                        : outcome.success
+                          ? "Payout"
+                          : "Payout"
+                    }
+                    value={
+                      outcome.cashChange < 0
+                        ? `-${gbp(Math.abs(outcome.cashChange))}`
+                        : gbp(outcome.cashChange)
+                    }
+                    tone={
+                      outcome.cashChange > 0
+                        ? "good"
+                        : outcome.cashChange < 0
+                          ? "bad"
+                          : undefined
+                    }
+                  />
+                  <StatRow label="Experience" value={`+${outcome.xpGained} XP`} />
+                  {outcome.success && outcome.streakBonus > 0 && (
+                    <StatRow
+                      label="Streak bonus"
+                      value={`+${Math.round(outcome.streakBonus * 100)}%`}
+                      tone="good"
+                    />
+                  )}
+                  <StatRow
+                    label="Next streak"
+                    value={
+                      outcome.streak > 0
+                        ? `${outcome.streak}/${MAX_STREAK}`
+                        : "Broken"
+                    }
+                    tone={outcome.streak > 0 ? "good" : "bad"}
+                  />
+                </div>
+              )}
+
+              {notice && <p className="notice">{notice}</p>}
+
+              <div
+                style={{
+                  marginTop: 8,
+                  border: "1px solid #3a342c",
+                  borderBottom: 0
+                }}
+              >
                 {availableCrimes.map((crime) => {
                   const locked = rankLevel < crime.minRankLevel;
+                  const pay = crimePayRange(crime, rankLevel);
+                  const chance = Math.round(
+                    successChance(crime, rankLevel) * 100
+                  );
+                  const xp = Math.round(
+                    crime.xpSuccess * xpScale(crime, rankLevel)
+                  );
+                  const needsEnergy = energy < crime.energyCost;
 
                   return (
                     <div
                       key={crime.id}
-                      className={`crime-card ${locked ? "locked" : ""}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        padding: "8px",
+                        background: locked ? "#12100d" : "#171410",
+                        borderBottom: "1px solid #2e2820",
+                        opacity: locked ? 0.7 : 1
+                      }}
                     >
-                      <div className="crime-info">
-                        <b>{crime.name}</b>
-                        <p>{crime.description}</p>
+                      <div style={{ minWidth: 0 }}>
+                        <b style={{ color: "#ead9b8", fontSize: 14 }}>
+                          {locked ? `🔒 ${crime.name}` : crime.name}
+                        </b>
 
-                        <small>
-                          Energy {crime.energyCost} · Rank{" "}
-                          {crime.minRankLevel}+ · Pay £
-                          {crime.minCash.toLocaleString()}–£
-                          {crime.maxCash.toLocaleString()}
-                          {locked && " · LOCKED"}
-                        </small>
+                        {locked ? (
+                          <div style={{ fontSize: 12, color: "#b9a783" }}>
+                            Unlocks at rank{" "}
+                            {rankForLevel(crime.minRankLevel)} (level{" "}
+                            {crime.minRankLevel})
+                          </div>
+                        ) : (
+                          <>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#a99c85",
+                                lineHeight: 1.35,
+                                overflowWrap: "anywhere"
+                              }}
+                            >
+                              {crime.description}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#c7bba7",
+                                lineHeight: 1.4
+                              }}
+                            >
+                              {gbp(pay.min)}–{gbp(pay.max)} · +{xp} XP ·{" "}
+                              {chance}% · {crime.energyCost} energy
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       <button
                         className="button"
+                        style={{ flexShrink: 0, padding: "8px 12px" }}
                         disabled={
                           busy ||
                           locked ||
                           crimeCooldown > 0 ||
-                          energy < crime.energyCost
+                          needsEnergy
                         }
                         onClick={() => commitCrime(crime.id)}
                       >
                         {locked
-                          ? "Rank required"
+                          ? "Locked"
                           : busy
                             ? "Working…"
-                            : "Attempt"}
+                            : needsEnergy
+                              ? "No energy"
+                              : "Attempt"}
                       </button>
                     </div>
                   );
                 })}
               </div>
-
-              {notice && <p className="notice">{notice}</p>}
-            </>
+            </div>
           )}
+
           {section === "Local Bank" && (
             <>
               <p className="lead">
@@ -1286,7 +1493,7 @@ export default function GameShell({
           )}
 
           {section === "Keno" && (
-            <CasinoGames
+            <CasinoSection
               game="Keno"
               cash={money}
               onCash={setMoney}
@@ -1294,7 +1501,7 @@ export default function GameShell({
           )}
 
           {section === "Slot Machines" && (
-            <CasinoGames
+            <CasinoSection
               game="Slots"
               cash={money}
               onCash={setMoney}
@@ -1314,14 +1521,24 @@ export default function GameShell({
           )}
 
           {section === "Auto Theft" && (
-            <p className="flavour">
-              Steal cars, strip them, or sell them on the quiet. Coming soon.
-            </p>
+            <AutoTheftSection
+              rankLevel={rankLevel}
+              energy={energy}
+              currentCity={currentCity}
+              onCash={setMoney}
+              onResult={(r) => {
+                setEnergy(r.energy);
+                setMoney(r.money);
+                setExperience(r.experience);
+                setRank(r.rank);
+                setRankLevel(r.rankLevel);
+              }}
+            />
           )}
 
           {section === "Bootlegging" && (
             <p className="flavour">
-              Build stills and supply the city&apos;s demand for illegal liquor.
+              Run spirits between the cities. How many crates you can carry depends on your car&apos;s boot. Coming soon.
             </p>
           )}
 
@@ -1355,10 +1572,17 @@ export default function GameShell({
             </p>
           )}
 
+          {section === "Railway" && (
+            <TravelSection onArrive={(city) => setCurrentCity(city)} />
+          )}
+
+          {section === "Garage" && <GarageSection />}
+
           {section === "Gun Shop" && (
-            <p className="flavour">
-              Weapons and ammunition.
-            </p>
+            <BulletFactorySection
+              onCash={setMoney}
+              onBullets={setBullets}
+            />
           )}
 
           {section === "Escrow" && (
@@ -1404,9 +1628,7 @@ export default function GameShell({
           )}
 
           {section === "Cities" && (
-            <p className="flavour">
-              London, Birmingham, Manchester, Liverpool, Glasgow.
-            </p>
+            <CitiesSection onGo={(target) => navigate(target)} />
           )}
 
           {section === "Find Player" && (
@@ -1628,5 +1850,3 @@ export default function GameShell({
     </div>
   );
 }
-
-
