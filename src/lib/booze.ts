@@ -89,3 +89,11 @@ export function cargoOf(value: unknown): Cargo {
 }
 
 export const cargoTotal = (c: Cargo) => Object.values(c).reduce((n, x) => n + x, 0);
+
+// How many crates a player can carry on the train. It grows with every rank.
+export const BASE_CARRY = 20;
+export const CARRY_PER_RANK = 10;
+
+export function boozeCapacity(rankLevel: number): number {
+  return BASE_CARRY + Math.max(0, rankLevel - 1) * CARRY_PER_RANK;
+}
