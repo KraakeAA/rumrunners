@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { CITIES } from "@/lib/venues";
+import { splitTransfer } from "@/lib/fees";
 import { ensureVenues, settleFactory } from "@/lib/venues-server";
 
 export async function POST(req: Request) {
@@ -49,13 +50,15 @@ export async function POST(req: Request) {
       if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
 
       if (factory.ownerId) {
+        // Money moving between players loses 10%. The buyer pays the listed price.
+        const { received } = splitTransfer(cost);
         await tx.player.update({
           where: { id: factory.ownerId },
-          data: { money: { increment: cost } },
+          data: { money: { increment: received } },
         });
         await tx.bulletFactory.update({
           where: { id: factory.id },
-          data: { revenue: { increment: cost } },
+          data: { revenue: { increment: received } },
         });
       }
 
