@@ -7,8 +7,14 @@ import {
   type CSSProperties,
   type ReactNode
 } from "react";
+import { rankForLevel } from "@/lib/ranks";
+import BootleggingSection from "@/components/Bootlegging";
 import AutoTheftSection from "@/components/AutoTheft";
 import JailSection from "@/components/Jail";
+import MailboxSection from "@/components/Mailbox";
+import ForumBoard from "@/components/ForumBoard";
+import SendLetterSection from "@/components/SendLetter";
+import OrganisedCrimeSection from "@/components/OrganisedCrime";
 import { clock, useActionStatus } from "@/components/EnergyBar";
 import { GarageSection, TravelSection } from "@/components/Travel";
 import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components/Venues";
@@ -316,15 +322,18 @@ export default function GameShell({
   isAdmin = false,
   playerId,
   recentCrimes = [],
-  stats = EMPTY_STATS
+  stats = EMPTY_STATS,
+  composeTo = ""
 }: {
   player: Player;
   isAdmin?: boolean;
   playerId: string;
   recentCrimes?: CrimeLog[];
   stats?: PlayerStats;
+  composeTo?: string;
 }) {
-  const [section, setSection] = useState("Home");
+  const [section, setSection] = useState(composeTo ? "Send Letter" : "Home");
+  const [letterTo, setLetterTo] = useState(composeTo);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuGroup, setMenuGroup] = useState("");
@@ -581,7 +590,13 @@ export default function GameShell({
     }
   }
 
+  function openLetter(name: string) {
+    navigate("Send Letter");
+    setLetterTo(name);
+  }
+
   function navigate(item: string) {
+    setLetterTo("");
     setNotice("");
     setOutcome(null);
     setMenuOpen(false);
@@ -601,11 +616,6 @@ export default function GameShell({
 
     if (item === "Users Online") {
       window.location.href = "/users-online";
-      return;
-    }
-
-    if (item === "Forums") {
-      window.location.href = "/forum";
       return;
     }
 
@@ -687,7 +697,7 @@ export default function GameShell({
                 value={`${xpCurrent.toLocaleString("en-GB")} / ${xpNext.toLocaleString("en-GB")}`}
               />
               <StatRow label="Level progress" value={`${xpProgress}%`} />
-              <StatRow label="Energy" value={`${energy} / ${player.maxEnergy}`} />
+              <StatRow label="Energy" value={`${energy} / ${status.maxEnergy}`} />
               <StatRow label="Health" value={`${player.health}%`} />
               <StatRow label="Protection" value={`${player.protection}%`} />
               <StatRow label="Bullets" value={bullets.toLocaleString("en-GB")} />
@@ -811,10 +821,16 @@ export default function GameShell({
     );
   }
 
-  const availableCrimes = useMemo(
-    () => CRIMES.filter((c) => c.minRankLevel <= rankLevel),
-    [rankLevel]
-  );
+  // Every crime you can do, plus the next one up shown greyed out.
+  const availableCrimes = useMemo(() => {
+    const open = CRIMES.filter((c) => c.minRankLevel <= rankLevel);
+    const locked = CRIMES.filter((c) => c.minRankLevel > rankLevel);
+    const nextLevel = locked.length
+      ? Math.min(...locked.map((c) => c.minRankLevel))
+      : 0;
+
+    return [...open, ...locked.filter((c) => c.minRankLevel === nextLevel).slice(0, 1)];
+  }, [rankLevel]);
 
   return (
     <div className="game">
@@ -847,14 +863,41 @@ export default function GameShell({
             lineHeight: 1.2
           }}
         >
-          <strong
+          <span
+            aria-label={`Cash £${money.toLocaleString("en-GB")}`}
             style={{
-              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               whiteSpace: "nowrap"
             }}
           >
-            Cash £{money.toLocaleString("en-GB")}
-          </strong>
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-block",
+                width: 20,
+                height: 12,
+                borderRadius: 2,
+                border: "1px solid #3f8a4d",
+                background: "linear-gradient(135deg, #4f9a5a, #2a5c34)",
+                boxShadow: "inset 0 0 0 2px rgba(200, 245, 205, 0.25)",
+                flexShrink: 0
+              }}
+            />
+            <strong
+              style={{
+                fontFamily: "Georgia, serif",
+                fontSize: 17,
+                fontWeight: 700,
+                letterSpacing: 0.3,
+                color: "#9be39f",
+                textShadow: "0 1px 2px #000"
+              }}
+            >
+              £{money.toLocaleString("en-GB")}
+            </strong>
+          </span>
 
           <span
             style={{
@@ -938,7 +981,7 @@ export default function GameShell({
           </div>
 
           <div
-            aria-label={`Energy ${energy} of ${player.maxEnergy}`}
+            aria-label={`Energy ${energy} of ${status.maxEnergy}`}
             style={{
               display: "flex",
               alignItems: "center",
@@ -948,7 +991,7 @@ export default function GameShell({
               color: "#e4c04d"
             }}
           >
-            <span>⚡ {energy}/{player.maxEnergy}</span>
+            <span>⚡ {energy}/{status.maxEnergy}</span>
             <span
               aria-hidden="true"
               style={{
@@ -963,14 +1006,14 @@ export default function GameShell({
                 style={{
                   display: "block",
                   height: "100%",
-                  width: `${Math.max(0, Math.min(100, (energy / Math.max(1, player.maxEnergy)) * 100))}%`,
+                  width: `${Math.max(0, Math.min(100, (energy / Math.max(1, status.maxEnergy)) * 100))}%`,
                   background: "linear-gradient(180deg, #e0c35a, #a8872a)",
                   transition: "width 0.4s"
                 }}
               />
             </span>
             <span style={{ color: "#b7ad93" }}>
-              {status.nextEnergyIn > 0 ? `+1 ${clock(status.nextEnergyIn)}` : "Full"}
+              {status.nextEnergyIn > 0 ? "+10 / 40s" : "Full"}
             </span>
           </div>
         </div>
@@ -993,6 +1036,7 @@ export default function GameShell({
             title="Messages"
             onClick={() => navigate("Mailbox")}
             style={{
+              position: "relative",
               width: 32,
               height: 32,
               display: "grid",
@@ -1007,6 +1051,28 @@ export default function GameShell({
             }}
           >
             ✉
+            {status.unreadMail > 0 && (
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: -5,
+                  right: -5,
+                  minWidth: 15,
+                  height: 15,
+                  padding: "0 3px",
+                  borderRadius: 8,
+                  background: "#c0392b",
+                  color: "#fff",
+                  fontSize: 10,
+                  lineHeight: "15px",
+                  fontWeight: 700,
+                  textAlign: "center"
+                }}
+              >
+                {status.unreadMail > 9 ? "9+" : status.unreadMail}
+              </span>
+            )}
           </button>
 
           <button
@@ -1199,7 +1265,6 @@ export default function GameShell({
                 }}
               >
                 {[
-                  { label: "Bank", status: "Ready", target: "Local Bank" },
                   {
                     label: "Jail",
                     status: status.jailLeft > 0 ? clock(status.jailLeft) : "Free",
@@ -1287,6 +1352,7 @@ export default function GameShell({
                     : "No streak. Land a job to start one."}
                 </div>
               </div>
+
               {status.jailLeft > 0 && (
                 <p className="notice">
                   You are in jail for another {clock(status.jailLeft)}.{" "}
@@ -1318,6 +1384,25 @@ export default function GameShell({
                   >
                     {outcome.label}
                   </div>
+
+                  {outcome.leveledUp && (
+                    <div
+                      style={{
+                        padding: "6px 10px",
+                        textAlign: "center",
+                        fontFamily: "Georgia, serif",
+                        fontSize: 15,
+                        color: "#1b1405",
+                        background: "linear-gradient(180deg, #f0d878, #c9a23a)",
+                        borderBottom: "1px solid #7a5a0c"
+                      }}
+                    >
+                      ★ Promoted to {outcome.rank}! ★
+                      <div style={{ fontFamily: "inherit", fontSize: 11, marginTop: 1 }}>
+                        Check the Crimes list. New jobs may have opened up.
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{ padding: "6px 10px", fontSize: 13 }}>
                     <div
@@ -1376,7 +1461,7 @@ export default function GameShell({
                       <span>+{outcome.xpGained} XP</span>
                       {outcome.jailSeconds > 0 && (
                         <span style={{ color: "#e08f7f" }}>
-                          Jailed {Math.ceil(outcome.jailSeconds / 60)} min
+                          Jailed {outcome.jailSeconds >= 60 ? `${Math.ceil(outcome.jailSeconds / 60)} min` : `${outcome.jailSeconds} sec`}
                         </span>
                       )}
                       {outcome.success && outcome.streakBonus > 0 && (
@@ -1393,6 +1478,39 @@ export default function GameShell({
 
               <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
                 {availableCrimes.map((crime) => {
+                  if (crime.minRankLevel > rankLevel) {
+                    return (
+                      <div
+                        key={crime.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "5px 8px",
+                          border: "1px solid #3a3a30",
+                          background: "#161b18",
+                          opacity: 0.6
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#8a8470" }}>
+                            {crime.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#8a8470" }}>
+                            Unlocks at {rankForLevel(crime.minRankLevel)}
+                          </div>
+                        </div>
+                        <button
+                          className="button"
+                          style={{ flexShrink: 0, width: 70, padding: "5px 0", fontSize: 12, opacity: 0.55 }}
+                          disabled
+                        >
+                          Locked
+                        </button>
+                      </div>
+                    );
+                  }
+
                   const wait = status.crimeLeft(crime.id);
                   const needsEnergy = energy < crime.energyCost;
                   const disabled = busy || wait > 0 || needsEnergy || status.jailLeft > 0;
@@ -1439,7 +1557,6 @@ export default function GameShell({
                       >
                         ⚡{crime.energyCost}
                       </span>
-
                       <button
                         className="button"
                         style={{
@@ -1566,17 +1683,9 @@ export default function GameShell({
             />
           )}
 
-          {section === "Bootlegging" && (
-            <p className="flavour">
-              Run spirits between the cities. How many crates you can carry depends on your car&apos;s boot. Coming soon.
-            </p>
-          )}
+          {section === "Bootlegging" && <BootleggingSection onCash={setMoney} />}
 
-          {section === "Organised Crime" && (
-            <p className="flavour">
-              Four-player jobs with invitations and a 100% payout split.
-            </p>
-          )}
+          {section === "Organised Crime" && <OrganisedCrimeSection />}
 
           {section === "Whack" && (
             <p className="flavour">
@@ -1595,6 +1704,7 @@ export default function GameShell({
               Own and protect criminal rackets for passive income.
             </p>
           )}
+
           {section === "Marketplace" && (
             <p className="flavour">
               Buy and sell goods with other players.
@@ -1665,15 +1775,15 @@ export default function GameShell({
           )}
 
           {section === "Mailbox" && (
-            <p className="flavour">
-              Your incoming messages.
-            </p>
+            <MailboxSection
+              onOpenOc={() => navigate("Organised Crime")}
+              onReply={openLetter}
+              onChanged={status.refresh}
+            />
           )}
 
           {section === "Send Letter" && (
-            <p className="flavour">
-              Write a letter to another player.
-            </p>
+            <SendLetterSection key={letterTo} initialTo={letterTo} />
           )}
 
           {section === "Saved Mail" && (
@@ -1683,15 +1793,23 @@ export default function GameShell({
           )}
 
           {section === "Classifieds" && (
-            <p className="flavour">
-              Player advertisements and listings.
-            </p>
+            <ForumBoard
+              key="CLASSIFIEDS"
+              category="CLASSIFIEDS"
+              title="Classifieds"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
           )}
 
           {section === "Off Topic" && (
-            <p className="flavour">
-              General conversation away from the game.
-            </p>
+            <ForumBoard
+              key="OFF_TOPIC"
+              category="OFF_TOPIC"
+              title="Off Topic"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
           )}
 
           {section === "Crew" && (
@@ -1802,10 +1920,36 @@ export default function GameShell({
             </p>
           )}
 
+          {section === "Forums" && (
+            <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", display: "grid", gap: 6 }}>
+              <div style={{ ...titleBarStyle, fontSize: 16, padding: "6px 8px" }}>Forums</div>
+              {[
+                { name: "Game", note: "Talk about the game, news and updates." },
+                { name: "Classifieds", note: "Buy, sell and trade with other players." },
+                { name: "Off Topic", note: "The public house. Anything beyond the game." }
+              ].map((f) => (
+                <button
+                  key={f.name}
+                  type="button"
+                  className="nav-item"
+                  onClick={() => navigate(f.name)}
+                  style={{ width: "100%" }}
+                >
+                  <strong style={{ display: "block", fontSize: 14 }}>{f.name}</strong>
+                  <span style={{ fontSize: 11, color: "#b7ad93", fontFamily: "inherit" }}>{f.note}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {section === "Game" && (
-            <p className="flavour">
-              Game discussion board.
-            </p>
+            <ForumBoard
+              key="OFFICIAL"
+              category="OFFICIAL"
+              title="Game"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
           )}
 
           {section !== "Home" &&
