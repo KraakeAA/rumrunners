@@ -16,6 +16,7 @@ import { rankForLevel } from "@/lib/ranks";
 import { THEFT_COOLDOWNS } from "@/lib/era";
 import { jailRemaining, sendToJail, sentenceFor } from "@/lib/jail";
 import { notifyPromotion } from "@/lib/promotion";
+import { settleLotteries } from "@/lib/lottery";
 
 // Energy, and how long until each job can be tried again.
 export async function GET() {
@@ -30,6 +31,9 @@ export async function GET() {
   if (!player) {
     return NextResponse.json({ error: "Player not found." }, { status: 404 });
   }
+
+  // Draw the Wednesday lottery once its time has passed (does nothing otherwise).
+  await settleLotteries().catch(() => {});
 
   const now = new Date();
   const maxEnergy = maxEnergyFor(player.rankLevel);
