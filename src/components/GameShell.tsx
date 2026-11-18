@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode
+} from "react";
 import CasinoGames from "@/components/CasinoGames";
 import { CRIMES, xpForLevel } from "@/lib/game";
 
@@ -27,6 +33,197 @@ type CrimeLog = {
   cashChange: number;
   createdAt: string;
 };
+
+type CrimeTypeStat = {
+  crimeType: string;
+  attempts: number;
+  successes: number;
+  cashEarned: number;
+};
+
+type CasinoGameStat = {
+  game: string;
+  plays: number;
+  wagered: number;
+  returned: number;
+  biggestPayout: number;
+};
+
+type PlayerStats = {
+  crimeByType: CrimeTypeStat[];
+  casinoByGame: CasinoGameStat[];
+  forumTopics: number;
+  forumPosts: number;
+  joinedAt: string | null;
+};
+
+const EMPTY_STATS: PlayerStats = {
+  crimeByType: [],
+  casinoByGame: [],
+  forumTopics: 0,
+  forumPosts: 0,
+  joinedAt: null
+};
+
+const STAT_CATEGORIES = [
+  "Current",
+  "Criminal Activity",
+  "Economy",
+  "Casino",
+  "Social"
+];
+
+const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
+
+const titleBarStyle: CSSProperties = {
+  padding: "4px 8px",
+  textAlign: "center",
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+  color: "#f0dfc0",
+  background: "linear-gradient(180deg, #6b5230 0%, #3a2c18 55%, #2a2012 100%)",
+  borderTop: "1px solid #8d7140",
+  borderBottom: "1px solid #1a140b",
+  textShadow: "0 1px 0 #1a140b"
+};
+
+function TitleBar({ children }: { children: ReactNode }) {
+  return <div style={titleBarStyle}>{children}</div>;
+}
+
+function StatGroup({ title }: { title: string }) {
+  return (
+    <div
+      style={{
+        padding: "3px 8px",
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+        color: "#d9b45f",
+        background: "#221d15",
+        borderBottom: "1px solid #3a342c"
+      }}
+    >
+      {title}
+    </div>
+  );
+}
+
+function StatRow({
+  label,
+  value,
+  tone
+}: {
+  label: string;
+  value: ReactNode;
+  tone?: "good" | "bad";
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        gap: 12,
+        padding: "4px 8px",
+        fontSize: 13,
+        lineHeight: 1.35,
+        background: "#171410",
+        borderBottom: "1px solid #2e2820"
+      }}
+    >
+      <span style={{ color: "#c7bba7", minWidth: 0, overflowWrap: "anywhere" }}>
+        {label}
+      </span>
+      <span
+        style={{
+          color:
+            tone === "good"
+              ? "#7fe08f"
+              : tone === "bad"
+                ? "#e08f7f"
+                : "#ead9b8",
+          fontWeight: 600,
+          textAlign: "right",
+          flexShrink: 0
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function StatTable({
+  columns,
+  rows
+}: {
+  columns: string[];
+  rows: string[][];
+}) {
+  const template = `minmax(0, 1.5fr) repeat(${columns.length - 1}, minmax(0, 1fr))`;
+  const cell = (i: number): CSSProperties => ({
+    textAlign: i === 0 ? "left" : "right",
+    minWidth: 0,
+    overflowWrap: "anywhere"
+  });
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: template,
+          gap: 8,
+          padding: "3px 8px",
+          fontSize: 11,
+          color: "#b9a783",
+          background: "#1e1a14",
+          borderBottom: "1px solid #3a342c"
+        }}
+      >
+        {columns.map((c, i) => (
+          <span key={c} style={cell(i)}>
+            {c}
+          </span>
+        ))}
+      </div>
+
+      {rows.map((row, r) => (
+        <div
+          key={r}
+          style={{
+            display: "grid",
+            gridTemplateColumns: template,
+            gap: 8,
+            padding: "4px 8px",
+            fontSize: 13,
+            lineHeight: 1.35,
+            color: "#ead9b8",
+            background: "#171410",
+            borderBottom: "1px solid #2e2820"
+          }}
+        >
+          {row.map((value, i) => (
+            <span
+              key={i}
+              style={{
+                ...cell(i),
+                color: i === 0 ? "#c7bba7" : "#ead9b8",
+                fontWeight: i === 0 ? 400 : 600
+              }}
+            >
+              {value}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const menuGroups = [
   {
@@ -75,12 +272,14 @@ export default function GameShell({
   player,
   isAdmin = false,
   playerId,
-  recentCrimes = []
+  recentCrimes = [],
+  stats = EMPTY_STATS
 }: {
   player: Player;
   isAdmin?: boolean;
   playerId: string;
   recentCrimes?: CrimeLog[];
+  stats?: PlayerStats;
 }) {
   const [section, setSection] = useState("Home");
   const [selectedGroup, setSelectedGroup] = useState("");
@@ -101,6 +300,8 @@ export default function GameShell({
   const [crimeCooldown, setCrimeCooldown] = useState(0);
   const [bankAmount, setBankAmount] = useState("100");
   const [localCrimes, setLocalCrimes] = useState(recentCrimes);
+  const [crimeByType, setCrimeByType] = useState(stats.crimeByType);
+  const [statsCategory, setStatsCategory] = useState("Current");
 
   useEffect(() => {
     const updateClock = () => {
@@ -245,6 +446,34 @@ export default function GameShell({
         ].slice(0, 8)
       );
 
+      setCrimeByType((prev) => {
+        const wonCash = data.success ? data.cashChange : 0;
+        const won = data.success ? 1 : 0;
+
+        if (!prev.some((c) => c.crimeType === data.crimeName)) {
+          return [
+            ...prev,
+            {
+              crimeType: data.crimeName,
+              attempts: 1,
+              successes: won,
+              cashEarned: wonCash
+            }
+          ];
+        }
+
+        return prev.map((c) =>
+          c.crimeType === data.crimeName
+            ? {
+                ...c,
+                attempts: c.attempts + 1,
+                successes: c.successes + won,
+                cashEarned: c.cashEarned + wonCash
+              }
+            : c
+        );
+      });
+
       if (data.leveledUp) {
         setNotice(
           data.success
@@ -346,6 +575,198 @@ export default function GameShell({
     setNotice("");
     setMenuGroup("");
     setMenuOpen((open) => !open);
+  }
+  function renderStatistics() {
+    const attempts = crimeByType.reduce((n, c) => n + c.attempts, 0);
+    const succeeded = crimeByType.reduce((n, c) => n + c.successes, 0);
+    const failed = attempts - succeeded;
+    const cashEarned = crimeByType.reduce((n, c) => n + c.cashEarned, 0);
+    const pct = (won: number, total: number) =>
+      total > 0 ? `${Math.round((won / total) * 1000) / 10}%` : "0%";
+
+    const casinoPlays = stats.casinoByGame.reduce((n, g) => n + g.plays, 0);
+    const casinoWagered = stats.casinoByGame.reduce((n, g) => n + g.wagered, 0);
+    const casinoReturned = stats.casinoByGame.reduce((n, g) => n + g.returned, 0);
+    const casinoNet = casinoReturned - casinoWagered;
+    const casinoBiggest = stats.casinoByGame.reduce(
+      (n, g) => Math.max(n, g.biggestPayout),
+      0
+    );
+
+    const sortedCrimes = [...crimeByType].sort((a, b) =>
+      a.crimeType.localeCompare(b.crimeType)
+    );
+
+    return (
+      <div style={{ width: "100%", minWidth: 0 }}>
+        <TitleBar>Welcome to Rumrunners</TitleBar>
+        <TitleBar>Statistics</TitleBar>
+
+        <div style={{ padding: "6px 0", background: "#12100d" }}>
+          <select
+            aria-label="Statistics category"
+            value={statsCategory}
+            onChange={(e) => setStatsCategory(e.target.value)}
+            style={{
+              display: "block",
+              width: "100%",
+              height: 36,
+              padding: "0 8px",
+              border: "1px solid #65543b",
+              borderRadius: 0,
+              background: "#1b1814",
+              color: "#ead9b8",
+              fontSize: 16
+            }}
+          >
+            {STAT_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ border: "1px solid #3a342c", borderBottom: 0 }}>
+          {statsCategory === "Current" && (
+            <>
+              <StatGroup title="Crimes" />
+              <StatRow label="Crimes succeeded" value={succeeded.toLocaleString("en-GB")} />
+              <StatRow label="Success percentage" value={pct(succeeded, attempts)} />
+              <StatRow label="Crimes failed" value={failed.toLocaleString("en-GB")} />
+              <StatRow label="Total crimes" value={attempts.toLocaleString("en-GB")} />
+              <StatRow label="Cash earned" value={gbp(cashEarned)} />
+
+              <StatGroup title="Character" />
+              <StatRow label="Rank" value={rank} />
+              <StatRow label="Level" value={rankLevel} />
+              <StatRow
+                label="Experience"
+                value={`${xpCurrent.toLocaleString("en-GB")} / ${xpNext.toLocaleString("en-GB")}`}
+              />
+              <StatRow label="Level progress" value={`${xpProgress}%`} />
+              <StatRow label="Energy" value={`${energy} / ${player.maxEnergy}`} />
+              <StatRow label="Health" value={`${player.health}%`} />
+              <StatRow label="Protection" value={`${player.protection}%`} />
+              <StatRow label="Bullets" value={player.bullets.toLocaleString("en-GB")} />
+              <StatRow label="Location" value={currentCity} />
+            </>
+          )}
+
+          {statsCategory === "Criminal Activity" && (
+            <>
+              <StatGroup title="Jobs by type" />
+              {sortedCrimes.length === 0 ? (
+                <StatRow label="No jobs recorded yet" value="—" />
+              ) : (
+                <StatTable
+                  columns={["Job", "Tries", "Won", "Earned"]}
+                  rows={sortedCrimes.map((c) => [
+                    c.crimeType,
+                    c.attempts.toLocaleString("en-GB"),
+                    `${c.successes.toLocaleString("en-GB")} (${pct(c.successes, c.attempts)})`,
+                    gbp(c.cashEarned)
+                  ])}
+                />
+              )}
+
+              <StatGroup title="Totals" />
+              <StatRow label="Total crimes" value={attempts.toLocaleString("en-GB")} />
+              <StatRow label="Success percentage" value={pct(succeeded, attempts)} />
+              <StatRow
+                label="Average per successful job"
+                value={gbp(succeeded > 0 ? Math.round(cashEarned / succeeded) : 0)}
+              />
+
+              <StatGroup title="Recent jobs" />
+              {localCrimes.length === 0 ? (
+                <StatRow label="No jobs logged yet" value="—" />
+              ) : (
+                localCrimes.map((c, i) => (
+                  <StatRow
+                    key={i}
+                    label={`${new Date(c.createdAt).toLocaleTimeString("en-GB", {
+                      timeZone: "Europe/London",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })} · ${c.crimeType}`}
+                    value={c.success ? `+${gbp(c.cashChange)}` : "Failed"}
+                    tone={c.success ? "good" : "bad"}
+                  />
+                ))
+              )}
+            </>
+          )}
+
+          {statsCategory === "Economy" && (
+            <>
+              <StatGroup title="Money" />
+              <StatRow label="Cash on hand" value={gbp(money)} />
+              <StatRow label="In bank" value={gbp(bank)} />
+              <StatRow label="Cash and bank total" value={gbp(money + bank)} />
+              <StatRow label="Gold" value={player.gold.toLocaleString("en-GB")} />
+
+              <StatGroup title="Earnings" />
+              <StatRow label="Cash earned from crimes" value={gbp(cashEarned)} />
+            </>
+          )}
+
+          {statsCategory === "Casino" && (
+            <>
+              <StatGroup title="Totals" />
+              <StatRow label="Games played" value={casinoPlays.toLocaleString("en-GB")} />
+              <StatRow label="Total wagered" value={gbp(casinoWagered)} />
+              <StatRow label="Total returned" value={gbp(casinoReturned)} />
+              <StatRow
+                label="Net result"
+                value={`${casinoNet < 0 ? "-" : casinoNet > 0 ? "+" : ""}${gbp(Math.abs(casinoNet))}`}
+                tone={casinoNet > 0 ? "good" : casinoNet < 0 ? "bad" : undefined}
+              />
+              <StatRow label="Biggest single payout" value={gbp(casinoBiggest)} />
+
+              <StatGroup title="By game" />
+              {stats.casinoByGame.length === 0 ? (
+                <StatRow label="No casino games played yet" value="—" />
+              ) : (
+                <StatTable
+                  columns={["Game", "Plays", "Wagered", "Returned"]}
+                  rows={stats.casinoByGame.map((g) => [
+                    g.game,
+                    g.plays.toLocaleString("en-GB"),
+                    gbp(g.wagered),
+                    gbp(g.returned)
+                  ])}
+                />
+              )}
+            </>
+          )}
+
+          {statsCategory === "Social" && (
+            <>
+              <StatGroup title="Forums" />
+              <StatRow label="Topics started" value={stats.forumTopics.toLocaleString("en-GB")} />
+              <StatRow label="Posts written" value={stats.forumPosts.toLocaleString("en-GB")} />
+
+              <StatGroup title="Account" />
+              <StatRow label="Username" value={player.username} />
+              <StatRow
+                label="Member since"
+                value={
+                  stats.joinedAt
+                    ? new Date(stats.joinedAt).toLocaleDateString("en-GB", {
+                        timeZone: "Europe/London",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric"
+                      })
+                    : "—"
+                }
+              />
+            </>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const availableCrimes = useMemo(
@@ -702,118 +1123,8 @@ export default function GameShell({
 
           {!menuOpen && (
           <>
-          {section === "Home" && (
-            <>
-              <p className="lead">
-                The city is awake. Opportunity waits for nobody.
-              </p>
-
-              <div className="dash-grid">
-                <div className="dash-card">
-                  <h3>Your standing</h3>
-                  <p className="dash-rank">{rank}</p>
-
-                  <div className="xp-bar-wrap">
-                    <div className="xp-bar">
-                      <i style={{ width: `${xpProgress}%` }} />
-                    </div>
-
-                    <small>
-                      Level {rankLevel} ·{" "}
-                      {xpCurrent.toLocaleString()} /{" "}
-                      {xpNext.toLocaleString()} XP
-                    </small>
-                  </div>
-                </div>
-
-                <div className="dash-card">
-                  <h3>Energy</h3>
-                  <p className="dash-big">
-                    {energy}
-                    <span>/{player.maxEnergy}</span>
-                  </p>
-                  <small>Recovers 1 every 3 minutes</small>
-                </div>
-
-                <div className="dash-card">
-                  <h3>Cash</h3>
-                  <p className="dash-big">
-                    £{money.toLocaleString("en-GB")}
-                  </p>
-                  <small>
-                    Bank: £{bank.toLocaleString("en-GB")}
-                  </small>
-                </div>
-              </div>
-
-              <div className="news-line">
-                <b>DISPATCH</b>
-                <span>
-                  Keep your head down, choose your company carefully, and
-                  watch your back. Street work pays — higher ranks unlock
-                  bigger scores.
-                </span>
-              </div>
-
-              <h2>Recent activity</h2>
-
-              {localCrimes.length === 0 ? (
-                <p className="muted">
-                  No jobs logged yet. Try the Crimes section.
-                </p>
-              ) : (
-                <ul className="activity-list">
-                  {localCrimes.map((c, i) => (
-                    <li key={i}>
-                      <span className={c.success ? "ok" : "fail"}>
-                        {c.success ? "✓" : "✗"}
-                      </span>
-
-                      <span>
-                        {c.crimeType}
-                        {c.success
-                          ? ` · +£${c.cashChange.toLocaleString("en-GB")}`
-                          : " · failed"}
-                      </span>
-
-                      <time>
-                        {new Date(c.createdAt).toLocaleTimeString(
-                          "en-GB",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          }
-                        )}
-                      </time>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <div className="quick-actions">
-                <button
-                  className="button"
-                  onClick={() => navigate("Crimes")}
-                >
-                  Go to Crimes
-                </button>
-
-                <button
-                  className="button secondary"
-                  onClick={() => navigate("Local Bank")}
-                >
-                  Local Bank
-                </button>
-
-                <button
-                  className="button secondary"
-                  onClick={() => navigate("Keno")}
-                >
-                  Casino
-                </button>
-              </div>
-            </>
-          )}
+          {(section === "Home" || section === "Statistics") &&
+            renderStatistics()}
 
           {section === "Crimes" && (
             <>
@@ -1006,32 +1317,6 @@ export default function GameShell({
             <p className="flavour">
               Secure player-to-player trading.
             </p>
-          )}
-
-          {section === "Statistics" && (
-            <div>
-              <p className="lead">
-                Your criminal record so far.
-              </p>
-
-              <div className="stat-grid">
-                <div><span>Rank</span><b>{rank}</b></div>
-                <div><span>Level</span><b>{rankLevel}</b></div>
-                <div>
-                  <span>Experience</span>
-                  <b>{experience.toLocaleString()}</b>
-                </div>
-                <div><span>Health</span><b>{player.health}%</b></div>
-                <div>
-                  <span>Protection</span>
-                  <b>{player.protection}%</b>
-                </div>
-                <div>
-                  <span>Bullets</span>
-                  <b>{player.bullets}</b>
-                </div>
-              </div>
-            </div>
           )}
 
           {section === "Jail" && (
@@ -1295,4 +1580,5 @@ export default function GameShell({
     </div>
   );
 }
+
 
