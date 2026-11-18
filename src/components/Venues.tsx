@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import CasinoGames from "@/components/CasinoGames";
-import { ARMS } from "@/lib/era";
-import type { CasinoView, FactoryView, VenueData } from "@/lib/venues";
+import TableGames from "@/components/TableGames";
+import type { CasinoGameKey, CasinoView, FactoryView, VenueData } from "@/lib/venues";
 
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
@@ -114,7 +114,7 @@ export function CasinoSection({
   cash,
   onCash,
 }: {
-  game: "Keno" | "Slots";
+  game: CasinoGameKey;
   cash: number;
   onCash: (cash: number) => void;
 }) {
@@ -209,6 +209,7 @@ export function CasinoSection({
   }
 
   // Everyone else: the game, with the owner and max bet shown.
+  const GameComponent = game === "Blackjack" || game === "Roulette" || game === "War" ? TableGames : CasinoGames;
   return (
     <div>
       {banner && (
@@ -238,9 +239,9 @@ export function CasinoSection({
         </div>
       )}
 
-      <CasinoGames
+      <GameComponent
         key={`${casino.id}-${casino.ownerId ?? "house"}`}
-        game={game}
+        game={game as never}
         cash={cash}
         onCash={onCash}
         ownerName={casino.ownerName}
@@ -270,16 +271,6 @@ const cityRegions: Record<string, string> = {
   Liverpool: "Merseyside",
   Glasgow: "Scotland"
 };
-
-const COMING_SOON = [
-  "Blackjack",
-  "Roulette",
-  "Poker Run",
-  "Race Track",
-  "Jacks or Better",
-  "Sports Betting",
-  "Lottery"
-];
 
 function OwnerLine({
   owner,
@@ -407,31 +398,6 @@ export function CitiesSection({
                 </CityRow>
               )}
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  borderTop: "1px solid #2b3630",
-                  background: "#17201c"
-                }}
-              >
-                {COMING_SOON.map((name) => (
-                  <div
-                    key={name}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 6,
-                      padding: "3px 8px",
-                      fontSize: 11,
-                      color: "#8a8470"
-                    }}
-                  >
-                    <span>{name}</span>
-                    <span style={{ fontStyle: "italic" }}>Soon</span>
-                  </div>
-                ))}
-              </div>
             </div>
           );
         })}
@@ -441,7 +407,7 @@ export function CitiesSection({
         <button type="button" style={{ ...btn, padding: "5px 14px", fontSize: 12 }} onClick={() => onGo("Railway")}>
           Travel
         </button>
-        <button type="button" style={{ ...btn, padding: "5px 14px", fontSize: 12 }} onClick={() => onGo("Gun Shop")}>
+        <button type="button" style={{ ...btn, padding: "5px 14px", fontSize: 12 }} onClick={() => onGo("Bullet Factory")}>
           Bullet Factory
         </button>
       </div>
@@ -472,9 +438,8 @@ export function BulletFactorySection({
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [garage, setGarage] = useState<
-    { id: string; name: string; scrap: number; city: string }[]
+    { id: string; name: string; scrap: number }[]
   >([]);
-  const [garageCity, setGarageCity] = useState("");
 
   const loadGarage = useCallback(async () => {
     try {
@@ -482,7 +447,6 @@ export function BulletFactorySection({
       if (!r.ok) return;
       const d = await r.json();
       setGarage(Array.isArray(d.cars) ? d.cars : []);
-      setGarageCity(typeof d.currentCity === "string" ? d.currentCity : "");
     } catch {
       /* ignore */
     }
@@ -675,13 +639,12 @@ export function BulletFactorySection({
 
       <div style={panel}>
         <Bar>Melt a car for bullets</Bar>
-        {garage.filter((c) => c.city === garageCity).length === 0 ? (
+        {garage.length === 0 ? (
           <div style={{ padding: 8, color: "#c9bfa6" }}>
-            You have no cars parked in {garageCity || "this city"} to melt down. Steal one through
-            Auto Theft, or drive one here.
+            You have no cars to melt down. Steal one through Auto Theft.
           </div>
         ) : (
-          garage.filter((c) => c.city === garageCity).map((c) => (
+          garage.map((c) => (
             <div
               key={c.id}
               style={{
@@ -705,19 +668,6 @@ export function BulletFactorySection({
             </div>
           ))
         )}
-      </div>
-
-      <div style={panel}>
-        <Bar>Arms of the era</Bar>
-        {ARMS.map((a) => (
-          <div key={a.name} style={{ padding: "5px 8px", borderBottom: "1px solid #6b5d3a" }}>
-            <strong>{a.name}</strong>{" "}
-            <span style={{ color: "#c9bfa6", fontSize: 12 }}>
-              {a.maker} · {a.calibre}
-            </span>
-            <div style={{ fontSize: 12, color: "#c9bfa6" }}>{a.note}</div>
-          </div>
-        ))}
       </div>
 
       {msg && <p style={{ color: "#ddc18d", textAlign: "center" }}>{msg}</p>}
