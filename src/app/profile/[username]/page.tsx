@@ -1,8 +1,40 @@
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { CSSProperties } from "react";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
+import { renderBB } from "@/lib/bbcode";
+
+const ONLINE_MS = 5 * 60 * 1000;
+
+const bar: CSSProperties = {
+  padding: "8px",
+  textAlign: "center",
+  fontFamily: "Georgia, serif",
+  fontSize: 18,
+  color: "#f7efdb",
+  background: "linear-gradient(180deg, #5a4a33, #2d2418)",
+  border: "1px solid #8a7a66"
+};
+const row: CSSProperties = { display: "flex", border: "1px solid #8a7a66", background: "#4a4a4a" };
+const label: CSSProperties = {
+  width: "38%",
+  padding: "7px 8px",
+  fontWeight: 700,
+  borderRight: "1px solid #8a7a66",
+  background: "#444"
+};
+const value: CSSProperties = { flex: 1, padding: "7px 8px", overflowWrap: "anywhere" };
+
+function lastSeen(at: Date, online: boolean) {
+  if (online) return "Now";
+  const mins = Math.floor((Date.now() - at.getTime()) / 60000);
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
 
 export default async function PlayerProfile({
   params
@@ -25,9 +57,7 @@ export default async function PlayerProfile({
   }
 
   const player = await prisma.player.findUnique({
-    where: {
-      username
-    },
+    where: { username },
     select: {
       id: true,
       username: true,
@@ -37,170 +67,213 @@ export default async function PlayerProfile({
       health: true,
       protection: true,
       createdAt: true,
-      crimeLogs: {
-        select: {
-          success: true
-        }
-      },
-      forumTopics: {
-        select: {
-          id: true
-        }
-      },
-      forumPosts: {
-        select: {
-          id: true
-        }
-      }
+      updatedAt: true,
+      profileQuote: true,
+      profilePictureUrl: true,
+      profileStatus: true,
+      statusExpiresAt: true,
+      profileViews: true,
+      showProfileViews: true,
+      showOcStatus: true,
+      showOrganization: true,
+      forumTopics: { select: { id: true } },
+      forumPosts: { select: { id: true } },
+      jailUntil: true
     }
   });
 
-  if (!player) {
-    notFound();
+  if (!player) notFound();
+
+  const viewer = await prisma.player.findUnique({
+    where: { userId },
+    select: { id: true, allowProfileImages: true }
+  });
+  const isMe = viewer?.id === player.id;
+
+  let views = player.profileViews;
+  if (!isMe) {
+    const updated = await prisma.player.update({
+      where: { id: player.id },
+      data: { profileViews: { increment: 1 } },
+      select: { profileViews: true }
+    });
+    views = updated.profileViews;
   }
 
-  const me = await prisma.player.findUnique({
-    where: { userId },
-    select: { id: true }
-  });
-  const isMe = me?.id === player.id;
+  // Crew status.
+  const [led, slot] = await Promise.all([
+    prisma.organisedCrime.findUnique({ where: { leaderId: player.id }, select: { id: true } }),
+    prisma.ocSlot.findFirst({
+      where: { playerId: player.id, state: { in: ["selecting", "ready"] } },
+      select: { id: true }
+    })
+  ]);
+  const inCrew = Boolean(led || slot);
 
-  const health = Math.max(0, Math.min(100, player.health));
-  const protection = Math.max(0, Math.min(100, player.protection));
-  const successfulCrimes = player.crimeLogs.filter(
-    crime => crime.success
-  ).length;
+  const online = Date.now() - player.updatedAt.getTime() < ONLINE_MS;
+  const jailed = player.jailUntil ? player.jailUntil.getTime() > Date.now() : false;
+  const alive = player.health > 0;
+  const messages = player.forumTopics.length + player.forumPosts.length;
+  const statusLive =
+    player.profileStatus && (!player.statusExpiresAt || player.statusExpiresAt.getTime() > Date.now());
+  const showPicture = Boolean(player.profilePictureUrl) && (isMe || viewer?.allowProfileImages !== false);
+
+  const iconStyle: CSSProperties = {
+    flex: 1,
+    textAlign: "center",
+    padding: "10px 0",
+    color: "#f1e8d3",
+    textDecoration: "none",
+    fontSize: 13,
+    borderRight: "1px solid #8a7a66"
+  };
 
   return (
-    <main className="game profile-page">
-      <header className="topbar">
-        <Link href="/" className="brand">
-          <span>R</span>
-          <strong>RUMRUNNERS</strong>
-          <small>BRITAIN · 1933</small>
-        </Link>
-
-        <div className="top-player">
-          <b>{player.username}</b>
-          <span>{player.rank}</span>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#0b0f0d",
+        color: "#f1e8d3",
+        padding: 8,
+        fontFamily: '"DejaVu Sans", Verdana, Arial, sans-serif',
+        fontSize: 16
+      }}
+    >
+      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+          <Link href="/" style={{ ...row, flex: 1, justifyContent: "center", padding: 8, color: "#f1e8d3", textDecoration: "none" }}>
+            Back to game
+          </Link>
+          {isMe && (
+            <Link href="/profile-edit" style={{ ...row, flex: 1, justifyContent: "center", padding: 8, color: "#f1e8d3", textDecoration: "none" }}>
+              Edit profile
+            </Link>
+          )}
         </div>
 
-        <a href="/logout" className="logout">
-          Sign out
-        </a>
-      </header>
+        <div style={bar}>Profile For {player.username}:</div>
 
-      <div className="forum-city-strip">
-        <div>
-          <strong>London</strong>
-          <span>England</span>
-        </div>
-        <span className="forum-era">Britain · 1933</span>
-      </div>
-
-      <div className="page-heading">
-        <p className="eyebrow">THE UNDERWORLD</p>
-        <h1>Player Profile</h1>
-      </div>
-
-      <section className="profile-card">
-        <div className="profile-identity">
-          <div className="profile-portrait">R</div>
-
-          <div>
-            <h2>{player.username}</h2>
-            <p>{player.rank}</p>
-            <small>Rank level {player.rankLevel}</small>
+        {statusLive && (
+          <div style={{ ...row, justifyContent: "center", padding: 8, background: "#5a3a1f", color: "#ffe3b0", textAlign: "center" }}>
+            {player.profileStatus}
           </div>
-        </div>
-
-        {!isMe && (
-          <a
-            href={`/?to=${encodeURIComponent(player.username)}`}
-            className="button"
-            style={{
-              display: "block",
-              margin: "8px 0",
-              padding: "8px 0",
-              textAlign: "center",
-              textDecoration: "none"
-            }}
-          >
-            Send a message
-          </a>
         )}
 
-        <div className="profile-section">
-          <h2>Character Status</h2>
-
-          <div className="meter-label">
-            <span>Health</span>
-            <b>{health}%</b>
-          </div>
-          <div className="meter">
-            <i
-              className="health"
-              style={{ width: `${health}%` }}
+        <div
+          style={{
+            background: "#4a4a4a",
+            border: "1px solid #8a7a66",
+            minHeight: 160,
+            display: "grid",
+            placeItems: "center",
+            padding: 10
+          }}
+        >
+          {showPicture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={player.profilePictureUrl as string}
+              alt={`${player.username}'s picture`}
+              style={{ maxWidth: "100%", maxHeight: 420, display: "block" }}
             />
-          </div>
-
-          <div className="meter-label">
-            <span>Protection</span>
-            <b>{protection}%</b>
-          </div>
-          <div className="meter">
-            <i
-              className="protection"
-              style={{ width: `${protection}%` }}
-            />
-          </div>
+          ) : (
+            <div
+              style={{
+                width: 120,
+                height: 120,
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                border: "3px solid #b0904a",
+                fontFamily: "Georgia, serif",
+                fontSize: 54,
+                color: "#d2b783"
+              }}
+            >
+              {player.username.slice(0, 1).toUpperCase()}
+            </div>
+          )}
         </div>
 
-        <div className="profile-section">
-          <h2>Public Statistics</h2>
-
-          <div className="stat">
-            <span>Experience</span>
-            <b>{player.experience.toLocaleString("en-GB")}</b>
+        {player.showOcStatus && (
+          <div
+            style={{
+              ...row,
+              justifyContent: "center",
+              padding: 8,
+              background: inCrew ? "#5a3a1f" : "#3b4a3a"
+            }}
+          >
+            OC status:&nbsp;<strong>{inCrew ? "In a crew" : "Available"}</strong>
           </div>
+        )}
 
-          <div className="stat">
-            <span>Successful crimes</span>
-            <b>{successfulCrimes}</b>
-          </div>
-
-          <div className="stat">
-            <span>Forum topics</span>
-            <b>{player.forumTopics.length}</b>
-          </div>
-
-          <div className="stat">
-            <span>Forum replies</span>
-            <b>{player.forumPosts.length}</b>
-          </div>
-
-          <div className="stat">
-            <span>Joined</span>
-            <b>
-              {player.createdAt.toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: "numeric"
-              })}
-            </b>
-          </div>
-        </div>
-
-        <div className="profile-actions">
-          <Link href="/" className="button secondary">
-            Back to city
+        <div style={{ ...row, borderRight: "none" }}>
+          {!isMe ? (
+            <a href={`/?to=${encodeURIComponent(player.username)}`} style={iconStyle}>
+              ✉ Send a message
+            </a>
+          ) : (
+            <Link href="/profile-edit" style={iconStyle}>
+              ✎ Edit profile
+            </Link>
+          )}
+          <Link href="/users-online" style={{ ...iconStyle, borderRight: "none" }}>
+            ☰ Users online
           </Link>
         </div>
-      </section>
 
-      <footer className="footer">
-        RUMRUNNERS · A CITY WITH ITS OWN RULES
-      </footer>
+        {player.showProfileViews && (
+          <div style={{ ...row, flexDirection: "column", alignItems: "center", padding: 8, textAlign: "center" }}>
+            <span>Profile views:</span>
+            <strong style={{ fontSize: 22 }}>{views.toLocaleString("en-GB")}</strong>
+          </div>
+        )}
+
+        <div>
+          <div style={row}>
+            <div style={label}>Name:</div>
+            <div style={value}>{player.username}</div>
+          </div>
+          {player.showOrganization && (
+            <div style={row}>
+              <div style={label}>Organisation:</div>
+              <div style={value}>Not a part of any organisation</div>
+            </div>
+          )}
+          <div style={row}>
+            <div style={label}>Status:</div>
+            <div style={value}>
+              {alive ? "Alive" : "Dead"}
+              {jailed ? " - In jail" : ""} -{" "}
+              <span style={{ color: online ? "#00ff00" : "#b7ad93" }}>{online ? "Online" : "Offline"}</span>
+            </div>
+          </div>
+          <div style={row}>
+            <div style={label}>Rank:</div>
+            <div style={value}>{player.rank}</div>
+          </div>
+          <div style={row}>
+            <div style={label}>Last Seen:</div>
+            <div style={value}>{lastSeen(player.updatedAt, online)}</div>
+          </div>
+          <div style={row}>
+            <div style={label}>Messages:</div>
+            <div style={value}>{messages.toLocaleString("en-GB")}</div>
+          </div>
+          <div style={row}>
+            <div style={label}>Joined:</div>
+            <div style={value}>
+              {player.createdAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ ...row, justifyContent: "center", padding: 8, background: "#6b6b6b" }}>Quote:</div>
+        <div style={{ ...row, padding: 12, minHeight: 40, justifyContent: "center", textAlign: "left" }}>
+          {player.profileQuote ? renderBB(player.profileQuote) : <span style={{ color: "#9a9384" }}>No quote yet.</span>}
+        </div>
+      </div>
     </main>
   );
 }
