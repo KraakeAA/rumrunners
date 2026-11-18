@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
-import type { Car } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import {
-  CITY_STORIES,
-  DRIVE_HEAT,
-  MAX_HEAT,
-  carModel,
-  currentHeat,
-  effectiveMinutes,
-} from "@/lib/era";
+import { CITY_STORIES, RAIL_MINUTES } from "@/lib/era";
 
 const CITIES = [
   "London",
@@ -190,34 +182,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Optional car. Without one the journey is by rail.
-    const carId =
-      typeof body.carId === "string" && body.carId ? body.carId : null;
-    let car: ReturnType<typeof carModel> = undefined;
-    let ownedCar: Car | null = null;
-
-    if (carId) {
-      ownedCar = await prisma.car.findFirst({
-        where: { id: carId, ownerId: player.id },
-      });
-      car = ownedCar ? carModel(ownedCar.model) : undefined;
-
-      if (!ownedCar || !car) {
-        return NextResponse.json(
-          { error: "You do not own that car." },
-          { status: 400 }
-        );
-      }
-
-      if (ownedCar.city !== player.currentCity) {
-        return NextResponse.json(
-          { error: `That car is parked in ${ownedCar.city}.` },
-          { status: 400 }
-        );
-      }
-    }
-
-    const minutes = effectiveMinutes(car, ownedCar?.damage ?? 0);
+    // Every journey is by railway.
+    const minutes = RAIL_MINUTES;
     const cooldownUntil = new Date(now.getTime() + minutes * 60 * 1000);
 
     const result = await prisma.player.updateMany({
@@ -246,27 +212,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // The car goes where you go, and driving it draws attention.
-    if (ownedCar) {
-      const heat = Math.min(
-        MAX_HEAT,
-        currentHeat(ownedCar.heat, ownedCar.heatAt, now.getTime()) + DRIVE_HEAT
-      );
-      await prisma.car.update({
-        where: { id: ownedCar.id },
-        data: { city: destination, heat, heatAt: now },
-      });
-    }
-
     const story = CITY_STORIES[destination];
 
     return NextResponse.json({
       success: true,
       message: `You can travel again in ${minutes} minutes.`,
-      canCarryBooze: Boolean(car),
       welcome: story?.welcome ?? `Welcome to ${destination}`,
       history: story?.history ?? "",
-      vehicle: car ? car.name : "the railway",
+      vehicle: "the railway",
       minutes,
       currentCity: destination,
       ...getCooldown(cooldownUntil),
