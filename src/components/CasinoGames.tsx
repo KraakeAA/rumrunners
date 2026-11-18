@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
@@ -29,10 +30,10 @@ type Props = {
 
 const goldButton: React.CSSProperties = {
   padding: "5px 10px",
-  border: "1px solid #b49a70",
+  border: "1px solid #b0904a",
   borderRadius: 3,
-  background: "linear-gradient(180deg, #725839, #392819)",
-  color: "#f0dfbd",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  color: "#f7efdb",
   fontSize: 12,
   cursor: "pointer",
 };
@@ -171,7 +172,7 @@ export default function CasinoGames({
           overflow: "hidden",
           border: "1px solid #806747",
           borderRadius: 4,
-          background: "#29231d",
+          background: "#1f2a25",
           color: "#e8e0d4",
           fontFamily: "Arial, sans-serif",
         }}
@@ -187,12 +188,12 @@ export default function CasinoGames({
             boxSizing: "border-box",
             background:
               "linear-gradient(180deg, #94764d, #59432b 50%, #302115)",
-            borderBottom: "2px solid #b49a70",
+            borderBottom: "2px solid #b0904a",
           }}
         >
           <strong
             style={{
-              color: "#f0dfbd",
+              color: "#f7efdb",
               fontFamily: "Georgia, serif",
               fontSize: 19,
               letterSpacing: 1,
@@ -273,7 +274,7 @@ export default function CasinoGames({
             gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
             gap: 2,
             padding: "7px 9px 3px",
-            background: "#29231d",
+            background: "#1f2a25",
             boxSizing: "border-box",
           }}
         >
@@ -360,7 +361,7 @@ export default function CasinoGames({
             gap: 5,
             padding: "7px 11px 3px",
             borderTop: "1px solid #705638",
-            background: "#29231d",
+            background: "#1f2a25",
           }}
         >
           <div style={{ justifySelf: "start" }}>
@@ -410,7 +411,7 @@ export default function CasinoGames({
             padding: "12px 8px 5px",
             width: "100%",
             boxSizing: "border-box",
-            background: "#29231d",
+            background: "#1f2a25",
           }}
         >
           <span style={{ fontSize: 14, color: "#c4ad85" }}>£</span>
@@ -428,8 +429,8 @@ export default function CasinoGames({
               minWidth: 90,
               height: 42,
               padding: "5px 10px",
-              background: "#171411",
-              color: "#ead9b8",
+              background: "#17201c",
+              color: "#f1e8d3",
               border: "1px solid #94764c",
               borderRadius: 3,
               fontSize: 19,
@@ -464,8 +465,8 @@ export default function CasinoGames({
             padding: "5px 8px 12px",
             fontSize: 12,
             lineHeight: 1.8,
-            color: "#c4b69f",
-            background: "#29231d",
+            color: "#c9bfa6",
+            background: "#1f2a25",
           }}
         >
           <div>
@@ -598,7 +599,7 @@ export default function CasinoGames({
         style={{
           width: "min(100%, 360px)",
           overflow: "hidden",
-          border: "2px solid #b49a70",
+          border: "2px solid #b0904a",
           borderRadius: 2,
           background:
             "linear-gradient(145deg, #665033 0%, #49351f 40%, #2c1e10 100%)",
@@ -637,7 +638,7 @@ export default function CasinoGames({
             padding: 3,
             background:
               "linear-gradient(180deg, #c6a979, #94744b 55%, #62472b)",
-            borderBottom: "2px solid #b49a70",
+            borderBottom: "2px solid #b0904a",
           }}
         >
           {reels.map((symbol, index) => {
@@ -688,7 +689,7 @@ export default function CasinoGames({
             background: slotWon
               ? "linear-gradient(180deg, #61764f, #405638)"
               : "linear-gradient(180deg, #80613c, #584027)",
-            borderBottom: "2px solid #b49a70",
+            borderBottom: "2px solid #b0904a",
             color: "#f4e6c7",
             textAlign: "center",
             fontSize: 14,
@@ -797,7 +798,7 @@ export default function CasinoGames({
               gap: 7,
               marginTop: 3,
               fontSize: 15,
-              color: "#f0dfbd",
+              color: "#f7efdb",
               whiteSpace: "nowrap",
               textShadow: "0 1px 2px #000",
             }}
@@ -837,7 +838,7 @@ export default function CasinoGames({
           textAlign: "center",
           fontSize: 13,
           lineHeight: 1.7,
-          color: "#e6d4b1",
+          color: "#f1e8d3",
         }}
       >
         <div>
