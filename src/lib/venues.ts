@@ -13,7 +13,7 @@ export const CITY_LIST: CityInfo[] = [
 
 export const CITIES = CITY_LIST.map((c) => c.name);
 
-export type CasinoGameKey = "Slots" | "Keno";
+export type CasinoGameKey = "Slots" | "Keno" | "Blackjack" | "Roulette" | "War";
 
 export type CasinoGameDef = {
   key: CasinoGameKey;
@@ -25,7 +25,10 @@ export type CasinoGameDef = {
 // To make another game ownable later, add it here and call runWager() from its route.
 export const CASINO_GAMES: CasinoGameDef[] = [
   { key: "Slots", label: "Slot Machines", price: 25_000, topMultiplier: 500 },
-  { key: "Keno", label: "Keno", price: 25_000, topMultiplier: 10_000 }
+  { key: "Keno", label: "Keno", price: 25_000, topMultiplier: 10_000 },
+  { key: "Blackjack", label: "Blackjack", price: 25_000, topMultiplier: 2.5 },
+  { key: "Roulette", label: "Roulette", price: 25_000, topMultiplier: 36 },
+  { key: "War", label: "War", price: 25_000, topMultiplier: 2 }
 ];
 
 export function casinoDef(key: string): CasinoGameDef {
