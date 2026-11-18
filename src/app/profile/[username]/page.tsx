@@ -59,6 +59,12 @@ export default async function PlayerProfile({
     notFound();
   }
 
+  const me = await prisma.player.findUnique({
+    where: { userId },
+    select: { id: true }
+  });
+  const isMe = me?.id === player.id;
+
   const health = Math.max(0, Math.min(100, player.health));
   const protection = Math.max(0, Math.min(100, player.protection));
   const successfulCrimes = player.crimeLogs.filter(
@@ -79,9 +85,9 @@ export default async function PlayerProfile({
           <span>{player.rank}</span>
         </div>
 
-        <Link href="/logout" className="logout">
+        <a href="/logout" className="logout">
           Sign out
-        </Link>
+        </a>
       </header>
 
       <div className="forum-city-strip">
@@ -107,6 +113,22 @@ export default async function PlayerProfile({
             <small>Rank level {player.rankLevel}</small>
           </div>
         </div>
+
+        {!isMe && (
+          <a
+            href={`/?to=${encodeURIComponent(player.username)}`}
+            className="button"
+            style={{
+              display: "block",
+              margin: "8px 0",
+              padding: "8px 0",
+              textAlign: "center",
+              textDecoration: "none"
+            }}
+          >
+            Send a message
+          </a>
+        )}
 
         <div className="profile-section">
           <h2>Character Status</h2>
