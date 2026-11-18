@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -35,6 +34,7 @@ model Player {
   experience   Int      @default(0)
   lastEnergyAt DateTime @default(now())
   lastCrimeAt  DateTime?
+  lastTheftAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -69,6 +69,63 @@ model Player {
 
   forumTopics ForumTopic[] @relation("ForumTopicAuthor")
   forumPosts  ForumPost[]  @relation("ForumPostAuthor")
+
+  ownedCasinos         Casino[]        @relation("CasinoOwner")
+  ownedBulletFactories BulletFactory[] @relation("BulletFactoryOwner")
+  cars                 Car[]
+}
+
+// A car in a player's garage. The model key points into src/lib/era.ts.
+model Car {
+  id        String   @id @default(cuid())
+  ownerId   String
+  model     String
+  originCity String  @default("London") // where it was stolen
+  city       String  @default("London") // where it is now
+  heat       Int     @default(0)
+  plate      String  @default("")
+  damage     Int     @default(0) // 0 = perfect, 50 = badly knocked about
+  heatAt     DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  owner Player @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+// One casino per game per city. ownerId = null means the house runs it.
+model Casino {
+  id         String    @id @default(cuid())
+  city       String
+  game       String
+  ownerId    String?
+  maxBet     Int       @default(5000)
+  profit     Int       @default(0)
+  plays      Int       @default(0)
+  wagered    Int       @default(0)
+  ownedSince DateTime?
+
+  owner Player? @relation("CasinoOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@unique([city, game])
+  @@index([ownerId])
+}
+
+// One bullet factory per city. Produces a batch on a timer while the owner
+// can pay for the steel.
+model BulletFactory {
+  id             String   @id @default(cuid())
+  city           String   @unique
+  ownerId        String?
+  stock          Int      @default(0)
+  pricePerBullet Int      @default(25)
+  lastProducedAt DateTime @default(now())
+  totalProduced  Int      @default(0)
+  revenue        Int      @default(0)
+
+  owner Player? @relation("BulletFactoryOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
 }
 
 model InventoryItem {
