@@ -271,6 +271,16 @@ const cityRegions: Record<string, string> = {
   Glasgow: "Scotland"
 };
 
+const COMING_SOON = [
+  "Blackjack",
+  "Roulette",
+  "Poker Run",
+  "Race Track",
+  "Jacks or Better",
+  "Sports Betting",
+  "Lottery"
+];
+
 function OwnerLine({
   owner,
   mine,
@@ -286,20 +296,20 @@ function OwnerLine({
 }) {
   if (!owner) {
     return (
-      <div>
-        <div style={{ color: "#c9bfa6", fontStyle: "italic" }}>No one owns it</div>
+      <div style={{ lineHeight: 1.3 }}>
+        <span style={{ color: "#8a8470", fontStyle: "italic" }}>No owner</span>
         <div style={{ color: GREEN }}>{figure}</div>
       </div>
     );
   }
   return (
-    <div>
-      <div style={{ fontWeight: 700 }}>{mine ? `${owner} (you)` : owner}</div>
+    <div style={{ lineHeight: 1.3 }}>
+      <span style={{ fontWeight: 700, color: "#f7efdb" }}>{mine ? `${owner} (you)` : owner}</span>
       <div style={{ color: GREEN }}>
         {figure}
-        {figureNote ? <em style={{ color: "#c9bfa6" }}> {figureNote}</em> : null}
+        {figureNote ? <em style={{ color: "#b7ad93" }}> {figureNote}</em> : null}
       </div>
-      {wealth && <div style={{ fontSize: 12, color: "#b7ad93" }}>{wealth}</div>}
+      {wealth && <div style={{ fontSize: 11, color: "#b7ad93" }}>{wealth}</div>}
     </div>
   );
 }
@@ -308,27 +318,17 @@ function CityRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "42% 58%",
-        borderTop: "2px solid #6b5d3a"
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 8,
+        padding: "4px 8px",
+        borderTop: "1px solid #2b3630",
+        fontSize: 12
       }}
     >
-      <div
-        style={{
-          padding: "10px 8px",
-          textAlign: "right",
-          fontSize: 15,
-          background: "#17201c",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-end"
-        }}
-      >
-        {label}:
-      </div>
-      <div style={{ padding: "8px 10px", fontSize: 15, borderLeft: "2px solid #6b5d3a" }}>
-        {children}
-      </div>
+      <span style={{ color: "#c9bfa6", flexShrink: 0 }}>{label}</span>
+      <span style={{ textAlign: "right", minWidth: 0 }}>{children}</span>
     </div>
   );
 }
@@ -346,71 +346,45 @@ export function CitiesSection({
   const cities = Array.from(new Set(data.casinos.map((c) => c.city)));
 
   return (
-    <div>
-      <div style={{ ...panel, border: "2px solid #6b5d3a" }}>
-        <Bar>Cities</Bar>
-        {cities.map((city, i) => {
+    <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
+      <Bar>Cities</Bar>
+
+      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+        {cities.map((city) => {
           const rows = data.casinos.filter((c) => c.city === city);
           const factory = data.factories.find((f) => f.city === city);
           const here = data.currentCity === city;
+
           return (
-            <div key={city}>
-              {i > 0 && (
-                <div
-                  style={{
-                    height: 22,
-                    background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
-                    borderTop: "2px solid #b0904a",
-                    borderBottom: "2px solid #b0904a"
-                  }}
-                />
-              )}
+            <div
+              key={city}
+              style={{
+                border: `1px solid ${here ? "#a08340" : "#6b5d3a"}`,
+                background: "#1f2a25"
+              }}
+            >
               <div
                 style={{
-                  position: "relative",
-                                    padding: "18px 10px 14px",
-                  textAlign: "center",
-                  background: "#1f2a25"
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: 8,
+                  padding: "5px 8px",
+                  background: "linear-gradient(180deg, #5c4a22, #3a2f16)",
+                  borderBottom: "1px solid #a08340"
                 }}
               >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    width: 118,
-                    padding: "6px 6px 4px",
-                    border: "1px solid #6b5d3a",
-                    background: "#17201c",
-                    fontSize: 13
-                  }}
-                >
-                  <div style={{ display: "flex", gap: 2, marginBottom: 4 }}>
-                    {[0, 1, 2, 3, 4].map((n) => (
-                      <span
-                        key={n}
-                        style={{
-                          flex: 1,
-                          height: 10,
-                          background: n === 0 ? "#7a2a24" : "#101612"
-                        }}
-                      />
-                    ))}
-                  </div>
-                  Calm
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "Georgia, serif", marginTop: 54 }}>
+                <span style={{ fontFamily: "Georgia, serif", fontSize: 16, color: "#f7efdb" }}>
                   {city}
-                </div>
-                <div style={{ color: "#c9bfa6", fontSize: 15 }}>
-                  {cityRegions[city] ?? "Britain"}
-                </div>
-                {here && (
-                  <div style={{ color: GREEN, fontSize: 12, marginTop: 4 }}>You are here</div>
-                )}
+                  <span style={{ marginLeft: 8, fontFamily: "inherit", fontSize: 11, color: "#c9bfa6" }}>
+                    {cityRegions[city] ?? "Britain"}
+                  </span>
+                </span>
+                {here && <span style={{ fontSize: 11, color: GREEN }}>You are here</span>}
               </div>
+
               {rows.map((c) => (
-                <CityRow key={c.id} label={`${c.label} Owner`}>
+                <CityRow key={c.id} label={c.label}>
                   <OwnerLine
                     owner={c.ownerName}
                     mine={c.isMine}
@@ -420,8 +394,9 @@ export function CitiesSection({
                   />
                 </CityRow>
               ))}
+
               {factory && (
-                <CityRow label="Bullet Factory Owner">
+                <CityRow label="Bullet Factory">
                   <OwnerLine
                     owner={factory.ownerName}
                     mine={factory.isMine}
@@ -431,15 +406,42 @@ export function CitiesSection({
                   />
                 </CityRow>
               )}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  borderTop: "1px solid #2b3630",
+                  background: "#17201c"
+                }}
+              >
+                {COMING_SOON.map((name) => (
+                  <div
+                    key={name}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 6,
+                      padding: "3px 8px",
+                      fontSize: 11,
+                      color: "#8a8470"
+                    }}
+                  >
+                    <span>{name}</span>
+                    <span style={{ fontStyle: "italic" }}>Soon</span>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}
       </div>
-      <div style={{ textAlign: "center" }}>
-        <button type="button" style={btn} onClick={() => onGo("Railway")}>
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 8 }}>
+        <button type="button" style={{ ...btn, padding: "5px 14px", fontSize: 12 }} onClick={() => onGo("Railway")}>
           Travel
-        </button>{" "}
-        <button type="button" style={btn} onClick={() => onGo("Gun Shop")}>
+        </button>
+        <button type="button" style={{ ...btn, padding: "5px 14px", fontSize: 12 }} onClick={() => onGo("Gun Shop")}>
           Bullet Factory
         </button>
       </div>
@@ -722,4 +724,3 @@ export function BulletFactorySection({
     </div>
   );
 }
-
