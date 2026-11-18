@@ -6,8 +6,10 @@ import { rankForLevel } from "@/lib/ranks";
 import {
   clamp,
   jailRemaining,
-  sendToJail
+  sendToJail,
+  sentenceFor
 } from "@/lib/jail";
+import { notifyPromotion } from "@/lib/promotion";
 
 // The prison: who is inside, and how long you have left yourself.
 export async function GET() {
@@ -92,8 +94,9 @@ export async function POST(req: Request) {
           };
         }
 
-        // A failed escape adds time: half of what's left, at least two minutes.
-        const extra = Math.max(120, Math.round(myLeft * 0.5));
+        // A failed escape adds time: half of what's left, at least 5 seconds.
+        // Sentences grow with rank and job size, so the penalty does too.
+        const extra = Math.max(5, Math.round(myLeft * 0.5));
         await tx.player.update({
           where: { id: me.id },
           data: {
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
         });
         return {
           success: false,
-          message: `The guards caught you. ${Math.ceil(extra / 60)} minutes were added to your sentence, and you won't get another try.`
+          message: `The guards caught you. ${extra >= 60 ? Math.ceil(extra / 60) + " minutes" : extra + " seconds"} were added to your sentence, and you won't get another try.`
         };
       }
 
@@ -141,24 +144,27 @@ export async function POST(req: Request) {
               rank: rankForLevel(newLevel)
             }
           });
+          await notifyPromotion(tx, me.id, me.rankLevel, newLevel);
           return {
             success: true,
             message: `You got ${target.username} out. +${xp} XP.`
           };
         }
 
-        // Caught: the would-be rescuer ends up inside.
+        // Caught: the would-be rescuer ends up inside. The cell time grows
+        // with the prison's security and the rescuer's own rank.
+        const penalty = sentenceFor(security, me.rankLevel).seconds;
         await sendToJail(
           tx,
           me.id,
-          (4 + security * 2) * 60,
+          penalty,
           security,
           `Caught trying to bust out ${target.username}`,
           now
         );
         return {
           success: false,
-          message: `The guards were waiting. You've been locked up for ${4 + security * 2} minutes.`
+          message: `The guards were waiting. You've been locked up for ${penalty >= 60 ? Math.ceil(penalty / 60) + " minutes" : penalty + " seconds"}.`
         };
       }
 
