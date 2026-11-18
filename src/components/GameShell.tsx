@@ -18,6 +18,8 @@ import OrganisedCrimeSection from "@/components/OrganisedCrime";
 import { clock, useActionStatus } from "@/components/EnergyBar";
 import { GarageSection, TravelSection } from "@/components/Travel";
 import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components/Venues";
+import StoreSection from "@/components/Store";
+import LotterySection from "@/components/Lottery";
 import {
   CRIMES,
   MAX_STREAK,
@@ -95,6 +97,15 @@ type PlayerStats = {
   casinoByGame: CasinoGameStat[];
   forumTopics: number;
   forumPosts: number;
+  theftWins: number;
+  theftFails: number;
+  boozeBought: number;
+  boozeSold: number;
+  boozeSpent: number;
+  boozeEarned: number;
+  ocsDone: number;
+  ocsLed: number;
+  ocEarned: number;
   joinedAt: string | null;
 };
 
@@ -103,6 +114,15 @@ const EMPTY_STATS: PlayerStats = {
   casinoByGame: [],
   forumTopics: 0,
   forumPosts: 0,
+  theftWins: 0,
+  theftFails: 0,
+  boozeBought: 0,
+  boozeSold: 0,
+  boozeSpent: 0,
+  boozeEarned: 0,
+  ocsDone: 0,
+  ocsLed: 0,
+  ocEarned: 0,
   joinedAt: null
 };
 
@@ -269,9 +289,8 @@ function StatTable({
 // Anything that acts on the game world is shut while you are in jail.
 const JAIL_BLOCKED = new Set([
   "Crimes", "Auto Theft", "Bootlegging", "Whack", "Hitlist", "Organised Crime",
-  "Rackets", "Search", "Shooting Range", "Railway", "Gun Shop",
-  "Blackjack", "Jacks or Better", "Keno", "Lottery", "Poker Run",
-  "Race Track", "Roulette", "Slot Machines", "Sports Betting"
+  "Rackets", "Search", "Shooting Range", "Railway", "Bullet Factory", "Store",
+  "Blackjack", "Keno", "Lottery", "Roulette", "Slot Machines", "War"
 ]);
 
 const menuGroups = [
@@ -302,7 +321,7 @@ const menuGroups = [
   {
     title: "Resources",
     items: [
-      "Gun Shop", "Escrow", "Store", "Gold",
+      "Bullet Factory", "Store", "Escrow", "Gold",
       "Marketplace", "Hospital", "Jail", "Local Bank",
       "Pawn Shop", "Stock Market", "Railway", "Garage", "Brothel"
     ]
@@ -310,9 +329,8 @@ const menuGroups = [
   {
     title: "Casino",
     items: [
-      "Blackjack", "Jacks or Better", "Keno", "Lottery",
-      "Poker Run", "Race Track", "Roulette",
-      "Slot Machines", "Sports Betting"
+      "Blackjack", "Keno", "Lottery",
+      "Roulette", "Slot Machines", "War"
     ]
   }
 ];
@@ -636,6 +654,10 @@ export default function GameShell({
     const pct = (won: number, total: number) =>
       total > 0 ? `${Math.round((won / total) * 1000) / 10}%` : "0%";
 
+    const theftTotal = stats.theftWins + stats.theftFails;
+    const boozeProfit = stats.boozeEarned - stats.boozeSpent;
+    const signed = (n: number) => `${n < 0 ? "-" : n > 0 ? "+" : ""}${gbp(Math.abs(n))}`;
+
     const casinoPlays = stats.casinoByGame.reduce((n, g) => n + g.plays, 0);
     const casinoWagered = stats.casinoByGame.reduce((n, g) => n + g.wagered, 0);
     const casinoReturned = stats.casinoByGame.reduce((n, g) => n + g.returned, 0);
@@ -689,6 +711,21 @@ export default function GameShell({
               <StatRow label="Total crimes" value={attempts.toLocaleString("en-GB")} />
               <StatRow label="Cash earned" value={gbp(cashEarned)} />
 
+              <StatGroup title="Auto theft" />
+              <StatRow label="Cars stolen" value={stats.theftWins.toLocaleString("en-GB")} />
+              <StatRow label="Thefts failed" value={stats.theftFails.toLocaleString("en-GB")} />
+              <StatRow label="Success percentage" value={pct(stats.theftWins, theftTotal)} />
+
+              <StatGroup title="Bootlegging" />
+              <StatRow label="Crates bought" value={stats.boozeBought.toLocaleString("en-GB")} />
+              <StatRow label="Crates sold" value={stats.boozeSold.toLocaleString("en-GB")} />
+              <StatRow label="Booze profit" value={signed(boozeProfit)} tone={boozeProfit > 0 ? "good" : boozeProfit < 0 ? "bad" : undefined} />
+
+              <StatGroup title="Organised crime" />
+              <StatRow label="Jobs completed" value={stats.ocsDone.toLocaleString("en-GB")} />
+              <StatRow label="Jobs led" value={stats.ocsLed.toLocaleString("en-GB")} />
+              <StatRow label="Earned from jobs" value={gbp(stats.ocEarned)} />
+
               <StatGroup title="Character" />
               <StatRow label="Rank" value={rank} />
               <StatRow label="Level" value={rankLevel} />
@@ -730,6 +767,24 @@ export default function GameShell({
                 value={gbp(succeeded > 0 ? Math.round(cashEarned / succeeded) : 0)}
               />
 
+              <StatGroup title="Auto theft" />
+              <StatRow label="Cars stolen" value={stats.theftWins.toLocaleString("en-GB")} />
+              <StatRow label="Thefts failed" value={stats.theftFails.toLocaleString("en-GB")} />
+              <StatRow label="Total attempts" value={theftTotal.toLocaleString("en-GB")} />
+              <StatRow label="Success percentage" value={pct(stats.theftWins, theftTotal)} />
+
+              <StatGroup title="Bootlegging" />
+              <StatRow label="Crates bought" value={stats.boozeBought.toLocaleString("en-GB")} />
+              <StatRow label="Crates sold" value={stats.boozeSold.toLocaleString("en-GB")} />
+              <StatRow label="Total spent" value={gbp(stats.boozeSpent)} />
+              <StatRow label="Total earned" value={gbp(stats.boozeEarned)} />
+              <StatRow label="Profit" value={signed(boozeProfit)} tone={boozeProfit > 0 ? "good" : boozeProfit < 0 ? "bad" : undefined} />
+
+              <StatGroup title="Organised crime" />
+              <StatRow label="Jobs completed" value={stats.ocsDone.toLocaleString("en-GB")} />
+              <StatRow label="Jobs led" value={stats.ocsLed.toLocaleString("en-GB")} />
+              <StatRow label="Earned from jobs" value={gbp(stats.ocEarned)} />
+
               <StatGroup title="Recent jobs" />
               {localCrimes.length === 0 ? (
                 <StatRow label="No jobs logged yet" value="—" />
@@ -760,6 +815,8 @@ export default function GameShell({
 
               <StatGroup title="Earnings" />
               <StatRow label="Cash earned from crimes" value={gbp(cashEarned)} />
+              <StatRow label="Earned from selling booze" value={gbp(stats.boozeEarned)} />
+              <StatRow label="Earned from organised crime" value={gbp(stats.ocEarned)} />
             </>
           )}
 
@@ -1557,6 +1614,7 @@ export default function GameShell({
                       >
                         ⚡{crime.energyCost}
                       </span>
+
                       <button
                         className="button"
                         style={{
@@ -1653,15 +1711,15 @@ export default function GameShell({
           )}
 
           {section === "Blackjack" && (
-            <p className="flavour">
-              Blackjack tables are being prepared.
-            </p>
+            <CasinoSection game="Blackjack" cash={money} onCash={setMoney} />
           )}
 
           {section === "Roulette" && (
-            <p className="flavour">
-              European roulette wheel is under construction.
-            </p>
+            <CasinoSection game="Roulette" cash={money} onCash={setMoney} />
+          )}
+
+          {section === "War" && (
+            <CasinoSection game="War" cash={money} onCash={setMoney} />
           )}
 
           {section === "Auto Theft" && (
@@ -1717,7 +1775,7 @@ export default function GameShell({
 
           {section === "Garage" && <GarageSection />}
 
-          {section === "Gun Shop" && (
+          {section === "Bullet Factory" && (
             <BulletFactorySection
               onCash={setMoney}
               onBullets={setBullets}
@@ -1824,11 +1882,7 @@ export default function GameShell({
             </p>
           )}
 
-          {section === "Store" && (
-            <p className="flavour">
-              The Rumrunners store.
-            </p>
-          )}
+          {section === "Store" && <StoreSection onCash={setMoney} />}
 
           {section === "Pawn Shop" && (
             <p className="flavour">
@@ -1848,35 +1902,7 @@ export default function GameShell({
             </p>
           )}
 
-          {section === "Lottery" && (
-            <p className="flavour">
-              The city lottery. Coming soon.
-            </p>
-          )}
-
-          {section === "Poker Run" && (
-            <p className="flavour">
-              Poker Run tables are being prepared.
-            </p>
-          )}
-
-          {section === "Race Track" && (
-            <p className="flavour">
-              Race Track betting will open later.
-            </p>
-          )}
-
-          {section === "Jacks or Better" && (
-            <p className="flavour">
-              Video poker. Coming soon.
-            </p>
-          )}
-
-          {section === "Sports Betting" && (
-            <p className="flavour">
-              Sports books are not yet open.
-            </p>
-          )}
+          {section === "Lottery" && <LotterySection onCash={setMoney} />}
 
           {section === "Rumrunners Live" && (
             <p className="flavour">
