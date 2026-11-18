@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -14,12 +13,18 @@ type Result = {
   multiplier?: number;
   reels?: string[];
   combination?: string;
+  takeover?: boolean;
+  previousOwner?: string | null;
+  city?: string;
 };
 
 type Props = {
   game: "Keno" | "Slots";
   cash: number;
   onCash: (cash: number) => void;
+  ownerName?: string | null;
+  maxBet?: number;
+  onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
 };
 
 const goldButton: React.CSSProperties = {
@@ -32,7 +37,16 @@ const goldButton: React.CSSProperties = {
   cursor: "pointer",
 };
 
-export default function CasinoGames({ game, cash, onCash }: Props) {
+export default function CasinoGames({
+  game,
+  cash,
+  onCash,
+  ownerName,
+  maxBet,
+  onPlayed,
+}: Props) {
+  const limit = maxBet ?? 1000000;
+  const ownerLabel = ownerName || "Rumrunners";
   const [bet, setBet] = useState("10");
   const [selected, setSelected] = useState<number[]>([]);
   const [savedNumbers, setSavedNumbers] = useState<number[]>([]);
@@ -128,6 +142,14 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
 
         if (typeof data.money === "number") {
           onCash(data.money);
+        }
+
+        if (onPlayed) {
+          onPlayed({
+            takeover: Boolean(data.takeover),
+            previousOwner: data.previousOwner ?? null,
+            payout: data.payout || 0,
+          });
         }
       }
     } catch {
@@ -448,7 +470,11 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
         >
           <div>
             <strong style={{ color: "#ddc18d" }}>Maximum bet:</strong>
-            {" "}As permitted by the game
+            {" "}£{limit.toLocaleString("en-GB")}
+          </div>
+          <div>
+            <strong style={{ color: "#ddc18d" }}>Owner:</strong>
+            {" "}{ownerLabel}
           </div>
           <div>
             <strong style={{ color: "#ddc18d" }}>Numbers selected:</strong>
@@ -815,10 +841,10 @@ export default function CasinoGames({ game, cash, onCash }: Props) {
         }}
       >
         <div>
-          This slot machine is owned by <strong>Rumrunners</strong>
+          This slot machine is owned by <strong>{ownerLabel}</strong>
         </div>
         <div>
-          The maximum bet is set at <strong>£1,000,000.</strong>
+          The maximum bet is set at <strong>£{limit.toLocaleString("en-GB")}.</strong>
         </div>
       </div>
     </section>
