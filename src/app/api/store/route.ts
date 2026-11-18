@@ -6,8 +6,11 @@ import {
   CATALOGUE,
   GARAGE_CAP,
   PROTECTION_CAP,
+  cleanEquipped,
+  equipmentStats,
   findItem,
-  itemKey
+  itemKey,
+  slotOf
 } from "@/lib/store";
 
 async function view(playerId: string) {
@@ -56,7 +59,6 @@ export async function POST(req: Request) {
       if (already && already.quantity > 0) throw new Error("OWNED");
 
       if (item.kind === "garage" && me.garageSlots >= GARAGE_CAP) throw new Error("GARAGE_MAX");
-      if (item.kind === "protection" && me.protection >= PROTECTION_CAP) throw new Error("PROTECTION_MAX");
 
       const paid = await tx.player.updateMany({
         where: { id: me.id, money: { gte: item.price } },
@@ -75,11 +77,17 @@ export async function POST(req: Request) {
           where: { id: me.id },
           data: { garageSlots: Math.min(GARAGE_CAP, me.garageSlots + item.value) }
         });
-      } else if (item.kind === "protection") {
-        await tx.player.update({
-          where: { id: me.id },
-          data: { protection: Math.min(PROTECTION_CAP, me.protection + item.value) }
-        });
+      } else {
+        // Guns and protection: put it straight on if that slot is empty.
+        const slot = slotOf(type);
+        const equipped = cleanEquipped(me.equipped);
+        if (me.equipped !== null && slot && !equipped[slot]) {
+          equipped[slot] = type;
+          await tx.player.update({
+            where: { id: me.id },
+            data: { equipped: JSON.parse(JSON.stringify(equipped)), protection: equipmentStats(equipped).protection }
+          });
+        }
       }
 
       return me.id;
@@ -93,7 +101,6 @@ export async function POST(req: Request) {
       JAILED: ["The shops are closed to men in prison.", 403],
       OWNED: ["You already have that.", 400],
       GARAGE_MAX: ["Your garage can't get any bigger.", 400],
-      PROTECTION_MAX: ["You are as well protected as money can make you.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400]
     };
     if (map[m]) return NextResponse.json({ error: map[m][0] }, { status: map[m][1] });
