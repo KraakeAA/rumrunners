@@ -8,11 +8,20 @@ export function jailRemaining(until: Date | null | undefined, now = new Date()):
   return Math.max(0, Math.ceil((until.getTime() - now.getTime()) / 1000));
 }
 
-// A bigger job means a longer sentence in a tougher cell.
-export function sentenceFor(energyCost: number): { seconds: number; security: number } {
+// A bigger job means a longer sentence in a tougher cell, and the sentences
+// grow as you climb the ranks. "units" is the size of the job: 1 for the
+// smallest crimes up to about 6 for the biggest. A rank 1 pickpocket gets 10
+// seconds; a top-rank bullion heist gets several minutes.
+export function sentenceFor(
+  units: number,
+  rankLevel: number
+): { seconds: number; security: number } {
+  const u = Math.max(1, units);
+  const rankFactor = 1 + Math.max(0, rankLevel - 1) * 0.1;
+
   return {
-    seconds: (2 + energyCost * 2) * 60,
-    security: Math.min(5, Math.max(1, energyCost))
+    seconds: Math.round(10 * Math.pow(u, 1.7) * rankFactor),
+    security: Math.min(5, Math.max(1, Math.round(u)))
   };
 }
 
