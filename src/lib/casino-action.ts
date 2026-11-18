@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -45,6 +44,10 @@ export async function runWager(
 
       if (!player) {
         throw new Error("PLAYER_NOT_FOUND");
+      }
+
+      if (player.jailUntil && player.jailUntil.getTime() > Date.now()) {
+        throw new Error("JAILED");
       }
 
       const city = player.currentCity || "London";
@@ -180,6 +183,13 @@ export async function runWager(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "";
+
+    if (message === "JAILED") {
+      return NextResponse.json(
+        { error: "There is no gambling from a prison cell." },
+        { status: 403 }
+      );
+    }
 
     if (message === "INSUFFICIENT_FUNDS") {
       return NextResponse.json(
