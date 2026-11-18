@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { jailRemaining } from "@/lib/jail";
-import { carModel } from "@/lib/era";
 import {
   BOOZES,
   boozeByKey,
+  boozeCapacity,
   boozePrice,
   boozeRange,
   cargoOf,
@@ -13,6 +13,7 @@ import {
   type Cargo
 } from "@/lib/booze";
 
+// Booze is carried by the player on the railway. The limit grows with rank.
 export async function GET() {
   const userId = await getSessionUserId();
 
@@ -27,18 +28,7 @@ export async function GET() {
   }
 
   const now = Date.now();
-
-  const rows = await prisma.car.findMany({
-    where: { ownerId: me.id, city: me.currentCity },
-    orderBy: { createdAt: "asc" }
-  });
-
-  const cars = rows.flatMap((c) => {
-    const m = carModel(c.model);
-    if (!m) return [];
-    const cargo = cargoOf(c.cargo);
-    return [{ id: c.id, name: m.name, plate: c.plate, boot: m.boot, cargo, used: cargoTotal(cargo) }];
-  });
+  const cargo = cargoOf(me.cargo);
 
   const market = BOOZES.map((b) => {
     const { low, high } = boozeRange(b, me.currentCity);
@@ -51,6 +41,7 @@ export async function GET() {
       price,
       low,
       high,
+      held: cargo[b.key] ?? 0,
       tag: band === "c" ? "low" : band === "d" ? "high" : "fair"
     };
   });
@@ -59,7 +50,8 @@ export async function GET() {
     city: me.currentCity,
     money: me.money,
     jailed: jailRemaining(me.jailUntil, new Date()) > 0,
-    cars,
+    capacity: boozeCapacity(me.rankLevel),
+    used: cargoTotal(cargo),
     market
   });
 }
@@ -73,12 +65,11 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const action = String(body.action ?? "");
-  const carId = String(body.carId ?? "");
   const boozeKey = String(body.booze ?? "");
   const qty = Math.floor(Number(body.qty));
 
-  if ((action !== "buy" && action !== "sell") || !carId) {
-    return NextResponse.json({ error: "Choose a car and a job." }, { status: 400 });
+  if (action !== "buy" && action !== "sell") {
+    return NextResponse.json({ error: "Choose buy or sell." }, { status: 400 });
   }
   const booze = boozeByKey(boozeKey);
   if (!booze) {
@@ -94,26 +85,21 @@ export async function POST(req: Request) {
       if (!me) throw new Error("PLAYER_NOT_FOUND");
       if (jailRemaining(me.jailUntil, new Date()) > 0) throw new Error("JAILED");
 
-      const car = await tx.car.findFirst({ where: { id: carId, ownerId: me.id } });
-      const model = car ? carModel(car.model) : undefined;
-      if (!car || !model) throw new Error("NO_CAR");
-      if (car.city !== me.currentCity) throw new Error("CAR_ELSEWHERE");
-
-      const cargo: Cargo = cargoOf(car.cargo);
+      const cargo: Cargo = cargoOf(me.cargo);
       const price = boozePrice(booze, me.currentCity);
 
       if (action === "buy") {
-        if (cargoTotal(cargo) + qty > model.boot) throw new Error("BOOT_FULL");
+        if (cargoTotal(cargo) + qty > boozeCapacity(me.rankLevel)) throw new Error("TOO_MUCH");
 
         const cost = price * qty;
         const paid = await tx.player.updateMany({
           where: { id: me.id, money: { gte: cost } },
-          data: { money: { decrement: cost } }
+          data: { money: { decrement: cost }, boozeBought: { increment: qty }, boozeSpent: { increment: cost } }
         });
         if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
 
         cargo[booze.key] = (cargo[booze.key] ?? 0) + qty;
-        await tx.car.update({ where: { id: car.id }, data: { cargo } });
+        await tx.player.update({ where: { id: me.id }, data: { cargo } });
 
         return `Bought ${qty} crate${qty === 1 ? "" : "s"} of ${booze.name} for £${cost.toLocaleString("en-GB")}.`;
       }
@@ -125,8 +111,10 @@ export async function POST(req: Request) {
       if (held === qty) delete cargo[booze.key];
       else cargo[booze.key] = held - qty;
 
-      await tx.car.update({ where: { id: car.id }, data: { cargo } });
-      await tx.player.update({ where: { id: me.id }, data: { money: { increment: earned } } });
+      await tx.player.update({
+        where: { id: me.id },
+        data: { cargo, money: { increment: earned }, boozeSold: { increment: qty }, boozeEarned: { increment: earned } }
+      });
 
       return `Sold ${qty} crate${qty === 1 ? "" : "s"} of ${booze.name} for £${earned.toLocaleString("en-GB")}.`;
     });
@@ -137,11 +125,9 @@ export async function POST(req: Request) {
     const map: Record<string, [string, number]> = {
       PLAYER_NOT_FOUND: ["Player not found.", 404],
       JAILED: ["There is no bootlegging from a prison cell.", 403],
-      NO_CAR: ["You do not own that car.", 400],
-      CAR_ELSEWHERE: ["That car is parked in another city.", 400],
-      BOOT_FULL: ["There isn't room in the boot for that many crates.", 400],
+      TOO_MUCH: ["You can't carry that many crates. Rank up to carry more.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
-      NOT_ENOUGH: ["You don't have that many crates of that in the boot.", 400]
+      NOT_ENOUGH: ["You don't have that many crates of that.", 400]
     };
     if (map[m]) {
       return NextResponse.json({ error: map[m][0] }, { status: map[m][1] });
