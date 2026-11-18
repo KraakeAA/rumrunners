@@ -21,6 +21,7 @@ import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components
 import StoreSection from "@/components/Store";
 import LotterySection from "@/components/Lottery";
 import FindPlayerSection from "@/components/FindPlayer";
+import CharacterPanel from "@/components/CharacterPanel";
 import {
   CRIMES,
   MAX_STREAK,
@@ -355,6 +356,7 @@ export default function GameShell({
   const [letterTo, setLetterTo] = useState(composeTo);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [characterOpen, setCharacterOpen] = useState(false);
   const [menuGroup, setMenuGroup] = useState("");
   const [notice, setNotice] = useState("");
   const status = useActionStatus({
@@ -701,7 +703,6 @@ export default function GameShell({
             ))}
           </select>
         </div>
-
         <div style={{ border: "1px solid #6b5d3a", borderBottom: 0 }}>
           {statsCategory === "Current" && (
             <>
@@ -908,7 +909,39 @@ export default function GameShell({
           borderBottom: "1px solid #2a3a30"
         }}
       >
-        {/* CASH, BANK AND GOLD — TOP LEFT */}
+        {/* CHARACTER BUTTON AND CASH, BANK AND GOLD — TOP LEFT */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <button
+          type="button"
+          aria-label="Character"
+          title="Character"
+          onClick={() => setCharacterOpen(true)}
+          style={{
+            width: 44,
+            height: 54,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 2,
+            padding: 0,
+            border: "1px solid #a08340",
+            borderRadius: 3,
+            background: "linear-gradient(180deg, #393126, #211c16)",
+            color: "#e8d7b6",
+            fontSize: 9,
+            cursor: "pointer"
+          }}
+        >
+          <svg viewBox="0 0 40 44" width="26" height="28" aria-hidden="true">
+            <ellipse cx="20" cy="8" rx="12" ry="2.5" fill="#cbb98a" />
+            <rect x="13" y="1" width="14" height="8" rx="2" fill="#e8d7b6" />
+            <circle cx="20" cy="16" r="6" fill="#c9b48a" />
+            <path d="M6 42 Q8 26 20 24 Q32 26 34 42 Z" fill="#8a7a58" />
+          </svg>
+          Character
+        </button>
         <div
           aria-label="Player money"
           style={{
@@ -1076,6 +1109,8 @@ export default function GameShell({
           </div>
         </div>
 
+        </div>
+
         {/* MESSAGE, JAIL AND MENU — TOP RIGHT */}
         <nav
           aria-label="Game shortcuts"
@@ -1179,6 +1214,8 @@ export default function GameShell({
           </button>
         </nav>
       </header>
+
+      {characterOpen && <CharacterPanel onClose={() => setCharacterOpen(false)} />}
 
       {/* LOCATION AND TIME — ONLY WHILE THE MENU IS OPEN */}
       {menuOpen && (
@@ -1374,7 +1411,6 @@ export default function GameShell({
               </div>
             </div>
           )}
-
           {!menuOpen && (
           <>
           {status.jailLeft > 0 && JAIL_BLOCKED.has(section) ? (
