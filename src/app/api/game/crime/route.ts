@@ -1,3 +1,4 @@
+import { settleHunts } from "@/lib/whack";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -34,6 +35,8 @@ export async function GET() {
 
   // Draw the Wednesday lottery once its time has passed (does nothing otherwise).
   await settleLotteries().catch(() => {});
+  // Tell the player when a detective has found their man.
+  await settleHunts(player.id).catch(() => {});
 
   const now = new Date();
   const maxEnergy = maxEnergyFor(player.rankLevel);
