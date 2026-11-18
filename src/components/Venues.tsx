@@ -12,14 +12,14 @@ const panel: CSSProperties = {
   border: "1px solid #6b5d3a",
   marginBottom: 8,
   color: "#f1e8d3",
-  fontSize: 13,
+  fontSize: 12,
 };
 const barStyle: CSSProperties = {
-  padding: "10px 8px",
+  padding: "6px 8px",
   textAlign: "center",
   fontWeight: 400,
   fontFamily: "Georgia, serif",
-  fontSize: 19,
+  fontSize: 15,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderBottom: "1px solid #b0904a",
@@ -368,7 +368,7 @@ export function CitiesSection({
               <div
                 style={{
                   position: "relative",
-                  padding: "18px 10px 14px",
+                                    padding: "18px 10px 14px",
                   textAlign: "center",
                   background: "#1f2a25"
                 }}
@@ -722,3 +722,4 @@ export function BulletFactorySection({
     </div>
   );
 }
+
