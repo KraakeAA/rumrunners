@@ -2,8 +2,16 @@ import Link from "next/link";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import GameShell from "@/components/GameShell";
+import { maxEnergyFor } from "@/lib/game";
 
-export default async function Home() {
+export default async function Home({
+  searchParams
+}: {
+  searchParams?: Promise<{ to?: string | string[] }>;
+}) {
+  const query = (await searchParams) ?? {};
+  const composeTo = (Array.isArray(query.to) ? query.to[0] : query.to) ?? "";
+
   const userId = await getSessionUserId();
 
   if (!userId) {
@@ -100,13 +108,14 @@ export default async function Home() {
     return (
       <main className="landing">
         <h1>Player record missing</h1>
-        <Link href="/logout">Sign out</Link>
+        <a href="/logout">Sign out</a>
       </main>
     );
   }
 
   return (
     <GameShell
+      composeTo={composeTo.slice(0, 40)}
       isAdmin={account?.isAdmin ?? false}
       playerId={player.id}
       player={{
@@ -120,7 +129,7 @@ export default async function Home() {
         health: player.health,
         protection: player.protection,
         energy: player.energy,
-        maxEnergy: player.maxEnergy,
+        maxEnergy: maxEnergyFor(player.rankLevel),
         experience: player.experience,
         lastCrimeAt: player.lastCrimeAt?.toISOString() ?? null,
         currentCity: player.currentCity
