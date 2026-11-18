@@ -1,3 +1,6 @@
+// Money is scarce: every crime payout (and fine) is multiplied by this.
+export const MONEY_SCALE = 0.1;
+
 // Energy: 10 points every 40 seconds, so one point every 4 seconds.
 export const ENERGY_REGEN_MS = 4_000;
 // Job costs are written in energy points; one "unit" of effort is 10 points.
@@ -721,8 +724,8 @@ export function crimePayRange(crime: CrimeDef, rankLevel: number) {
   const scale = payScale(crime, rankLevel);
 
   return {
-    min: Math.round(crime.minCash * scale),
-    max: Math.round(crime.maxCash * scale)
+    min: Math.max(1, Math.round(crime.minCash * scale * MONEY_SCALE)),
+    max: Math.max(1, Math.round(crime.maxCash * scale * MONEY_SCALE))
   };
 }
 
@@ -771,6 +774,7 @@ export function playCrime(
       (crime.minCash + spread * (crime.maxCash - crime.minCash)) *
       scene.pay *
       payScale(crime, rankLevel) *
+      MONEY_SCALE *
       tierPay *
       (1 + streakBonus);
 
@@ -812,7 +816,8 @@ export function playCrime(
     };
   }
 
-  const average = ((crime.minCash + crime.maxCash) / 2) * payScale(crime, rankLevel);
+  const average =
+    ((crime.minCash + crime.maxCash) / 2) * payScale(crime, rankLevel) * MONEY_SCALE;
   const fine =
     crime.minRankLevel >= FINES_FROM_RANK
       ? Math.min(cashOnHand, tidy(average * FINE_FRACTION))
@@ -876,8 +881,14 @@ export function rollCrime(crime: CrimeDef, rankLevel: number) {
 
   const success = Math.random() < successChance;
   const cash = success
-    ? crime.minCash +
-      Math.floor(Math.random() * (crime.maxCash - crime.minCash + 1))
+    ? Math.max(
+        1,
+        Math.round(
+          (crime.minCash +
+            Math.floor(Math.random() * (crime.maxCash - crime.minCash + 1))) *
+            MONEY_SCALE
+        )
+      )
     : 0;
 
   return {
