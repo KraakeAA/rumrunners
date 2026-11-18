@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -29,6 +30,8 @@ model Player {
   bullets      Int      @default(0)
   health       Int      @default(100)
   protection   Int      @default(0)
+  // What the player is wearing or carrying: slot name -> store item key (e.g. {"hat":"protection:steel_hat"}).
+  equipped     Json?
   energy       Int      @default(400)
   maxEnergy    Int      @default(400)
   experience   Int      @default(0)
