@@ -155,7 +155,7 @@ export const ARMS: Arm[] = [
   { name: "Enfield No. 2 Mk I Revolver", maker: "Royal Small Arms Factory", calibre: ".38", note: "Adopted by the army in 1932." },
   { name: "Colt M1911", maker: "Colt", calibre: ".45 ACP", note: "American automatic pistol, smuggled in from across the Atlantic." },
   { name: "Mauser C96 'Broomhandle'", maker: "Mauser", calibre: "7.63mm", note: "The long-barrelled German pistol with a wooden holster stock." },
-  { name: "Greener Police Shotgun", maker: "W.W. Greener", calibre: ".303".replace(".303", "12-bore"), note: "A Birmingham-made shotgun, used by police and gangs alike." },
+  { name: "Greener Police Shotgun", maker: "W.W. Greener", calibre: "12-bore", note: "A Birmingham-made shotgun, used by police and gangs alike." },
   { name: "Short Magazine Lee-Enfield", maker: "Enfield", calibre: ".303", note: "The army rifle of two wars." },
   { name: "Thompson Submachine Gun", maker: "Auto-Ordnance", calibre: ".45 ACP", note: "The 'Tommy gun'. Rare and feared, and the IRA bought some." }
 ];
