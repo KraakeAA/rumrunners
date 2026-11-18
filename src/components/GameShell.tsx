@@ -113,21 +113,70 @@ const STAT_CATEGORIES = [
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 const titleBarStyle: CSSProperties = {
-  padding: "4px 8px",
+  padding: "10px 8px",
   textAlign: "center",
-  fontSize: 12,
-  fontWeight: 700,
-  letterSpacing: 1,
-  textTransform: "uppercase",
-  color: "#f0dfc0",
-  background: "linear-gradient(180deg, #6b5230 0%, #3a2c18 55%, #2a2012 100%)",
-  borderTop: "1px solid #8d7140",
-  borderBottom: "1px solid #1a140b",
-  textShadow: "0 1px 0 #1a140b"
+  fontSize: 20,
+  fontWeight: 400,
+  fontFamily: "Georgia, serif",
+  letterSpacing: 0.5,
+  color: "#f7efdb",
+  background: "linear-gradient(180deg, #8a7038 0%, #4d3d1c 100%)",
+  borderTop: "2px solid #b0904a",
+  borderBottom: "2px solid #b0904a",
+  textShadow: "0 1px 2px #000"
 };
 
 function TitleBar({ children }: { children: ReactNode }) {
   return <div style={titleBarStyle}>{children}</div>;
+}
+
+const chipStyle: CSSProperties = {
+  padding: "3px 9px",
+  border: "1px solid #6b5d3a",
+  borderRadius: 12,
+  background: "#17201c",
+  color: "#f1e8d3",
+  fontSize: 12
+};
+
+function CrimeMeter({
+  label,
+  steps,
+  colour,
+  word
+}: {
+  label: string;
+  steps: number;
+  colour: string;
+  word: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        margin: "4px 0",
+        fontSize: 13
+      }}
+    >
+      <b style={{ width: 70, color: "#f1e8d3" }}>{label}:</b>
+      <span style={{ display: "flex", gap: 2 }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <span
+            key={n}
+            style={{
+              width: 22,
+              height: 12,
+              background: n <= steps ? colour : "#101612",
+              border: "1px solid #2b3630"
+            }}
+          />
+        ))}
+      </span>
+      <span style={{ color: "#c9bfa6" }}>{word}</span>
+    </div>
+  );
 }
 
 function StatGroup({ title }: { title: string }) {
@@ -140,8 +189,8 @@ function StatGroup({ title }: { title: string }) {
         letterSpacing: 0.5,
         textTransform: "uppercase",
         color: "#d9b45f",
-        background: "#221d15",
-        borderBottom: "1px solid #3a342c"
+        background: "#26322c",
+        borderBottom: "1px solid #6b5d3a"
       }}
     >
       {title}
@@ -168,11 +217,11 @@ function StatRow({
         padding: "4px 8px",
         fontSize: 13,
         lineHeight: 1.35,
-        background: "#171410",
-        borderBottom: "1px solid #2e2820"
+        background: "#17201c",
+        borderBottom: "1px solid #2b3630"
       }}
     >
-      <span style={{ color: "#c7bba7", minWidth: 0, overflowWrap: "anywhere" }}>
+      <span style={{ color: "#d4cab2", minWidth: 0, overflowWrap: "anywhere" }}>
         {label}
       </span>
       <span
@@ -182,7 +231,7 @@ function StatRow({
               ? "#7fe08f"
               : tone === "bad"
                 ? "#e08f7f"
-                : "#ead9b8",
+                : "#f1e8d3",
           fontWeight: 600,
           textAlign: "right",
           flexShrink: 0
@@ -217,9 +266,9 @@ function StatTable({
           gap: 8,
           padding: "3px 8px",
           fontSize: 11,
-          color: "#b9a783",
-          background: "#1e1a14",
-          borderBottom: "1px solid #3a342c"
+          color: "#b7ad93",
+          background: "#161d19",
+          borderBottom: "1px solid #6b5d3a"
         }}
       >
         {columns.map((c, i) => (
@@ -239,9 +288,9 @@ function StatTable({
             padding: "4px 8px",
             fontSize: 13,
             lineHeight: 1.35,
-            color: "#ead9b8",
-            background: "#171410",
-            borderBottom: "1px solid #2e2820"
+            color: "#f1e8d3",
+            background: "#17201c",
+            borderBottom: "1px solid #2b3630"
           }}
         >
           {row.map((value, i) => (
@@ -249,7 +298,7 @@ function StatTable({
               key={i}
               style={{
                 ...cell(i),
-                color: i === 0 ? "#c7bba7" : "#ead9b8",
+                color: i === 0 ? "#d4cab2" : "#f1e8d3",
                 fontWeight: i === 0 ? 400 : 600
               }}
             >
@@ -650,7 +699,7 @@ export default function GameShell({
         <TitleBar>Welcome to Rumrunners</TitleBar>
         <TitleBar>Statistics</TitleBar>
 
-        <div style={{ padding: "6px 0", background: "#12100d" }}>
+        <div style={{ padding: "6px 0", background: "#101612" }}>
           <select
             aria-label="Statistics category"
             value={statsCategory}
@@ -660,10 +709,10 @@ export default function GameShell({
               width: "100%",
               height: 36,
               padding: "0 8px",
-              border: "1px solid #65543b",
+              border: "1px solid #a08340",
               borderRadius: 0,
-              background: "#1b1814",
-              color: "#ead9b8",
+              background: "#161d19",
+              color: "#f1e8d3",
               fontSize: 16
             }}
           >
@@ -675,7 +724,7 @@ export default function GameShell({
           </select>
         </div>
 
-        <div style={{ border: "1px solid #3a342c", borderBottom: 0 }}>
+        <div style={{ border: "1px solid #6b5d3a", borderBottom: 0 }}>
           {statsCategory === "Current" && (
             <>
               <StatGroup title="Crimes" />
@@ -836,8 +885,8 @@ export default function GameShell({
           justifyContent: "space-between",
           gap: 10,
           flexWrap: "nowrap",
-          background: "linear-gradient(180deg, #242019, #171512)",
-          borderBottom: "1px solid #55452e"
+          background: "#0b0f0d",
+          borderBottom: "1px solid #2a3a30"
         }}
       >
         {/* CASH, BANK AND GOLD — TOP LEFT */}
@@ -848,7 +897,7 @@ export default function GameShell({
             flexDirection: "column",
             gap: 2,
             minWidth: 0,
-            color: "#ead9b8",
+            color: "#f1e8d3",
             fontSize: 13,
             lineHeight: 1.25
           }}
@@ -864,7 +913,7 @@ export default function GameShell({
 
           <span
             style={{
-              color: "#b9a783",
+              color: "#b7ad93",
               whiteSpace: "nowrap"
             }}
           >
@@ -912,7 +961,7 @@ export default function GameShell({
                 alignItems: "center",
                 gap: 4,
                 fontSize: 11,
-                color: "#b9a783"
+                color: "#b7ad93"
               }}
             >
               <span
@@ -967,7 +1016,7 @@ export default function GameShell({
               display: "grid",
               placeItems: "center",
               padding: 0,
-              border: "1px solid #65543b",
+              border: "1px solid #a08340",
               borderRadius: 3,
               background: "linear-gradient(180deg, #393126, #211c16)",
               color: "#e8d7b6",
@@ -989,7 +1038,7 @@ export default function GameShell({
               display: "grid",
               placeItems: "center",
               padding: 0,
-              border: "1px solid #65543b",
+              border: "1px solid #a08340",
               borderRadius: 3,
               background: "linear-gradient(180deg, #393126, #211c16)",
               color: "#e8d7b6",
@@ -1014,7 +1063,7 @@ export default function GameShell({
               border: "1px solid #a88b5b",
               borderRadius: 3,
               background: "linear-gradient(180deg, #4a3b28, #292117)",
-              color: "#f0dfc0",
+              color: "#f7efdb",
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer"
@@ -1038,7 +1087,7 @@ export default function GameShell({
             flexWrap: "nowrap",
             gap: 8,
             padding: "7px 13px",
-            background: "#1b1814",
+            background: "#161d19",
             borderBottom: "1px solid #55452e"
           }}
         >
@@ -1162,7 +1211,7 @@ export default function GameShell({
                   gap: 4,
                   marginTop: 12,
                   padding: "4px 8px",
-                  background: "#151310",
+                  background: "#000000",
                   borderTop: "0",
                   borderBottom: "1px solid #494033"
                 }}
@@ -1226,7 +1275,7 @@ export default function GameShell({
             <div style={{ width: "100%", minWidth: 0 }}>
               <TitleBar>Crimes</TitleBar>
 
-              <div style={{ border: "1px solid #3a342c", borderBottom: 0 }}>
+              <div style={{ border: "1px solid #6b5d3a", borderBottom: 0 }}>
                 <StatRow label="Rank" value={rank} />
                 <StatRow
                   label="Energy"
@@ -1253,14 +1302,14 @@ export default function GameShell({
                 <div
                   style={{
                     margin: "8px 0",
-                    border: `1px solid ${TIER_COLOURS[outcome.tier] ?? "#65543b"}`,
-                    background: "#171410"
+                    border: `1px solid ${TIER_COLOURS[outcome.tier] ?? "#a08340"}`,
+                    background: "#17201c"
                   }}
                 >
                   <div
                     style={{
                       ...titleBarStyle,
-                      color: TIER_COLOURS[outcome.tier] ?? "#f0dfc0"
+                      color: TIER_COLOURS[outcome.tier] ?? "#f7efdb"
                     }}
                   >
                     {outcome.label}
@@ -1270,7 +1319,7 @@ export default function GameShell({
                     <div
                       style={{
                         fontSize: 12,
-                        color: "#b9a783",
+                        color: "#b7ad93",
                         textTransform: "uppercase",
                         letterSpacing: 0.5
                       }}
@@ -1283,7 +1332,7 @@ export default function GameShell({
                         style={{
                           margin: "6px 0",
                           fontStyle: "italic",
-                          color: "#c7bba7",
+                          color: "#d4cab2",
                           lineHeight: 1.45
                         }}
                       >
@@ -1294,7 +1343,7 @@ export default function GameShell({
                     <p
                       style={{
                         margin: "6px 0",
-                        color: "#ead9b8",
+                        color: "#f1e8d3",
                         lineHeight: 1.45
                       }}
                     >
@@ -1348,75 +1397,87 @@ export default function GameShell({
               <div
                 style={{
                   marginTop: 8,
-                  border: "1px solid #3a342c",
+                  border: "1px solid #6b5d3a",
                   borderBottom: 0
                 }}
               >
                 {availableCrimes.map((crime) => {
                   const locked = rankLevel < crime.minRankLevel;
                   const pay = crimePayRange(crime, rankLevel);
-                  const chance = Math.round(
-                    successChance(crime, rankLevel) * 100
-                  );
+                  const chanceRaw = successChance(crime, rankLevel);
+                  const chance = Math.round(chanceRaw * 100);
                   const xp = Math.round(
                     crime.xpSuccess * xpScale(crime, rankLevel)
                   );
                   const needsEnergy = energy < crime.energyCost;
 
+                  const takeSteps =
+                    pay.max < 100 ? 1 : pay.max < 500 ? 2 : pay.max < 2500 ? 3 : pay.max < 10000 ? 4 : 5;
+                  const takeWord = ["Petty", "Modest", "Decent", "Fat", "Huge"][takeSteps - 1];
+                  const safeSteps = Math.max(1, Math.min(5, Math.ceil(chanceRaw * 5)));
+                  const safeWord = ["Reckless", "Risky", "Even", "Likely", "Safe"][safeSteps - 1];
+
                   return (
                     <div
                       key={crime.id}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        padding: "8px",
-                        background: locked ? "#12100d" : "#171410",
-                        borderBottom: "1px solid #2e2820",
+                        margin: "8px 0",
+                        border: "2px solid #6b5d3a",
+                        background: locked ? "#101612" : "#1f2a25",
                         opacity: locked ? 0.7 : 1
                       }}
                     >
-                      <div style={{ minWidth: 0 }}>
-                        <b style={{ color: "#ead9b8", fontSize: 14 }}>
+                      <div
+                        style={{
+                          padding: "8px 10px",
+                          background: "#17201c",
+                          borderBottom: "1px solid #2b3630"
+                        }}
+                      >
+                        <b style={{ color: "#f7efdb", fontSize: 16 }}>
                           {locked ? `🔒 ${crime.name}` : crime.name}
                         </b>
-
-                        {locked ? (
-                          <div style={{ fontSize: 12, color: "#b9a783" }}>
-                            Unlocks at rank{" "}
-                            {rankForLevel(crime.minRankLevel)} (level{" "}
-                            {crime.minRankLevel})
-                          </div>
-                        ) : (
-                          <>
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: "#a99c85",
-                                lineHeight: 1.35,
-                                overflowWrap: "anywhere"
-                              }}
-                            >
-                              {crime.description}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: "#c7bba7",
-                                lineHeight: 1.4
-                              }}
-                            >
-                              {gbp(pay.min)}–{gbp(pay.max)} · +{xp} XP ·{" "}
-                              {chance}% · {crime.energyCost} energy
-                            </div>
-                          </>
-                        )}
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: "#b7ad93",
+                            lineHeight: 1.4,
+                            overflowWrap: "anywhere"
+                          }}
+                        >
+                          {locked
+                            ? `Unlocks at rank ${rankForLevel(crime.minRankLevel)} (level ${crime.minRankLevel})`
+                            : crime.description}
+                        </div>
                       </div>
+
+                      {!locked && (
+                        <div style={{ padding: "8px 10px" }}>
+                          <CrimeMeter label="Take" steps={takeSteps} colour="#5fae5f" word={takeWord} />
+                          <CrimeMeter label="Success" steps={safeSteps} colour="#5fae5f" word={`${safeWord} · ${chance}%`} />
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              marginTop: 6,
+                              flexWrap: "wrap",
+                              fontSize: 13
+                            }}
+                          >
+                            <b style={{ width: 70, color: "#f1e8d3" }}>Cost:</b>
+                            <span style={chipStyle}>⚡ {crime.energyCost}</span>
+                            <span style={chipStyle}>+{xp} XP</span>
+                            <span style={chipStyle}>
+                              {gbp(pay.min)}–{gbp(pay.max)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       <button
                         className="button"
-                        style={{ flexShrink: 0, padding: "8px 12px" }}
+                        style={{ width: "100%", padding: "12px", borderLeft: 0, borderRight: 0, borderBottom: 0 }}
                         disabled={
                           busy ||
                           locked ||
