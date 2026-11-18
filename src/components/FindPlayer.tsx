@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties, type FormEvent } from "react";
 
-type Hit = { username: string; rank: string; alive: boolean; online: boolean };
+type Hit = { username: string; rank: string; alive: boolean; online: boolean; ghost?: boolean };
 
 const bar: CSSProperties = {
   padding: "6px 8px",
@@ -106,7 +106,7 @@ export default function FindPlayerSection() {
             hits.map((h) => (
               <a
                 key={h.username}
-                href={`/profile/${encodeURIComponent(h.username)}`}
+                href={h.ghost ? undefined : `/profile/${encodeURIComponent(h.username)}`}
                 style={{
                   ...box,
                   borderTop: 0,
