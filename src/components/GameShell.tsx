@@ -823,31 +823,77 @@ export default function GameShell({
             Bank £{bank.toLocaleString("en-GB")}
           </span>
 
-          <span
+          <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 5,
-              color: "#e4c04d",
+              gap: 10,
               whiteSpace: "nowrap"
             }}
           >
             <span
-              aria-hidden="true"
               style={{
-                display: "inline-block",
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
-                border: "1px solid #7a5a0c",
-                boxShadow: "inset 0 0 0 2px rgba(255, 240, 160, 0.35)",
-                flexShrink: 0
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                color: "#e4c04d"
               }}
-            />
-            Gold {player.gold.toLocaleString("en-GB")}
-          </span>
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-block",
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
+                  border: "1px solid #7a5a0c",
+                  boxShadow: "inset 0 0 0 2px rgba(255, 240, 160, 0.35)",
+                  flexShrink: 0
+                }}
+              />
+              Gold {player.gold.toLocaleString("en-GB")}
+            </span>
+
+            <span
+              aria-label={`Health ${player.health}%`}
+              title={`Health ${player.health}%`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "#b9a783"
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-block",
+                  width: 34,
+                  height: 7,
+                  background: "#2a1a17",
+                  border: "1px solid #55452e"
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    height: "100%",
+                    width: `${Math.max(0, Math.min(100, player.health))}%`,
+                    background:
+                      player.health > 50
+                        ? "#4caf50"
+                        : player.health > 25
+                          ? "#d9a441"
+                          : "#c0392b"
+                  }}
+                />
+              </span>
+              {player.health}%
+            </span>
+          </div>
         </div>
 
         {/* MESSAGE, JAIL AND MENU — TOP RIGHT */}
@@ -931,135 +977,78 @@ export default function GameShell({
         </nav>
       </header>
 
-      {/* CITY LEFT, UK TIME RIGHT */}
-      <div
-        className="city-strip"
-        style={{
-          minHeight: 58,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "nowrap",
-          gap: 8,
-          padding: "7px 13px",
-          background: "#1b1814",
-          borderBottom: "1px solid #55452e"
-        }}
-      >
+      {/* LOCATION AND TIME — ONLY WHILE THE MENU IS OPEN */}
+      {menuOpen && (
+        <>
         <div
+          className="city-strip"
           style={{
+            minHeight: 58,
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            minWidth: 0
+            justifyContent: "space-between",
+            flexWrap: "nowrap",
+            gap: 8,
+            padding: "7px 13px",
+            background: "#1b1814",
+            borderBottom: "1px solid #55452e"
           }}
         >
           <div
-            className="city-location"
-            style={{ flexShrink: 0 }}
-          >
-            <strong>{currentCity}</strong>
-            <span>
-              {currentCity === "London"
-                ? "Greater London"
-                : "Britain"}
-            </span>
-          </div>
-
-          <div
-            className="city-weather"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 4,
-              whiteSpace: "nowrap",
-              fontSize: 12
+              gap: 10,
+              minWidth: 0
             }}
           >
-            <span aria-hidden="true">☁</span>
-            <span>Overcast</span>
-          </div>
-        </div>
+            <div
+              className="city-location"
+              style={{ flexShrink: 0 }}
+            >
+              <strong>{currentCity}</strong>
+              <span>
+                {currentCity === "London"
+                  ? "Greater London"
+                  : "Britain"}
+              </span>
+            </div>
 
-        <div
-          className="city-era"
-          style={{
-            width: "auto",
-            marginLeft: "auto",
-            flexShrink: 0,
-            textAlign: "right",
-            lineHeight: 1.25
-          }}
-        >
-          <strong style={{ fontSize: 15 }}>
-            {ukClock}
-          </strong>
-          <span style={{ fontSize: 10 }}>
-            {ukDate} · UK TIME
-          </span>
-        </div>
-      </div>
-
-      {/* STATUS INDICATORS — COMPACT, GREEN AND CLICKABLE */}
-      <div
-        className="game-status-strip"
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 4,
-          padding: "4px 8px",
-          background: "#151310",
-          borderTop: "0",
-          borderBottom: "1px solid #494033"
-        }}
-      >
-        {[
-          { label: "Bank", status: "Ready", target: "Local Bank" },
-          { label: "Jail", status: "Free", target: "Jail" },
-          {
-            label: "Organised Crime",
-            status: "Ready",
-            target: "Organised Crime"
-          },
-          { label: "Rackets", status: "Not active", target: "Rackets" }
-        ].map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            aria-label={`${item.label}: ${item.status}`}
-            title={`Go to ${item.label}`}
-            onClick={() => navigate(item.target)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              flex: "0 0 auto",
-              padding: "2px 7px",
-              border: "1px solid #3f8a4d",
-              borderRadius: 3,
-              background: "#1e3a22",
-              color: "#7fe08f",
-              fontSize: 10,
-              lineHeight: 1.3,
-              textAlign: "center",
-              cursor: "pointer"
-            }}
-          >
-            <span
+            <div
+              className="city-weather"
               style={{
-                display: "inline",
-                margin: 0,
-                color: "#a9e8b3"
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                whiteSpace: "nowrap",
+                fontSize: 12
               }}
             >
-              {item.label}
-            </span>
-            <strong style={{ color: "#7fe08f", fontWeight: 600 }}>
-              {item.status}
+              <span aria-hidden="true">☁</span>
+              <span>Overcast</span>
+            </div>
+          </div>
+
+          <div
+            className="city-era"
+            style={{
+              width: "auto",
+              marginLeft: "auto",
+              flexShrink: 0,
+              textAlign: "right",
+              lineHeight: 1.25
+            }}
+          >
+            <strong style={{ fontSize: 15 }}>
+              {ukClock}
             </strong>
-          </button>
-        ))}
-      </div>
+            <span style={{ fontSize: 10 }}>
+              {ukDate} · UK TIME
+            </span>
+          </div>
+        </div>
+        </>
+      )}
 
       <div className="game-layout">
         <main className="main-content">
@@ -1118,6 +1107,68 @@ export default function GameShell({
                     ))}
                 </div>
               )}
+
+              {/* STATUS INDICATORS — COMPACT, GREEN AND CLICKABLE */}
+              <div
+                className="game-status-strip"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 4,
+                  marginTop: 12,
+                  padding: "4px 8px",
+                  background: "#151310",
+                  borderTop: "0",
+                  borderBottom: "1px solid #494033"
+                }}
+              >
+                {[
+                  { label: "Bank", status: "Ready", target: "Local Bank" },
+                  { label: "Jail", status: "Free", target: "Jail" },
+                  {
+                    label: "Organised Crime",
+                    status: "Ready",
+                    target: "Organised Crime"
+                  },
+                  { label: "Rackets", status: "Not active", target: "Rackets" }
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    aria-label={`${item.label}: ${item.status}`}
+                    title={`Go to ${item.label}`}
+                    onClick={() => navigate(item.target)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      flex: "0 0 auto",
+                      padding: "2px 7px",
+                      border: "1px solid #3f8a4d",
+                      borderRadius: 3,
+                      background: "#1e3a22",
+                      color: "#7fe08f",
+                      fontSize: 10,
+                      lineHeight: 1.3,
+                      textAlign: "center",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline",
+                        margin: 0,
+                        color: "#a9e8b3"
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                    <strong style={{ color: "#7fe08f", fontWeight: 600 }}>
+                      {item.status}
+                    </strong>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
