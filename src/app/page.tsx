@@ -148,6 +148,15 @@ export default async function Home({
         })),
         forumTopics,
         forumPosts,
+        theftWins: player.theftWins,
+        theftFails: player.theftFails,
+        boozeBought: player.boozeBought,
+        boozeSold: player.boozeSold,
+        boozeSpent: player.boozeSpent,
+        boozeEarned: player.boozeEarned,
+        ocsDone: player.ocsDone,
+        ocsLed: player.ocsLed,
+        ocEarned: player.ocEarned,
         joinedAt: player.createdAt.toISOString()
       }}
       recentCrimes={recentCrimes.map((c) => ({
