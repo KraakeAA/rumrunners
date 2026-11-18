@@ -30,7 +30,15 @@ export default async function Home() {
     );
   }
 
-  const [player, account, recentCrimes] = await Promise.all([
+  const [
+    player,
+    account,
+    recentCrimes,
+    crimeGroups,
+    casinoGroups,
+    forumTopics,
+    forumPosts
+  ] = await Promise.all([
     prisma.player.findUnique({
       where: { userId }
     }),
@@ -44,8 +52,49 @@ export default async function Home() {
       },
       orderBy: { createdAt: "desc" },
       take: 5
+    }),
+    prisma.crimeLog.groupBy({
+      by: ["crimeType", "success"],
+      where: { player: { userId } },
+      _count: { _all: true },
+      _sum: { cashChange: true }
+    }),
+    prisma.casinoLog.groupBy({
+      by: ["game"],
+      where: { player: { userId } },
+      _count: { _all: true },
+      _sum: { bet: true, payout: true },
+      _max: { payout: true }
+    }),
+    prisma.forumTopic.count({
+      where: { author: { userId } }
+    }),
+    prisma.forumPost.count({
+      where: { author: { userId } }
     })
   ]);
+
+  const crimeTotals = new Map<
+    string,
+    { attempts: number; successes: number; cashEarned: number }
+  >();
+
+  for (const row of crimeGroups) {
+    const entry = crimeTotals.get(row.crimeType) ?? {
+      attempts: 0,
+      successes: 0,
+      cashEarned: 0
+    };
+
+    entry.attempts += row._count._all;
+
+    if (row.success) {
+      entry.successes += row._count._all;
+      entry.cashEarned += row._sum.cashChange ?? 0;
+    }
+
+    crimeTotals.set(row.crimeType, entry);
+  }
 
   if (!player) {
     return (
@@ -75,6 +124,22 @@ export default async function Home() {
         experience: player.experience,
         lastCrimeAt: player.lastCrimeAt?.toISOString() ?? null,
         currentCity: player.currentCity
+      }}
+      stats={{
+        crimeByType: Array.from(crimeTotals, ([crimeType, v]) => ({
+          crimeType,
+          ...v
+        })),
+        casinoByGame: casinoGroups.map((g) => ({
+          game: g.game,
+          plays: g._count._all,
+          wagered: g._sum.bet ?? 0,
+          returned: g._sum.payout ?? 0,
+          biggestPayout: g._max.payout ?? 0
+        })),
+        forumTopics,
+        forumPosts,
+        joinedAt: player.createdAt.toISOString()
       }}
       recentCrimes={recentCrimes.map((c) => ({
         crimeType: c.crimeType,
