@@ -8,27 +8,28 @@ import type { CasinoView, FactoryView, VenueData } from "@/lib/venues";
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 const panel: CSSProperties = {
-  background: "#29231d",
-  border: "1px solid #3a342c",
+  background: "#1f2a25",
+  border: "1px solid #6b5d3a",
   marginBottom: 8,
-  color: "#e6d4b1",
+  color: "#f1e8d3",
   fontSize: 13,
 };
 const barStyle: CSSProperties = {
-  padding: "4px 8px",
+  padding: "10px 8px",
   textAlign: "center",
-  fontWeight: 700,
-  fontSize: 13,
-  color: "#f0dfbd",
-  background: "linear-gradient(180deg, #725839, #392819)",
-  borderBottom: "1px solid #b49a70",
+  fontWeight: 400,
+  fontFamily: "Georgia, serif",
+  fontSize: 19,
+  color: "#f7efdb",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  borderBottom: "1px solid #b0904a",
 };
 const btn: CSSProperties = {
   padding: "6px 12px",
-  border: "1px solid #b49a70",
+  border: "1px solid #b0904a",
   borderRadius: 3,
-  background: "linear-gradient(180deg, #725839, #392819)",
-  color: "#f0dfbd",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  color: "#f7efdb",
   fontSize: 13,
   cursor: "pointer",
 };
@@ -36,8 +37,8 @@ const input: CSSProperties = {
   padding: "6px 8px",
   border: "1px solid #5b4d3a",
   borderRadius: 3,
-  background: "#14110d",
-  color: "#f0dfbd",
+  background: "#0e1411",
+  color: "#f7efdb",
   fontSize: 14,
   width: 130,
   boxSizing: "border-box",
@@ -57,10 +58,10 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
         justifyContent: "space-between",
         gap: 8,
         padding: "5px 8px",
-        borderBottom: "1px solid #3a342c",
+        borderBottom: "1px solid #6b5d3a",
       }}
     >
-      <span style={{ color: "#c4b69f" }}>{label}</span>
+      <span style={{ color: "#c9bfa6" }}>{label}</span>
       <span style={{ textAlign: "right" }}>{children}</span>
     </div>
   );
@@ -175,7 +176,7 @@ export function CasinoSection({
           <Row label="Total wagered">{gbp(casino.wagered ?? 0)}</Row>
           <Row label="Current maximum bet">{gbp(casino.maxBet)}</Row>
           <div style={{ padding: 8 }}>
-            <div style={{ marginBottom: 6, color: "#c4b69f" }}>Set the maximum bet</div>
+            <div style={{ marginBottom: 6, color: "#c9bfa6" }}>Set the maximum bet</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <input
                 style={input}
@@ -194,7 +195,7 @@ export function CasinoSection({
                 Save
               </button>
             </div>
-            <p style={{ fontSize: 12, color: "#c4b69f", margin: "8px 0 0", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: "#c9bfa6", margin: "8px 0 0", lineHeight: 1.5 }}>
               Players bet against your cash on hand. If a player wins more than you
               can cover, they take the casino from you. Top prize here is{" "}
               {casino.topMultiplier.toLocaleString("en-GB")}x the bet, so keep your
@@ -262,8 +263,78 @@ export function CasinoSection({
 
 /* ----------------------------- Cities page ---------------------------- */
 
+const cityRegions: Record<string, string> = {
+  London: "Greater London",
+  Birmingham: "West Midlands",
+  Manchester: "Greater Manchester",
+  Liverpool: "Merseyside",
+  Glasgow: "Scotland"
+};
+
+function OwnerLine({
+  owner,
+  mine,
+  figure,
+  figureNote,
+  wealth
+}: {
+  owner: string | null;
+  mine: boolean;
+  figure: string;
+  figureNote?: string;
+  wealth: string | null;
+}) {
+  if (!owner) {
+    return (
+      <div>
+        <div style={{ color: "#c9bfa6", fontStyle: "italic" }}>No one owns it</div>
+        <div style={{ color: GREEN }}>{figure}</div>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div style={{ fontWeight: 700 }}>{mine ? `${owner} (you)` : owner}</div>
+      <div style={{ color: GREEN }}>
+        {figure}
+        {figureNote ? <em style={{ color: "#c9bfa6" }}> {figureNote}</em> : null}
+      </div>
+      {wealth && <div style={{ fontSize: 12, color: "#b7ad93" }}>{wealth}</div>}
+    </div>
+  );
+}
+
+function CityRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "42% 58%",
+        borderTop: "2px solid #6b5d3a"
+      }}
+    >
+      <div
+        style={{
+          padding: "10px 8px",
+          textAlign: "right",
+          fontSize: 15,
+          background: "#17201c",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end"
+        }}
+      >
+        {label}:
+      </div>
+      <div style={{ padding: "8px 10px", fontSize: 15, borderLeft: "2px solid #6b5d3a" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function CitiesSection({
-  onGo,
+  onGo
 }: {
   onGo: (section: string) => void;
 }) {
@@ -276,34 +347,94 @@ export function CitiesSection({
 
   return (
     <div>
-      {cities.map((city) => {
-        const rows = data.casinos.filter((c) => c.city === city);
-        const factory = data.factories.find((f) => f.city === city);
-        return (
-          <div key={city} style={panel}>
-            <Bar>
-              {city}
-              {data.currentCity === city ? " (you are here)" : ""}
-            </Bar>
-            {rows.map((c) => (
-              <Row key={c.id} label={`${c.label} Owner`}>
-                <OwnerCell owner={c.ownerName} wealth={c.ownerWealth} mine={c.isMine} figure={c.ownerId ? gbp(c.maxBet) : `Buy ${gbp(c.price)}`} figureLabel={c.ownerId ? "max bet" : ""} />
-              </Row>
-            ))}
-            {factory && (
-              <Row label="Bullet Factory Owner">
-                <OwnerCell
-                  owner={factory.ownerName}
-                  wealth={factory.ownerWealth}
-                  mine={factory.isMine}
-                  figure={factory.ownerId ? `${gbp(factory.pricePerBullet)} each` : `Buy ${gbp(factory.price)}`}
-                  figureLabel={factory.ownerId ? `${factory.stock.toLocaleString("en-GB")} in stock` : ""}
+      <div style={{ ...panel, border: "2px solid #6b5d3a" }}>
+        <Bar>Cities</Bar>
+        {cities.map((city, i) => {
+          const rows = data.casinos.filter((c) => c.city === city);
+          const factory = data.factories.find((f) => f.city === city);
+          const here = data.currentCity === city;
+          return (
+            <div key={city}>
+              {i > 0 && (
+                <div
+                  style={{
+                    height: 22,
+                    background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+                    borderTop: "2px solid #b0904a",
+                    borderBottom: "2px solid #b0904a"
+                  }}
                 />
-              </Row>
-            )}
-          </div>
-        );
-      })}
+              )}
+              <div
+                style={{
+                  position: "relative",
+                  padding: "18px 10px 14px",
+                  textAlign: "center",
+                  background: "#1f2a25"
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    width: 118,
+                    padding: "6px 6px 4px",
+                    border: "1px solid #6b5d3a",
+                    background: "#17201c",
+                    fontSize: 13
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 2, marginBottom: 4 }}>
+                    {[0, 1, 2, 3, 4].map((n) => (
+                      <span
+                        key={n}
+                        style={{
+                          flex: 1,
+                          height: 10,
+                          background: n === 0 ? "#7a2a24" : "#101612"
+                        }}
+                      />
+                    ))}
+                  </div>
+                  Calm
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "Georgia, serif", marginTop: 54 }}>
+                  {city}
+                </div>
+                <div style={{ color: "#c9bfa6", fontSize: 15 }}>
+                  {cityRegions[city] ?? "Britain"}
+                </div>
+                {here && (
+                  <div style={{ color: GREEN, fontSize: 12, marginTop: 4 }}>You are here</div>
+                )}
+              </div>
+              {rows.map((c) => (
+                <CityRow key={c.id} label={`${c.label} Owner`}>
+                  <OwnerLine
+                    owner={c.ownerName}
+                    mine={c.isMine}
+                    figure={c.ownerId ? gbp(c.maxBet) : `Buy ${gbp(c.price)}`}
+                    figureNote={c.ownerId ? "max bet" : undefined}
+                    wealth={c.ownerWealth}
+                  />
+                </CityRow>
+              ))}
+              {factory && (
+                <CityRow label="Bullet Factory Owner">
+                  <OwnerLine
+                    owner={factory.ownerName}
+                    mine={factory.isMine}
+                    figure={factory.ownerId ? `${gbp(factory.pricePerBullet)} each` : `Buy ${gbp(factory.price)}`}
+                    figureNote={factory.ownerId ? `(${factory.stock.toLocaleString("en-GB")})` : undefined}
+                    wealth={factory.ownerWealth}
+                  />
+                </CityRow>
+              )}
+            </div>
+          );
+        })}
+      </div>
       <div style={{ textAlign: "center" }}>
         <button type="button" style={btn} onClick={() => onGo("Railway")}>
           Travel
@@ -313,39 +444,6 @@ export function CitiesSection({
         </button>
       </div>
     </div>
-  );
-}
-
-function OwnerCell({
-  owner,
-  wealth,
-  mine,
-  figure,
-  figureLabel,
-}: {
-  owner: string | null;
-  wealth: string | null;
-  mine: boolean;
-  figure: string;
-  figureLabel: string;
-}) {
-  if (!owner) {
-    return (
-      <span>
-        <em style={{ color: "#c4b69f" }}>No one owns it</em>
-        <div style={{ color: GREEN, fontSize: 12 }}>{figure}</div>
-      </span>
-    );
-  }
-  return (
-    <span>
-      <strong>{mine ? `${owner} (you)` : owner}</strong>
-      <div style={{ fontSize: 12 }}>
-        <span style={{ color: GREEN }}>{figure}</span>
-        {figureLabel ? <span style={{ color: "#c4b69f" }}> {figureLabel}</span> : null}
-      </div>
-      {wealth && <div style={{ fontSize: 11, color: "#c4b69f" }}>{wealth}</div>}
-    </span>
   );
 }
 
@@ -485,7 +583,7 @@ export function BulletFactorySection({
           </Row>
         ) : (
           <Row label="Owner">
-            <em style={{ color: "#c4b69f" }}>No one owns it</em>
+            <em style={{ color: "#c9bfa6" }}>No one owns it</em>
           </Row>
         )}
         <Row label="Bullets in stock">{factory.stock.toLocaleString("en-GB")}</Row>
@@ -524,7 +622,7 @@ export function BulletFactorySection({
             <strong style={{ color: GREEN }}>{gbp(factory.revenue ?? 0)}</strong>
           </Row>
           <div style={{ padding: 8 }}>
-            <div style={{ marginBottom: 6, color: "#c4b69f" }}>Price per bullet</div>
+            <div style={{ marginBottom: 6, color: "#c9bfa6" }}>Price per bullet</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <input
                 style={input}
@@ -543,7 +641,7 @@ export function BulletFactorySection({
                 Save
               </button>
             </div>
-            <p style={{ fontSize: 12, color: "#c4b69f", margin: "8px 0 0", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: "#c9bfa6", margin: "8px 0 0", lineHeight: 1.5 }}>
               Keep at least {gbp(factory.steelCost)} in cash on hand for every batch,
               or the factory is lost.
             </p>
@@ -553,7 +651,7 @@ export function BulletFactorySection({
 
       {!mine && factory.stock > 0 && (
         <div style={{ ...panel, padding: 8 }}>
-          <div style={{ marginBottom: 6, color: "#c4b69f" }}>
+          <div style={{ marginBottom: 6, color: "#c9bfa6" }}>
             Buy bullets (you carry {data.me.bullets.toLocaleString("en-GB")})
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
@@ -566,7 +664,7 @@ export function BulletFactorySection({
             <button type="button" style={btn} disabled={busy} onClick={buyBullets}>
               Buy
             </button>
-            <span style={{ fontSize: 12, color: "#c4b69f" }}>
+            <span style={{ fontSize: 12, color: "#c9bfa6" }}>
               Cost {gbp((Number(qty) || 0) * factory.pricePerBullet)}
             </span>
           </div>
@@ -576,7 +674,7 @@ export function BulletFactorySection({
       <div style={panel}>
         <Bar>Melt a car for bullets</Bar>
         {garage.filter((c) => c.city === garageCity).length === 0 ? (
-          <div style={{ padding: 8, color: "#c4b69f" }}>
+          <div style={{ padding: 8, color: "#c9bfa6" }}>
             You have no cars parked in {garageCity || "this city"} to melt down. Steal one through
             Auto Theft, or drive one here.
           </div>
@@ -590,12 +688,12 @@ export function BulletFactorySection({
                 alignItems: "center",
                 gap: 8,
                 padding: "6px 8px",
-                borderBottom: "1px solid #3a342c",
+                borderBottom: "1px solid #6b5d3a",
               }}
             >
               <span>
                 {c.name}
-                <div style={{ fontSize: 12, color: "#c4b69f" }}>
+                <div style={{ fontSize: 12, color: "#c9bfa6" }}>
                   {c.scrap.toLocaleString("en-GB")} bullets
                 </div>
               </span>
@@ -610,12 +708,12 @@ export function BulletFactorySection({
       <div style={panel}>
         <Bar>Arms of the era</Bar>
         {ARMS.map((a) => (
-          <div key={a.name} style={{ padding: "5px 8px", borderBottom: "1px solid #3a342c" }}>
+          <div key={a.name} style={{ padding: "5px 8px", borderBottom: "1px solid #6b5d3a" }}>
             <strong>{a.name}</strong>{" "}
-            <span style={{ color: "#c4b69f", fontSize: 12 }}>
+            <span style={{ color: "#c9bfa6", fontSize: 12 }}>
               {a.maker} · {a.calibre}
             </span>
-            <div style={{ fontSize: 12, color: "#c4b69f" }}>{a.note}</div>
+            <div style={{ fontSize: 12, color: "#c9bfa6" }}>{a.note}</div>
           </div>
         ))}
       </div>
