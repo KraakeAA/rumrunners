@@ -3,6 +3,8 @@ import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import GameShell from "@/components/GameShell";
 import { maxEnergyFor } from "@/lib/game";
+import DeadScreen from "@/components/DeadScreen";
+import { regenHealth } from "@/lib/whack";
 
 export default async function Home({
   searchParams
@@ -110,6 +112,55 @@ export default async function Home({
         <h1>Player record missing</h1>
         <a href="/logout">Sign out</a>
       </main>
+    );
+  }
+
+  // Heal slowly over time.
+  const healed = regenHealth(player.health, player.healthAt);
+  if (healed.health !== player.health) {
+    await prisma.player.update({
+      where: { id: player.id },
+      data: { health: healed.health, healthAt: healed.healthAt }
+    });
+    player.health = healed.health;
+  }
+
+  if (player.health <= 0) {
+    // File the name that has just died, so it appears in the revive list.
+    await prisma.pastLife.upsert({
+      where: { username: player.username },
+      create: {
+        userId,
+        username: player.username,
+        rank: player.rank,
+        rankLevel: player.rankLevel,
+        diedAt: player.diedAt ?? new Date(),
+        killedBy: player.killedBy
+      },
+      update: {}
+    });
+
+    const pastLives = await prisma.pastLife.findMany({
+      where: { userId },
+      orderBy: { diedAt: "desc" }
+    });
+
+    const lives = pastLives.map((l) => ({
+      id: l.id,
+      username: l.username,
+      rank: l.rank,
+      diedAt: l.diedAt.toISOString(),
+      killedBy: l.killedBy
+    }));
+
+    return (
+      <DeadScreen
+        name={player.username}
+        rank={player.rank}
+        gold={player.gold}
+        killedBy={player.killedBy}
+        lives={lives}
+      />
     );
   }
 
