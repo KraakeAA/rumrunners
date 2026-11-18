@@ -35,6 +35,13 @@ model Player {
   lastEnergyAt DateTime @default(now())
   lastCrimeAt  DateTime?
   lastTheftAt  DateTime?
+  // When each auto theft level was last tried, keyed by level number.
+  theftTimes   Json?
+  // Jail: free when jailUntil is empty or in the past.
+  jailUntil    DateTime?
+  jailReason   String?
+  jailSecurity Int      @default(1)
+  selfBustUsed Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
