@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -86,6 +85,7 @@ export default function GameShell({
   const [section, setSection] = useState("Home");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuGroup, setMenuGroup] = useState("");
   const [notice, setNotice] = useState("");
   const [energy, setEnergy] = useState(player.energy);
   const [money, setMoney] = useState(player.money);
@@ -311,6 +311,7 @@ export default function GameShell({
     setNotice("");
     setMenuOpen(false);
     setSelectedGroup("");
+    setMenuGroup("");
 
     if (item === "Logout") {
       window.location.href = "/logout";
@@ -341,6 +342,12 @@ export default function GameShell({
     setSection(item);
   }
 
+  function toggleMenu() {
+    setNotice("");
+    setMenuGroup("");
+    setMenuOpen((open) => !open);
+  }
+
   const availableCrimes = useMemo(
     () => CRIMES.filter((c) => c.minRankLevel <= rankLevel + 1),
     [rankLevel]
@@ -364,7 +371,7 @@ export default function GameShell({
           borderBottom: "1px solid #55452e"
         }}
       >
-        {/* CASH AND BANK — TOP LEFT */}
+        {/* CASH, BANK AND GOLD — TOP LEFT */}
         <div
           aria-label="Player money"
           style={{
@@ -383,7 +390,7 @@ export default function GameShell({
               whiteSpace: "nowrap"
             }}
           >
-            £{money.toLocaleString("en-GB")}
+            Cash £{money.toLocaleString("en-GB")}
           </strong>
 
           <span
@@ -393,6 +400,32 @@ export default function GameShell({
             }}
           >
             Bank £{bank.toLocaleString("en-GB")}
+          </span>
+
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              color: "#e4c04d",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-block",
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
+                border: "1px solid #7a5a0c",
+                boxShadow: "inset 0 0 0 2px rgba(255, 240, 160, 0.35)",
+                flexShrink: 0
+              }}
+            />
+            Gold {player.gold.toLocaleString("en-GB")}
           </span>
         </div>
 
@@ -455,11 +488,9 @@ export default function GameShell({
           <button
             type="button"
             className="mobile-menu-toggle"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            onClick={() => {
-              setMenuOpen(!menuOpen);
-              setSelectedGroup("");
-            }}
+            aria-label="Menu"
+            aria-pressed={menuOpen}
+            onClick={toggleMenu}
             style={{
               minWidth: 70,
               height: 38,
@@ -474,7 +505,7 @@ export default function GameShell({
               cursor: "pointer"
             }}
           >
-            {menuOpen ? "Close" : "Menu"}
+            Menu
           </button>
         </nav>
       </header>
@@ -548,41 +579,129 @@ export default function GameShell({
         </div>
       </div>
 
-      {/* STATUS INDICATORS MOVED TO THE TOP */}
+      {/* STATUS INDICATORS — COMPACT, GREEN AND CLICKABLE */}
       <div
         className="game-status-strip"
         style={{
           display: "flex",
-          gap: 5,
-          padding: "6px 8px",
+          flexWrap: "wrap",
+          gap: 4,
+          padding: "4px 8px",
           background: "#151310",
           borderTop: "0",
           borderBottom: "1px solid #494033"
         }}
       >
-        <div>
-          <span>Bank</span>
-          <strong>Ready</strong>
-        </div>
-
-        <div>
-          <span>Jail</span>
-          <strong>Free</strong>
-        </div>
-
-        <div>
-          <span>Organised Crime</span>
-          <strong>Ready</strong>
-        </div>
-
-        <div>
-          <span>Rackets</span>
-          <strong>Not active</strong>
-        </div>
+        {[
+          { label: "Bank", status: "Ready", target: "Local Bank" },
+          { label: "Jail", status: "Free", target: "Jail" },
+          {
+            label: "Organised Crime",
+            status: "Ready",
+            target: "Organised Crime"
+          },
+          { label: "Rackets", status: "Not active", target: "Rackets" }
+        ].map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            aria-label={`${item.label}: ${item.status}`}
+            title={`Go to ${item.label}`}
+            onClick={() => navigate(item.target)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              flex: "0 0 auto",
+              padding: "2px 7px",
+              border: "1px solid #3f8a4d",
+              borderRadius: 3,
+              background: "#1e3a22",
+              color: "#7fe08f",
+              fontSize: 10,
+              lineHeight: 1.3,
+              textAlign: "center",
+              cursor: "pointer"
+            }}
+          >
+            <span
+              style={{
+                display: "inline",
+                margin: 0,
+                color: "#a9e8b3"
+              }}
+            >
+              {item.label}
+            </span>
+            <strong style={{ color: "#7fe08f", fontWeight: 600 }}>
+              {item.status}
+            </strong>
+          </button>
+        ))}
       </div>
 
       <div className="game-layout">
         <main className="main-content">
+          {/* MENU SCREEN */}
+          {menuOpen && (
+            <div className="menu-screen">
+              <p className="side-heading">MENU</p>
+
+              <div className="category-grid">
+                {menuGroups.map((group) => (
+                  <button
+                    key={group.title}
+                    type="button"
+                    className="nav-category"
+                    aria-expanded={menuGroup === group.title}
+                    onClick={() =>
+                      setMenuGroup(
+                        menuGroup === group.title ? "" : group.title
+                      )
+                    }
+                    style={
+                      menuGroup === group.title
+                        ? {
+                            background: "#332b20",
+                            borderColor: "#b99557",
+                            color: "#e4c58d"
+                          }
+                        : undefined
+                    }
+                  >
+                    {group.title}
+                  </button>
+                ))}
+              </div>
+
+              {menuGroup !== "" && (
+                <div
+                  className="nav-buttons"
+                  style={{ marginTop: 12 }}
+                >
+                  {menuGroups
+                    .find((g) => g.title === menuGroup)
+                    ?.items.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        className={
+                          item === "Logout"
+                            ? "nav-item logout-menu-item"
+                            : "nav-item"
+                        }
+                        onClick={() => navigate(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!menuOpen && (
+          <>
           {section === "Home" && (
             <>
               <p className="lead">
@@ -755,7 +874,6 @@ export default function GameShell({
               {notice && <p className="notice">{notice}</p>}
             </>
           )}
-
           {section === "Local Bank" && (
             <>
               <p className="lead">
@@ -1114,11 +1232,13 @@ export default function GameShell({
             notice && (
               <p className="notice">{notice}</p>
             )}
+          </>
+          )}
         </main>
 
         {/* MENU */}
         <aside
-          className={`sidebar ${menuOpen ? "menu-open" : ""}`}
+          className="sidebar"
         >
           {selectedGroup === "" ? (
             <>
@@ -1175,3 +1295,4 @@ export default function GameShell({
     </div>
   );
 }
+
