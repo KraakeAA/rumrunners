@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 type OnlinePlayer = {
@@ -53,177 +52,107 @@ export default function UsersOnlinePage() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#101010",
-        color: "#dedede",
-        padding: "12px",
-        fontFamily: "Arial, sans-serif",
+        background: "#0b0f0d",
+        color: "#f1e8d3",
+        padding: "8px",
+        fontFamily: '"DejaVu Sans", Verdana, Arial, sans-serif',
       }}
     >
-      <div
-        style={{
-          maxWidth: "760px",
-          margin: "0 auto",
-        }}
-      >
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div
           style={{
-            background: "linear-gradient(#484037, #25211d)",
-            border: "1px solid #71604a",
-            padding: "12px",
-            marginBottom: "12px",
-          }}
-        >
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "19px",
-              color: "#e5c99b",
-              letterSpacing: "1px",
-              textTransform: "uppercase",
-            }}
-          >
-            Players Online
-          </h1>
-
-          <p
-            style={{
-              margin: "6px 0 0",
-              fontSize: "12px",
-              color: "#b9ad9d",
-            }}
-          >
-            See who is currently roaming the streets.
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            background: "#222222",
-            border: "1px solid #444",
-            padding: "12px",
-            marginBottom: "10px",
-          }}
-        >
-          <span style={{ fontSize: "13px", color: "#ccc" }}>
-            Players currently online
-          </span>
-
-          <strong
-            style={{
-              color: "#72c879",
-              fontSize: "21px",
-            }}
-          >
-            {players.length}
-          </strong>
-        </div>
-
-        <div
-          style={{
-            background: "#292929",
-            border: "1px solid #484848",
+            border: "2px solid #6b5d3a",
+            background: "#1f2a25",
           }}
         >
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              background: "#3b3833",
-              borderBottom: "1px solid #555",
-              padding: "10px",
-              fontSize: "11px",
-              fontWeight: "bold",
-              color: "#d6c5a9",
-              textTransform: "uppercase",
+              padding: "10px 8px",
+              textAlign: "center",
+              fontSize: 20,
+              fontFamily: "Georgia, serif",
+              color: "#f7efdb",
+              background: "linear-gradient(180deg, #8a7038 0%, #4d3d1c 100%)",
+              borderBottom: "2px solid #b0904a",
+              textShadow: "0 1px 2px #000",
             }}
           >
-            <span>Player</span>
-            <span style={{ textAlign: "right" }}>Rank</span>
+            Total Users Online in the Last 2 Minutes
           </div>
 
-          {loading ? (
-            <p style={{ padding: "15px", fontSize: "13px" }}>
-              Loading players...
-            </p>
-          ) : error ? (
-            <p style={{ padding: "15px", color: "#e08080", fontSize: "13px" }}>
-              {error}
-            </p>
-          ) : players.length === 0 ? (
-            <p
-              style={{
-                padding: "18px 12px",
-                textAlign: "center",
-                color: "#999",
-                fontSize: "13px",
-              }}
-            >
-              Nobody is currently online.
-            </p>
-          ) : (
-            players.map((player, index) => (
-              <div
-                key={player.username}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  alignItems: "center",
-                  padding: "11px 10px",
-                  background: index % 2 === 0 ? "#292929" : "#222222",
-                  borderBottom: "1px solid #3b3b3b",
-                  fontSize: "13px",
-                }}
-              >
-                <Link
-                  href={`/profile/${encodeURIComponent(player.username)}`}
-                  style={{
-                    color: "#d9b77d",
-                    textDecoration: "none",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {player.username}
-                </Link>
-
-                <span
-                  style={{
-                    textAlign: "right",
-                    color: "#bdbdbd",
-                  }}
-                >
-                  {player.rank} ({player.rankLevel})
-                </span>
+          <div
+            style={{
+              padding: "8px 8px 14px",
+              fontSize: 17,
+              lineHeight: 1.55,
+              minHeight: 120,
+            }}
+          >
+            {loading ? (
+              <p style={{ margin: 0 }}>Loading players...</p>
+            ) : error ? (
+              <p style={{ margin: 0, color: "#f09a8c" }}>{error}</p>
+            ) : players.length === 0 ? (
+              <p style={{ margin: 0, textAlign: "center", color: "#b7ad93" }}>
+                Nobody is currently online.
+              </p>
+            ) : (
+              <div>
+                {players.map((player, index) => (
+                  <Fragment key={player.username}>
+                    {index > 0 && (
+                      <span style={{ color: "#8a8470" }}> - </span>
+                    )}
+                    <Link
+                      href={`/profile/${encodeURIComponent(player.username)}`}
+                      title={`${player.rank} (${player.rankLevel})`}
+                      style={{
+                        color: "#f1e8d3",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {player.username}
+                    </Link>
+                  </Fragment>
+                ))}
               </div>
-            ))
-          )}
+            )}
+          </div>
+
+          <div
+            style={{
+              padding: "16px 8px 14px",
+              textAlign: "center",
+              fontSize: 17,
+            }}
+          >
+            <strong>Total:</strong> {players.length}
+          </div>
         </div>
 
         <p
           style={{
-            color: "#777",
-            fontSize: "11px",
+            color: "#8a8470",
+            fontSize: 11,
             textAlign: "center",
-            marginTop: "12px",
+            margin: "12px 0",
           }}
         >
-          Online status refreshes automatically every 30 seconds.
+          The list refreshes automatically every 30 seconds.
         </p>
 
         <Link
           href="/"
           style={{
             display: "block",
-            marginTop: "15px",
-            padding: "11px",
+            padding: "14px",
             textAlign: "center",
-            background: "#35312b",
-            border: "1px solid #625441",
-            color: "#e0c69b",
+            background: "linear-gradient(180deg, #2f4a3c 0%, #1a2b22 100%)",
+            border: "2px solid #b0904a",
+            color: "#f7efdb",
             textDecoration: "none",
-            fontSize: "13px",
+            fontFamily: "Georgia, serif",
+            fontSize: 18,
           }}
         >
           Return to the City
