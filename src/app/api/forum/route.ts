@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -111,15 +110,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Player not found." },
         { status: 404 }
-      );
-    }
-
-    if (category === "OFFICIAL" && !user.isAdmin) {
-      return NextResponse.json(
-        {
-          error: "Only administrators can post official announcements."
-        },
-        { status: 403 }
       );
     }
 
