@@ -1,6 +1,6 @@
-
 import type { Metadata } from "next";
 import "./globals.css";
+import "./theme.css";
 import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 
 export const metadata: Metadata = {
