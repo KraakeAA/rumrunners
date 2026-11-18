@@ -24,7 +24,6 @@ export async function POST(req: Request) {
       const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id } });
       const model = car ? carModel(car.model) : undefined;
       if (!car || !model) throw new Error("NO_CAR");
-      if (car.city !== player.currentCity) throw new Error("CAR_ELSEWHERE");
 
       // Deleting first means two quick taps cannot melt the same car twice.
       const gone = await tx.car.deleteMany({ where: { id: car.id, ownerId: player.id } });
@@ -44,12 +43,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     const m = error instanceof Error ? error.message : "";
-    if (m === "CAR_ELSEWHERE") {
-      return NextResponse.json(
-        { error: "That car is parked in another city. Drive it here first." },
-        { status: 400 }
-      );
-    }
     if (m === "NO_CAR") {
       return NextResponse.json({ error: "You do not own that car." }, { status: 400 });
     }
