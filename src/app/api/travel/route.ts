@@ -29,6 +29,7 @@ async function getPlayer() {
     where: { userId },
     select: {
       id: true,
+      jailUntil: true,
       currentCity: true,
       travelDestination: true,
       travelStartedAt: true,
@@ -165,6 +166,13 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
+
+    if (player.jailUntil && player.jailUntil.getTime() > now.getTime()) {
+      return NextResponse.json(
+        { error: "You can't take a train from a prison cell." },
+        { status: 403 }
+      );
+    }
 
     if (
       player.travelArrivesAt &&
