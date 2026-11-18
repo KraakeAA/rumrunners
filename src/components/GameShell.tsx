@@ -8,19 +8,16 @@ import {
   type ReactNode
 } from "react";
 import AutoTheftSection from "@/components/AutoTheft";
+import JailSection from "@/components/Jail";
+import { clock, useActionStatus } from "@/components/EnergyBar";
 import { GarageSection, TravelSection } from "@/components/Travel";
 import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components/Venues";
 import {
   CRIMES,
   MAX_STREAK,
-  crimePayRange,
-  streakBonusFor,
   streakFromLogs,
-  successChance,
-  xpForLevel,
-  xpScale
+  xpForLevel
 } from "@/lib/game";
-import { rankForLevel } from "@/lib/ranks";
 
 type Player = {
   username: string;
@@ -60,13 +57,14 @@ type CrimeResult = {
   streakBonus: number;
   leveledUp: boolean;
   rank: string;
+  jailSeconds: number;
 };
 
 const TIER_COLOURS: Record<string, string> = {
   perfect: "#e4c04d",
   clean: "#7fe08f",
   messy: "#d9a441",
-  backed_off: "#b9a783",
+  backed_off: "#b7ad93",
   got_away: "#e0a07f",
   caught: "#e06b5e"
 };
@@ -113,16 +111,16 @@ const STAT_CATEGORIES = [
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 const titleBarStyle: CSSProperties = {
-  padding: "10px 8px",
+  padding: "6px 8px",
   textAlign: "center",
-  fontSize: 20,
+  fontSize: 15,
   fontWeight: 400,
   fontFamily: "Georgia, serif",
-  letterSpacing: 0.5,
+  letterSpacing: 0.3,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038 0%, #4d3d1c 100%)",
-  borderTop: "2px solid #b0904a",
-  borderBottom: "2px solid #b0904a",
+  borderTop: "1px solid #b0904a",
+  borderBottom: "1px solid #b0904a",
   textShadow: "0 1px 2px #000"
 };
 
@@ -130,61 +128,12 @@ function TitleBar({ children }: { children: ReactNode }) {
   return <div style={titleBarStyle}>{children}</div>;
 }
 
-const chipStyle: CSSProperties = {
-  padding: "3px 9px",
-  border: "1px solid #6b5d3a",
-  borderRadius: 12,
-  background: "#17201c",
-  color: "#f1e8d3",
-  fontSize: 12
-};
-
-function CrimeMeter({
-  label,
-  steps,
-  colour,
-  word
-}: {
-  label: string;
-  steps: number;
-  colour: string;
-  word: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        margin: "4px 0",
-        fontSize: 13
-      }}
-    >
-      <b style={{ width: 70, color: "#f1e8d3" }}>{label}:</b>
-      <span style={{ display: "flex", gap: 2 }}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <span
-            key={n}
-            style={{
-              width: 22,
-              height: 12,
-              background: n <= steps ? colour : "#101612",
-              border: "1px solid #2b3630"
-            }}
-          />
-        ))}
-      </span>
-      <span style={{ color: "#c9bfa6" }}>{word}</span>
-    </div>
-  );
-}
-
 function StatGroup({ title }: { title: string }) {
   return (
     <div
       style={{
-        padding: "3px 8px",
-        fontSize: 11,
+        padding: "2px 8px",
+        fontSize: 10,
         fontWeight: 700,
         letterSpacing: 0.5,
         textTransform: "uppercase",
@@ -213,10 +162,10 @@ function StatRow({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "baseline",
-        gap: 12,
-        padding: "4px 8px",
-        fontSize: 13,
-        lineHeight: 1.35,
+        gap: 10,
+        padding: "3px 8px",
+        fontSize: 12,
+        lineHeight: 1.3,
         background: "#17201c",
         borderBottom: "1px solid #2b3630"
       }}
@@ -285,9 +234,9 @@ function StatTable({
             display: "grid",
             gridTemplateColumns: template,
             gap: 8,
-            padding: "4px 8px",
-            fontSize: 13,
-            lineHeight: 1.35,
+            padding: "3px 8px",
+            fontSize: 12,
+            lineHeight: 1.3,
             color: "#f1e8d3",
             background: "#17201c",
             borderBottom: "1px solid #2b3630"
@@ -310,6 +259,14 @@ function StatTable({
     </div>
   );
 }
+
+// Anything that acts on the game world is shut while you are in jail.
+const JAIL_BLOCKED = new Set([
+  "Crimes", "Auto Theft", "Bootlegging", "Whack", "Hitlist", "Organised Crime",
+  "Rackets", "Search", "Shooting Range", "Railway", "Gun Shop",
+  "Blackjack", "Jacks or Better", "Keno", "Lottery", "Poker Run",
+  "Race Track", "Roulette", "Slot Machines", "Sports Betting"
+]);
 
 const menuGroups = [
   {
@@ -372,19 +329,22 @@ export default function GameShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuGroup, setMenuGroup] = useState("");
   const [notice, setNotice] = useState("");
-  const [energy, setEnergy] = useState(player.energy);
+  const status = useActionStatus({
+    energy: player.energy,
+    maxEnergy: player.maxEnergy
+  });
+  const energy = status.energy;
+  const setEnergy = status.setEnergy;
   const [money, setMoney] = useState(player.money);
   const [bullets, setBullets] = useState(player.bullets);
   const [bank, setBank] = useState(player.bank);
   const [rank, setRank] = useState(player.rank);
   const [rankLevel, setRankLevel] = useState(player.rankLevel);
   const [experience, setExperience] = useState(player.experience);
-  const [lastCrimeAt, setLastCrimeAt] = useState(player.lastCrimeAt);
   const [busy, setBusy] = useState(false);
   const [currentCity, setCurrentCity] = useState(player.currentCity || "London");
   const [ukClock, setUkClock] = useState("--:--:--");
   const [ukDate, setUkDate] = useState("Loading UK time");
-  const [crimeCooldown, setCrimeCooldown] = useState(0);
   const [bankAmount, setBankAmount] = useState("100");
   const [localCrimes, setLocalCrimes] = useState(recentCrimes);
   const [crimeByType, setCrimeByType] = useState(stats.crimeByType);
@@ -422,26 +382,6 @@ export default function GameShell({
 
     return () => window.clearInterval(clockTimer);
   }, []);
-
-  useEffect(() => {
-    const tick = () => {
-      if (!lastCrimeAt) {
-        setCrimeCooldown(0);
-        return;
-      }
-
-      const elapsed =
-        (Date.now() - new Date(lastCrimeAt).getTime()) / 1000;
-
-      const remaining = Math.max(0, 90 - Math.floor(elapsed));
-      setCrimeCooldown(remaining);
-    };
-
-    tick();
-    const t = window.setInterval(tick, 1000);
-
-    return () => window.clearInterval(t);
-  }, [lastCrimeAt]);
 
   useEffect(() => {
     let active = true;
@@ -506,8 +446,12 @@ export default function GameShell({
       if (!response.ok) {
         if (data.error === "COOLDOWN") {
           setNotice(
-            `The streets are still hot. Wait ${data.remaining ?? "a few"} seconds.`
+            `You can't pull that job again yet. Wait ${data.remaining ?? "a few"} seconds.`
           );
+          status.refresh();
+        } else if (data.error === "JAILED") {
+          setNotice("You're locked up. Wait out your sentence or try to break out.");
+          status.refresh();
         } else if (data.error === "NO_ENERGY") {
           setNotice("You're exhausted. Wait for your energy to recover.");
         } else if (data.error === "RANK_TOO_LOW") {
@@ -524,7 +468,7 @@ export default function GameShell({
       setExperience(data.experience);
       setRank(data.rank);
       setRankLevel(data.rankLevel);
-      setLastCrimeAt(new Date().toISOString());
+      status.refresh();
 
       setLocalCrimes((prev) =>
         [
@@ -581,7 +525,8 @@ export default function GameShell({
         streak: typeof data.streak === "number" ? data.streak : 0,
         streakBonus: data.streakBonus ?? 0,
         leveledUp: Boolean(data.leveledUp),
-        rank: data.rank
+        rank: data.rank,
+        jailSeconds: data.jailSeconds ?? 0
       });
 
       setNotice(
@@ -699,7 +644,7 @@ export default function GameShell({
         <TitleBar>Welcome to Rumrunners</TitleBar>
         <TitleBar>Statistics</TitleBar>
 
-        <div style={{ padding: "6px 0", background: "#101612" }}>
+        <div style={{ padding: "4px 0", background: "#101612" }}>
           <select
             aria-label="Statistics category"
             value={statsCategory}
@@ -707,7 +652,7 @@ export default function GameShell({
             style={{
               display: "block",
               width: "100%",
-              height: 36,
+              height: 32,
               padding: "0 8px",
               border: "1px solid #a08340",
               borderRadius: 0,
@@ -867,7 +812,7 @@ export default function GameShell({
   }
 
   const availableCrimes = useMemo(
-    () => CRIMES.filter((c) => c.minRankLevel <= rankLevel + 1),
+    () => CRIMES.filter((c) => c.minRankLevel <= rankLevel),
     [rankLevel]
   );
 
@@ -877,9 +822,9 @@ export default function GameShell({
       <header
         className="topbar"
         style={{
-          minHeight: 62,
+          minHeight: 0,
           height: "auto",
-          padding: "8px 12px",
+          padding: "6px 10px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -898,13 +843,13 @@ export default function GameShell({
             gap: 2,
             minWidth: 0,
             color: "#f1e8d3",
-            fontSize: 13,
-            lineHeight: 1.25
+            fontSize: 12,
+            lineHeight: 1.2
           }}
         >
           <strong
             style={{
-              fontSize: 15,
+              fontSize: 14,
               whiteSpace: "nowrap"
             }}
           >
@@ -991,6 +936,43 @@ export default function GameShell({
               {player.health}%
             </span>
           </div>
+
+          <div
+            aria-label={`Energy ${energy} of ${player.maxEnergy}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              whiteSpace: "nowrap",
+              fontSize: 11,
+              color: "#e4c04d"
+            }}
+          >
+            <span>⚡ {energy}/{player.maxEnergy}</span>
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-block",
+                width: 74,
+                height: 8,
+                background: "#101612",
+                border: "1px solid #6b5d3a"
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  height: "100%",
+                  width: `${Math.max(0, Math.min(100, (energy / Math.max(1, player.maxEnergy)) * 100))}%`,
+                  background: "linear-gradient(180deg, #e0c35a, #a8872a)",
+                  transition: "width 0.4s"
+                }}
+              />
+            </span>
+            <span style={{ color: "#b7ad93" }}>
+              {status.nextEnergyIn > 0 ? `+1 ${clock(status.nextEnergyIn)}` : "Full"}
+            </span>
+          </div>
         </div>
 
         {/* MESSAGE, JAIL AND MENU — TOP RIGHT */}
@@ -1011,8 +993,8 @@ export default function GameShell({
             title="Messages"
             onClick={() => navigate("Mailbox")}
             style={{
-              width: 38,
-              height: 38,
+              width: 32,
+              height: 32,
               display: "grid",
               placeItems: "center",
               padding: 0,
@@ -1020,7 +1002,7 @@ export default function GameShell({
               borderRadius: 3,
               background: "linear-gradient(180deg, #393126, #211c16)",
               color: "#e8d7b6",
-              fontSize: 21,
+              fontSize: 17,
               cursor: "pointer"
             }}
           >
@@ -1033,8 +1015,8 @@ export default function GameShell({
             title="Jail"
             onClick={() => navigate("Jail")}
             style={{
-              width: 38,
-              height: 38,
+              width: 32,
+              height: 32,
               display: "grid",
               placeItems: "center",
               padding: 0,
@@ -1042,7 +1024,7 @@ export default function GameShell({
               borderRadius: 3,
               background: "linear-gradient(180deg, #393126, #211c16)",
               color: "#e8d7b6",
-              fontSize: 21,
+              fontSize: 17,
               cursor: "pointer"
             }}
           >
@@ -1056,15 +1038,15 @@ export default function GameShell({
             aria-pressed={menuOpen}
             onClick={toggleMenu}
             style={{
-              minWidth: 70,
-              height: 38,
-              padding: "0 12px",
+              minWidth: 58,
+              height: 32,
+              padding: "0 10px",
               marginLeft: 1,
               border: "1px solid #a88b5b",
               borderRadius: 3,
               background: "linear-gradient(180deg, #4a3b28, #292117)",
               color: "#f7efdb",
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: 600,
               cursor: "pointer"
             }}
@@ -1080,13 +1062,13 @@ export default function GameShell({
         <div
           className="city-strip"
           style={{
-            minHeight: 58,
+            minHeight: 40,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             flexWrap: "nowrap",
             gap: 8,
-            padding: "7px 13px",
+            padding: "4px 10px",
             background: "#161d19",
             borderBottom: "1px solid #55452e"
           }}
@@ -1218,7 +1200,11 @@ export default function GameShell({
               >
                 {[
                   { label: "Bank", status: "Ready", target: "Local Bank" },
-                  { label: "Jail", status: "Free", target: "Jail" },
+                  {
+                    label: "Jail",
+                    status: status.jailLeft > 0 ? clock(status.jailLeft) : "Free",
+                    target: "Jail"
+                  },
                   {
                     label: "Organised Crime",
                     status: "Ready",
@@ -1268,34 +1254,50 @@ export default function GameShell({
 
           {!menuOpen && (
           <>
+          {status.jailLeft > 0 && JAIL_BLOCKED.has(section) ? (
+            <JailSection onChanged={status.refresh} />
+          ) : (
+          <>
           {(section === "Home" || section === "Statistics") &&
             renderStatistics()}
 
           {section === "Crimes" && (
-            <div style={{ width: "100%", minWidth: 0 }}>
-              <TitleBar>Crimes</TitleBar>
-
-              <div style={{ border: "1px solid #6b5d3a", borderBottom: 0 }}>
-                <StatRow label="Rank" value={rank} />
-                <StatRow
-                  label="Energy"
-                  value={`${energy} / ${player.maxEnergy}`}
-                />
-                <StatRow
-                  label="Streak"
-                  value={
-                    streak > 0
-                      ? `${streak}/${MAX_STREAK} · +${Math.round(streakBonusFor(streak) * 100)}% payout`
-                      : "None — land a job to start one"
-                  }
-                  tone={streak > 0 ? "good" : undefined}
-                />
+            <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
+              <div
+                style={{
+                  ...titleBarStyle,
+                  fontSize: 16,
+                  padding: "6px 8px"
+                }}
+              >
+                Crimes
               </div>
 
-              {crimeCooldown > 0 && (
-                <div className="cooldown-banner">
-                  Cooldown: {crimeCooldown}s remaining before the next job.
+              <div style={{ border: "1px solid #6b5d3a", borderTop: 0 }}>
+                <div
+                  style={{
+                    padding: "4px 10px",
+                    fontSize: 12,
+                    color: streak > 0 ? "#7fe08f" : "#b7ad93",
+                    background: "#17201c"
+                  }}
+                >
+                  {streak > 0
+                    ? `Streak ${streak}/${MAX_STREAK}`
+                    : "No streak. Land a job to start one."}
                 </div>
+              </div>
+              {status.jailLeft > 0 && (
+                <p className="notice">
+                  You are in jail for another {clock(status.jailLeft)}.{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("Jail")}
+                    style={{ background: "none", border: 0, color: "#e4c04d", textDecoration: "underline", cursor: "pointer", fontSize: 12 }}
+                  >
+                    Go to the prison
+                  </button>
+                </p>
               )}
 
               {outcome && (
@@ -1309,16 +1311,18 @@ export default function GameShell({
                   <div
                     style={{
                       ...titleBarStyle,
+                      fontSize: 15,
+                      padding: "5px 8px",
                       color: TIER_COLOURS[outcome.tier] ?? "#f7efdb"
                     }}
                   >
                     {outcome.label}
                   </div>
 
-                  <div style={{ padding: "8px 10px" }}>
+                  <div style={{ padding: "6px 10px", fontSize: 13 }}>
                     <div
                       style={{
-                        fontSize: 12,
+                        fontSize: 11,
                         color: "#b7ad93",
                         textTransform: "uppercase",
                         letterSpacing: 0.5
@@ -1330,169 +1334,131 @@ export default function GameShell({
                     {outcome.setup && (
                       <p
                         style={{
-                          margin: "6px 0",
+                          margin: "4px 0",
                           fontStyle: "italic",
                           color: "#d4cab2",
-                          lineHeight: 1.45
+                          lineHeight: 1.4
                         }}
                       >
                         {outcome.setup}
                       </p>
                     )}
 
-                    <p
-                      style={{
-                        margin: "6px 0",
-                        color: "#f1e8d3",
-                        lineHeight: 1.45
-                      }}
-                    >
+                    <p style={{ margin: "4px 0", color: "#f1e8d3", lineHeight: 1.4 }}>
                       {outcome.result}
                     </p>
-                  </div>
 
-                  <StatRow
-                    label={
-                      outcome.cashChange < 0
-                        ? "Fined"
-                        : outcome.success
-                          ? "Payout"
-                          : "Payout"
-                    }
-                    value={
-                      outcome.cashChange < 0
-                        ? `-${gbp(Math.abs(outcome.cashChange))}`
-                        : gbp(outcome.cashChange)
-                    }
-                    tone={
-                      outcome.cashChange > 0
-                        ? "good"
-                        : outcome.cashChange < 0
-                          ? "bad"
-                          : undefined
-                    }
-                  />
-                  <StatRow label="Experience" value={`+${outcome.xpGained} XP`} />
-                  {outcome.success && outcome.streakBonus > 0 && (
-                    <StatRow
-                      label="Streak bonus"
-                      value={`+${Math.round(outcome.streakBonus * 100)}%`}
-                      tone="good"
-                    />
-                  )}
-                  <StatRow
-                    label="Next streak"
-                    value={
-                      outcome.streak > 0
-                        ? `${outcome.streak}/${MAX_STREAK}`
-                        : "Broken"
-                    }
-                    tone={outcome.streak > 0 ? "good" : "bad"}
-                  />
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "2px 14px",
+                        marginTop: 6,
+                        fontWeight: 600
+                      }}
+                    >
+                      {(outcome.success || outcome.cashChange !== 0) && (
+                      <span
+                        style={{
+                          color:
+                            outcome.cashChange > 0
+                              ? "#7fe08f"
+                              : outcome.cashChange < 0
+                                ? "#e08f7f"
+                                : "#f1e8d3"
+                        }}
+                      >
+                        {outcome.cashChange < 0
+                          ? `Fined -${gbp(Math.abs(outcome.cashChange))}`
+                          : `+${gbp(outcome.cashChange)}`}
+                      </span>
+                      )}
+                      <span>+{outcome.xpGained} XP</span>
+                      {outcome.jailSeconds > 0 && (
+                        <span style={{ color: "#e08f7f" }}>
+                          Jailed {Math.ceil(outcome.jailSeconds / 60)} min
+                        </span>
+                      )}
+                      {outcome.success && outcome.streakBonus > 0 && (
+                        <span style={{ color: "#7fe08f" }}>
+                          Streak +{Math.round(outcome.streakBonus * 100)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {notice && <p className="notice">{notice}</p>}
 
-              <div
-                style={{
-                  marginTop: 8,
-                  border: "1px solid #6b5d3a",
-                  borderBottom: 0
-                }}
-              >
+              <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
                 {availableCrimes.map((crime) => {
-                  const locked = rankLevel < crime.minRankLevel;
-                  const pay = crimePayRange(crime, rankLevel);
-                  const chanceRaw = successChance(crime, rankLevel);
-                  const chance = Math.round(chanceRaw * 100);
-                  const xp = Math.round(
-                    crime.xpSuccess * xpScale(crime, rankLevel)
-                  );
+                  const wait = status.crimeLeft(crime.id);
                   const needsEnergy = energy < crime.energyCost;
-
-                  const takeSteps =
-                    pay.max < 100 ? 1 : pay.max < 500 ? 2 : pay.max < 2500 ? 3 : pay.max < 10000 ? 4 : 5;
-                  const takeWord = ["Petty", "Modest", "Decent", "Fat", "Huge"][takeSteps - 1];
-                  const safeSteps = Math.max(1, Math.min(5, Math.ceil(chanceRaw * 5)));
-                  const safeWord = ["Reckless", "Risky", "Even", "Likely", "Safe"][safeSteps - 1];
+                  const disabled = busy || wait > 0 || needsEnergy || status.jailLeft > 0;
 
                   return (
                     <div
                       key={crime.id}
                       style={{
-                        margin: "8px 0",
-                        border: "2px solid #6b5d3a",
-                        background: locked ? "#101612" : "#1f2a25",
-                        opacity: locked ? 0.7 : 1
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "5px 8px",
+                        border: "1px solid #6b5d3a",
+                        background: "#1f2a25",
+                        opacity: wait > 0 ? 0.75 : 1
                       }}
                     >
-                      <div
-                        style={{
-                          padding: "8px 10px",
-                          background: "#17201c",
-                          borderBottom: "1px solid #2b3630"
-                        }}
-                      >
-                        <b style={{ color: "#f7efdb", fontSize: 16 }}>
-                          {locked ? `🔒 ${crime.name}` : crime.name}
-                        </b>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#f7efdb" }}>
+                          {crime.name}
+                        </div>
                         <div
                           style={{
-                            fontSize: 13,
+                            fontSize: 11,
                             color: "#b7ad93",
-                            lineHeight: 1.4,
-                            overflowWrap: "anywhere"
+                            lineHeight: 1.25,
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical"
                           }}
                         >
-                          {locked
-                            ? `Unlocks at rank ${rankForLevel(crime.minRankLevel)} (level ${crime.minRankLevel})`
-                            : crime.description}
+                          {crime.description}
                         </div>
                       </div>
 
-                      {!locked && (
-                        <div style={{ padding: "8px 10px" }}>
-                          <CrimeMeter label="Take" steps={takeSteps} colour="#5fae5f" word={takeWord} />
-                          <CrimeMeter label="Success" steps={safeSteps} colour="#5fae5f" word={`${safeWord} · ${chance}%`} />
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              marginTop: 6,
-                              flexWrap: "wrap",
-                              fontSize: 13
-                            }}
-                          >
-                            <b style={{ width: 70, color: "#f1e8d3" }}>Cost:</b>
-                            <span style={chipStyle}>⚡ {crime.energyCost}</span>
-                            <span style={chipStyle}>+{xp} XP</span>
-                            <span style={chipStyle}>
-                              {gbp(pay.min)}–{gbp(pay.max)}
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                      <span
+                        title="Energy cost"
+                        style={{
+                          flexShrink: 0,
+                          fontSize: 12,
+                          color: needsEnergy ? "#e08f7f" : "#e4c04d"
+                        }}
+                      >
+                        ⚡{crime.energyCost}
+                      </span>
 
                       <button
                         className="button"
-                        style={{ width: "100%", padding: "12px", borderLeft: 0, borderRight: 0, borderBottom: 0 }}
-                        disabled={
-                          busy ||
-                          locked ||
-                          crimeCooldown > 0 ||
-                          needsEnergy
-                        }
+                        style={{
+                          flexShrink: 0,
+                          width: 70,
+                          padding: "5px 0",
+                          fontSize: 12,
+                          opacity: disabled ? 0.55 : 1
+                        }}
+                        disabled={disabled}
                         onClick={() => commitCrime(crime.id)}
                       >
-                        {locked
-                          ? "Locked"
-                          : busy
-                            ? "Working…"
-                            : needsEnergy
-                              ? "No energy"
-                              : "Attempt"}
+                        {status.jailLeft > 0
+                          ? "Jailed"
+                          : wait > 0
+                          ? clock(wait)
+                          : needsEnergy
+                            ? "Tired"
+                            : "Attempt"}
                       </button>
                     </div>
                   );
@@ -1585,6 +1551,9 @@ export default function GameShell({
             <AutoTheftSection
               rankLevel={rankLevel}
               energy={energy}
+              theftLeft={status.theftLeft}
+              onActed={status.refresh}
+              jailLeft={status.jailLeft}
               currentCity={currentCity}
               onCash={setMoney}
               onResult={(r) => {
@@ -1626,7 +1595,6 @@ export default function GameShell({
               Own and protect criminal rackets for passive income.
             </p>
           )}
-
           {section === "Marketplace" && (
             <p className="flavour">
               Buy and sell goods with other players.
@@ -1653,9 +1621,7 @@ export default function GameShell({
           )}
 
           {section === "Jail" && (
-            <p className="flavour">
-              You are currently free.
-            </p>
+            <JailSection onChanged={status.refresh} />
           )}
 
           {section === "Hospital" && (
@@ -1848,6 +1814,8 @@ export default function GameShell({
             notice && (
               <p className="notice">{notice}</p>
             )}
+          </>
+          )}
           </>
           )}
         </main>
