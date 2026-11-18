@@ -1,4 +1,7 @@
-export const CRIME_COOLDOWN_SECONDS = 90;
+// Each job has its own cooldown. Bigger jobs take longer to recover from.
+export function crimeCooldownSeconds(energyCost: number): number {
+  return 10 + energyCost * 10;
+}
 export const ENERGY_REGEN_MS = 180_000; // 3 minutes per energy
 
 export type CrimeScene = {
@@ -806,7 +809,7 @@ export function playCrime(
       ? Math.min(cashOnHand, tidy(average * FINE_FRACTION))
       : 0;
 
-  if (roll > 1 - CAUGHT_SHARE && fine > 0) {
+  if (roll > 1 - CAUGHT_SHARE) {
     return {
       ...base,
       success: false,
@@ -814,7 +817,10 @@ export function playCrime(
       label: "Caught",
       cash: -fine,
       xp,
-      result: `${scene.fail} The law caught up with you, and £${fine.toLocaleString("en-GB")} came out of your pockets. Money in the bank is safe.`
+      result:
+        fine > 0
+          ? `${scene.fail} The law caught up with you, and £${fine.toLocaleString("en-GB")} came out of your pockets. Money in the bank is safe.`
+          : `${scene.fail} The law caught up with you.`
     };
   }
 
