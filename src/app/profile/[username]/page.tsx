@@ -8,23 +8,34 @@ import { renderBB } from "@/lib/bbcode";
 const ONLINE_MS = 5 * 60 * 1000;
 
 const bar: CSSProperties = {
-  padding: "8px",
+  padding: "6px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 18,
+  fontSize: 15,
   color: "#f7efdb",
-  background: "linear-gradient(180deg, #5a4a33, #2d2418)",
-  border: "1px solid #8a7a66"
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  borderTop: "1px solid #b0904a",
+  borderBottom: "1px solid #b0904a",
+  textShadow: "0 1px 2px #000"
 };
-const row: CSSProperties = { display: "flex", border: "1px solid #8a7a66", background: "#4a4a4a" };
+const row: CSSProperties = {
+  display: "flex",
+  border: "1px solid #6b5d3a",
+  borderTop: 0,
+  background: "#1f2a25",
+  fontSize: 13,
+  boxSizing: "border-box"
+};
 const label: CSSProperties = {
-  width: "38%",
-  padding: "7px 8px",
+  width: "34%",
+  flexShrink: 0,
+  padding: "4px 8px",
   fontWeight: 700,
-  borderRight: "1px solid #8a7a66",
-  background: "#444"
+  color: "#d4cab2",
+  borderRight: "1px solid #6b5d3a",
+  background: "#17201c"
 };
-const value: CSSProperties = { flex: 1, padding: "7px 8px", overflowWrap: "anywhere" };
+const value: CSSProperties = { flex: 1, minWidth: 0, padding: "4px 8px", overflowWrap: "anywhere" };
 
 function lastSeen(at: Date, online: boolean) {
   if (online) return "Now";
@@ -121,11 +132,21 @@ export default async function PlayerProfile({
   const iconStyle: CSSProperties = {
     flex: 1,
     textAlign: "center",
-    padding: "10px 0",
+    padding: "6px 0",
     color: "#f1e8d3",
     textDecoration: "none",
-    fontSize: 13,
-    borderRight: "1px solid #8a7a66"
+    fontSize: 12,
+    borderRight: "1px solid #6b5d3a"
+  };
+  const navStyle: CSSProperties = {
+    ...row,
+    borderTop: "1px solid #6b5d3a",
+    flex: 1,
+    justifyContent: "center",
+    padding: "6px 0",
+    color: "#f1e8d3",
+    textDecoration: "none",
+    fontSize: 12
   };
 
   return (
@@ -134,39 +155,42 @@ export default async function PlayerProfile({
         minHeight: "100vh",
         background: "#0b0f0d",
         color: "#f1e8d3",
-        padding: 8,
+        padding: 6,
+        boxSizing: "border-box",
+        overflowX: "hidden",
         fontFamily: '"DejaVu Sans", Verdana, Arial, sans-serif',
-        fontSize: 16
+        fontSize: 13
       }}
     >
-      <div style={{ maxWidth: 560, margin: "0 auto" }}>
-        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-          <Link href="/" style={{ ...row, flex: 1, justifyContent: "center", padding: 8, color: "#f1e8d3", textDecoration: "none" }}>
+      <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+          <Link href="/" style={navStyle}>
             Back to game
           </Link>
           {isMe && (
-            <Link href="/profile-edit" style={{ ...row, flex: 1, justifyContent: "center", padding: 8, color: "#f1e8d3", textDecoration: "none" }}>
+            <Link href="/profile-edit" style={navStyle}>
               Edit profile
             </Link>
           )}
         </div>
 
-        <div style={bar}>Profile For {player.username}:</div>
+        <div style={bar}>Profile For {player.username}</div>
 
         {statusLive && (
-          <div style={{ ...row, justifyContent: "center", padding: 8, background: "#5a3a1f", color: "#ffe3b0", textAlign: "center" }}>
+          <div style={{ ...row, justifyContent: "center", padding: "5px 8px", background: "#4d3d1c", color: "#ffe3b0", textAlign: "center" }}>
             {player.profileStatus}
           </div>
         )}
 
         <div
           style={{
-            background: "#4a4a4a",
-            border: "1px solid #8a7a66",
-            minHeight: 160,
+            background: "#17201c",
+            border: "1px solid #6b5d3a",
+            borderTop: 0,
             display: "grid",
             placeItems: "center",
-            padding: 10
+            padding: 6,
+            boxSizing: "border-box"
           }}
         >
           {showPicture ? (
@@ -174,19 +198,19 @@ export default async function PlayerProfile({
             <img
               src={player.profilePictureUrl as string}
               alt={`${player.username}'s picture`}
-              style={{ maxWidth: "100%", maxHeight: 420, display: "block" }}
+              style={{ maxWidth: "100%", maxHeight: 200, objectFit: "contain", display: "block" }}
             />
           ) : (
             <div
               style={{
-                width: 120,
-                height: 120,
+                width: 64,
+                height: 64,
                 borderRadius: "50%",
                 display: "grid",
                 placeItems: "center",
-                border: "3px solid #b0904a",
+                border: "2px solid #b0904a",
                 fontFamily: "Georgia, serif",
-                fontSize: 54,
+                fontSize: 28,
                 color: "#d2b783"
               }}
             >
@@ -200,35 +224,28 @@ export default async function PlayerProfile({
             style={{
               ...row,
               justifyContent: "center",
-              padding: 8,
-              background: inCrew ? "#5a3a1f" : "#3b4a3a"
+              padding: "4px 8px",
+              background: inCrew ? "#4d3d1c" : "#1e3a22"
             }}
           >
             OC status:&nbsp;<strong>{inCrew ? "In a crew" : "Available"}</strong>
           </div>
         )}
 
-        <div style={{ ...row, borderRight: "none" }}>
+        <div style={row}>
           {!isMe ? (
             <a href={`/?to=${encodeURIComponent(player.username)}`} style={iconStyle}>
-              ✉ Send a message
+              ✉ Message
             </a>
           ) : (
             <Link href="/profile-edit" style={iconStyle}>
-              ✎ Edit profile
+              ✎ Edit
             </Link>
           )}
           <Link href="/users-online" style={{ ...iconStyle, borderRight: "none" }}>
             ☰ Users online
           </Link>
         </div>
-
-        {player.showProfileViews && (
-          <div style={{ ...row, flexDirection: "column", alignItems: "center", padding: 8, textAlign: "center" }}>
-            <span>Profile views:</span>
-            <strong style={{ fontSize: 22 }}>{views.toLocaleString("en-GB")}</strong>
-          </div>
-        )}
 
         <div>
           <div style={row}>
@@ -238,7 +255,7 @@ export default async function PlayerProfile({
           {player.showOrganization && (
             <div style={row}>
               <div style={label}>Organisation:</div>
-              <div style={value}>Not a part of any organisation</div>
+              <div style={value}>None</div>
             </div>
           )}
           <div style={row}>
@@ -254,13 +271,19 @@ export default async function PlayerProfile({
             <div style={value}>{player.rank}</div>
           </div>
           <div style={row}>
-            <div style={label}>Last Seen:</div>
+            <div style={label}>Last seen:</div>
             <div style={value}>{lastSeen(player.updatedAt, online)}</div>
           </div>
           <div style={row}>
             <div style={label}>Messages:</div>
             <div style={value}>{messages.toLocaleString("en-GB")}</div>
           </div>
+          {player.showProfileViews && (
+            <div style={row}>
+              <div style={label}>Profile views:</div>
+              <div style={value}>{views.toLocaleString("en-GB")}</div>
+            </div>
+          )}
           <div style={row}>
             <div style={label}>Joined:</div>
             <div style={value}>
@@ -269,9 +292,17 @@ export default async function PlayerProfile({
           </div>
         </div>
 
-        <div style={{ ...row, justifyContent: "center", padding: 8, background: "#6b6b6b" }}>Quote:</div>
-        <div style={{ ...row, padding: 12, minHeight: 40, justifyContent: "center", textAlign: "left" }}>
-          {player.profileQuote ? renderBB(player.profileQuote) : <span style={{ color: "#9a9384" }}>No quote yet.</span>}
+        <div style={{ ...bar, fontSize: 13, padding: "4px 8px", marginTop: 6 }}>Quote</div>
+        <div
+          style={{
+            ...row,
+            padding: "8px 10px",
+            minHeight: 36,
+            overflowWrap: "anywhere",
+            lineHeight: 1.4
+          }}
+        >
+          {player.profileQuote ? renderBB(player.profileQuote) : <span style={{ color: "#8f8873" }}>No quote yet.</span>}
         </div>
       </div>
     </main>
