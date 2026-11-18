@@ -29,8 +29,8 @@ model Player {
   bullets      Int      @default(0)
   health       Int      @default(100)
   protection   Int      @default(0)
-  energy       Int      @default(10)
-  maxEnergy    Int      @default(10)
+  energy       Int      @default(400)
+  maxEnergy    Int      @default(400)
   experience   Int      @default(0)
   lastEnergyAt DateTime @default(now())
   lastCrimeAt  DateTime?
@@ -80,6 +80,11 @@ model Player {
   ownedCasinos         Casino[]        @relation("CasinoOwner")
   ownedBulletFactories BulletFactory[] @relation("BulletFactoryOwner")
   cars                 Car[]
+
+  // Organised crime: at most one crew led, any number of invitations.
+  ocLed    OrganisedCrime?
+  ocSlots  OcSlot[]  @relation("OcMember")
+  inbox    Message[] @relation("MailTo")
 }
 
 // A car in a player's garage. The model key points into src/lib/era.ts.
@@ -93,6 +98,8 @@ model Car {
   plate      String  @default("")
   damage     Int     @default(0) // 0 = perfect, 50 = badly knocked about
   heatAt     DateTime @default(now())
+  // Crates of booze in the boot, keyed by booze key.
+  cargo      Json?
   createdAt DateTime @default(now())
 
   owner Player @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -199,4 +206,51 @@ model ForumPost {
   topic  ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
   @@index([topicId, createdAt])
+}
+
+// A four-player organised crime: one leader and three role slots.
+model OrganisedCrime {
+  id        String   @id @default(cuid())
+  leaderId  String   @unique
+  city      String
+  status    String   @default("forming")
+  createdAt DateTime @default(now())
+
+  leader Player   @relation(fields: [leaderId], references: [id], onDelete: Cascade)
+  slots  OcSlot[]
+}
+
+// One of the three positions. state: empty, invited, selecting or ready.
+// While invited, playerId is the person who has been asked.
+model OcSlot {
+  id       String  @id @default(cuid())
+  ocId     String
+  role     String
+  state    String  @default("empty")
+  playerId String?
+  percent  Int?
+  choice   String?
+  carId    String?
+
+  oc     OrganisedCrime @relation(fields: [ocId], references: [id], onDelete: Cascade)
+  player Player?        @relation("OcMember", fields: [playerId], references: [id], onDelete: SetNull)
+
+  @@unique([ocId, role])
+  @@index([playerId])
+}
+
+// A letter in a player's mailbox.
+model Message {
+  id        String    @id @default(cuid())
+  toId      String
+  fromName  String
+  subject   String
+  body      String    @db.Text
+  ocId      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  to Player @relation("MailTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([toId, createdAt])
 }
