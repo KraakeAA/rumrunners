@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_LEVELS } from "@/lib/era";
 import { clock } from "@/components/EnergyBar";
 import { rankForLevel } from "@/lib/ranks";
+import { energyCostFor } from "@/lib/training";
 import { DamageBar, HeatBar } from "@/components/Travel";
 
 type TheftResult = {
@@ -29,6 +30,7 @@ type TheftResult = {
 type Props = {
   rankLevel: number;
   energy: number;
+  staminaLevel?: number;
   theftLeft: (level: number) => number;
   jailLeft: number;
   onActed: () => void;
@@ -84,6 +86,7 @@ type WorkshopCar = {
 export default function AutoTheftSection({
   rankLevel,
   energy,
+  staminaLevel = 0,
   theftLeft,
   jailLeft,
   onActed,
@@ -263,7 +266,8 @@ export default function AutoTheftSection({
               );
             }
             const wait = theftLeft(l.level);
-            const tired = energy < l.energy;
+            const levelEnergy = energyCostFor(l.energy, staminaLevel);
+            const tired = energy < levelEnergy;
             const disabled = busy || wait > 0 || tired || jailLeft > 0 || CARS.length === 0;
             return (
               <div
@@ -284,7 +288,7 @@ export default function AutoTheftSection({
                   <div style={{ ...sub, lineHeight: 1.3 }}>{l.blurb}</div>
                 </div>
                 <span title="Energy cost" style={{ flexShrink: 0, fontSize: 12, color: tired ? "#e08f7f" : "#e4c04d" }}>
-                  ⚡{l.energy}
+                  ⚡{levelEnergy}
                 </span>
                 <button
                   type="button"
