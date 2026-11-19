@@ -79,6 +79,13 @@ export async function POST(req: Request) {
         where: { playerId: me.id },
         data: { playerId: null, state: "empty", percent: null, choice: null, carId: null }
       });
+      await tx.message.deleteMany({ where: { toId: me.id } });
+      // Detectives he hired, and any still looking for him, die with the old life.
+      await tx.hunt.deleteMany({ where: { OR: [{ hunterId: me.id }, { targetId: me.id }] } });
+      await tx.bounty.updateMany({
+        where: { targetId: me.id, status: "active" },
+        data: { status: "expired", resolvedAt: new Date() }
+      });
       await tx.casino.updateMany({ where: { ownerId: me.id }, data: { ownerId: null, ownedSince: null } });
       await tx.bulletFactory.updateMany({ where: { ownerId: me.id }, data: { ownerId: null } });
 
@@ -91,8 +98,12 @@ export async function POST(req: Request) {
           rankLevel: 1,
           money: 500,
           bank: 0,
+          bankSince: null,
           bullets: 0,
           health: 100,
+          healthAt: null,
+          kills: 0,
+          bornAt: new Date(),
           protection: 0,
           equipped: Prisma.DbNull,
           energy: 400,
