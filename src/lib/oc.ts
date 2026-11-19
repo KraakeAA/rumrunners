@@ -1,6 +1,6 @@
 // Organised crime: pure data, safe for server and browser.
 
-export const OC_START_COST = 50; // £ the leader pays to start a crew
+export const OC_START_COST = 5; // £ the leader pays to start a crew
 
 export type OcRole = "weapons" | "explosives" | "driver";
 
@@ -42,8 +42,8 @@ export function choiceForCarTier(tier: number): OcChoice {
 // ---- The vault ----
 // A job pays a random vault. The gear the crew brought changes how big it is,
 // and now and then the take is boosted by a lucky break.
-export const VAULT_MIN = 800;
-export const VAULT_MAX = 1_600;
+export const VAULT_MIN = 80;
+export const VAULT_MAX = 160;
 
 export const GEAR_MULTIPLIER: Record<"weapons" | "explosives" | "driver", Record<OcChoice, number>> = {
   weapons: { cheap: 0.9, middle: 1, high: 1.15 },
@@ -71,7 +71,7 @@ export function rollVault(
         : "";
 
   return {
-    vault: Math.max(10, Math.round((base * equipment * boost) / 10) * 10),
+    vault: Math.max(5, Math.round((base * equipment * boost) / 5) * 5),
     boost,
     boostNote
   };
