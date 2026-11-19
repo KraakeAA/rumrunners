@@ -1,3 +1,4 @@
+import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -156,6 +157,9 @@ async function mail(
 }
 
 export async function POST(req: Request) {
+  const __dead = await denyIfDead();
+  if (__dead) return __dead;
+
   const userId = await getSessionUserId();
 
   if (!userId) {
