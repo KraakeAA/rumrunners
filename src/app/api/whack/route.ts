@@ -1,3 +1,4 @@
+import { levelOf } from "@/lib/training";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -27,7 +28,7 @@ async function view(playerId: string) {
   });
 
   const now = new Date();
-  const stats = equipmentStats(cleanEquipped(me.equipped));
+  const stats = equipmentStats(cleanEquipped(me.equipped), levelOf(me.strengthPts));
 
   return {
     money: me.money,
@@ -139,7 +140,7 @@ export async function POST(req: Request) {
           throw new Refuse(`You need to be in ${hunt.foundCity} to take the shot.`);
         }
 
-        const stats = equipmentStats(cleanEquipped(me.equipped));
+        const stats = equipmentStats(cleanEquipped(me.equipped), levelOf(me.strengthPts));
         if (stats.firepower <= 0) throw new Refuse("You need a gun in your hand. Equip one from your Character.");
 
         const target = await tx.player.findUnique({ where: { id: hunt.targetId } });
