@@ -32,7 +32,7 @@ async function history(meId: string, all: boolean) {
     sent: sent.map((t) => ({
       id: t.id,
       at: t.createdAt.toISOString(),
-      who: t.kind === "player" ? t.toName : "Marketplace transaction",
+      who: t.kind === "player" ? t.toName : t.kind === "escrow" ? "Escrow trade" : "Marketplace transaction",
       player: t.kind === "player",
       amount: t.amount,
       reference: t.reference
@@ -40,7 +40,7 @@ async function history(meId: string, all: boolean) {
     received: received.map((t) => ({
       id: t.id,
       at: t.createdAt.toISOString(),
-      who: t.kind === "player" ? t.fromName : "Marketplace transaction",
+      who: t.kind === "player" ? t.fromName : t.kind === "escrow" ? "Escrow trade" : "Marketplace transaction",
       player: t.kind === "player",
       amount: t.received,
       reference: t.reference
