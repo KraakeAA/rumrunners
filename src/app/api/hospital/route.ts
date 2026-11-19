@@ -4,7 +4,7 @@ import { getSessionUserId } from "@/lib/session";
 import { regenHealth } from "@/lib/whack";
 
 // Each missing point of health costs this much to patch up.
-const COST_PER_POINT = 5;
+const COST_PER_POINT = 1;
 
 async function current(userId: string) {
   const me = await prisma.player.findUnique({ where: { userId } });
