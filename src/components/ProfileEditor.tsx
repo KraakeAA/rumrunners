@@ -23,32 +23,30 @@ const OPTIONS: { key: keyof Data; label: string }[] = [
 ];
 
 const bar: CSSProperties = {
-  padding: "8px",
+  padding: "6px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 17,
+  fontSize: 16,
   color: "#f7efdb",
-  background: "linear-gradient(180deg, #5a4a33, #2d2418)",
-  border: "1px solid #8a7a66"
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  borderTop: "1px solid #b0904a",
+  borderBottom: "1px solid #b0904a",
+  textShadow: "0 1px 2px #000"
 };
-const cell: CSSProperties = { background: "#3a3a3a", border: "1px solid #6f665a", padding: 8 };
+const cell: CSSProperties = { background: "#1f2a25", border: "1px solid #6b5d3a", padding: 8 };
 const field: CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   padding: 8,
   border: "1px solid #a08340",
-  borderRadius: 6,
-  background: "#fff",
-  color: "#111",
+  borderRadius: 0,
+  background: "#0e1411",
+  color: "#f7efdb",
   fontSize: 16
 };
 const blue: CSSProperties = {
-  padding: "6px 16px",
-  border: "1px solid #5aa9ff",
-  borderRadius: 16,
-  background: "#0a7aff",
-  color: "#fff",
-  fontSize: 16,
+  padding: "6px 18px",
+  fontSize: 15,
   cursor: "pointer"
 };
 
@@ -155,7 +153,7 @@ export default function ProfileEditor() {
               ))}
             </select>
             <div style={{ textAlign: "right" }}>
-              <button style={{ ...blue, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={() => save({ action: "status", message: status, minutes: mins })}>
+              <button className="button" style={{ ...blue, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={() => save({ action: "status", message: status, minutes: mins })}>
                 Post!
               </button>
             </div>
@@ -164,7 +162,7 @@ export default function ProfileEditor() {
 
         <section>
           <div style={bar}>Profile (View)</div>
-          <div style={{ ...cell, background: "#4a4a4a", textAlign: "center" }}>Quote</div>
+          <div style={{ ...cell, background: "#17201c", textAlign: "center", color: "#d4cab2" }}>Quote</div>
           <div style={{ ...cell, display: "grid", gap: 8 }}>
             <textarea
               style={{ ...field, minHeight: 160, resize: "vertical" }}
@@ -176,7 +174,7 @@ export default function ProfileEditor() {
               You can use [b]bold[/b], [i]italic[/i], [u]underline[/u] and [center]centred[/center].
             </div>
             <div style={{ textAlign: "right" }}>
-              <button style={{ ...blue, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={() => save({ action: "quote", quote })}>
+              <button className="button" style={{ ...blue, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={() => save({ action: "quote", quote })}>
                 Update!
               </button>
             </div>
@@ -201,7 +199,7 @@ export default function ProfileEditor() {
               Paste the web address of a picture hosted elsewhere. Leave empty to remove it.
             </div>
             <div style={{ textAlign: "right" }}>
-              <button style={{ ...blue, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={() => save({ action: "picture", url: pic })}>
+              <button className="button" style={{ ...blue, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={() => save({ action: "picture", url: pic })}>
                 Update!
               </button>
             </div>
@@ -223,7 +221,7 @@ export default function ProfileEditor() {
           ))}
           <div style={{ ...cell, textAlign: "center" }}>
             <button
-              style={{ ...blue, opacity: busy ? 0.6 : 1 }}
+              className="button" style={{ ...blue, opacity: busy ? 0.6 : 1 }}
               disabled={busy}
               onClick={() =>
                 save({
