@@ -11,19 +11,21 @@ export type StoreItem = {
   // Guns: attack rating. Protection: protection points. Garage: extra car spaces.
   value: number;
   detail?: string;
+  // Guns: the Strength level needed to hold it.
+  strength?: number;
 };
 
 export const PROTECTION_CAP = 100;
 export const GARAGE_CAP = 60;
 
 export const GUNS: StoreItem[] = [
-  { key: "webley", kind: "gun", name: "Webley Mk VI Revolver", note: "The old army sidearm, still carried by many.", price: 50, value: 5, detail: ".455" },
-  { key: "enfield", kind: "gun", name: "Enfield No. 2 Mk I Revolver", note: "Adopted by the army in 1932.", price: 90, value: 8, detail: ".38" },
-  { key: "colt", kind: "gun", name: "Colt M1911", note: "American automatic pistol, smuggled in from across the Atlantic.", price: 200, value: 12, detail: ".45 ACP" },
-  { key: "mauser", kind: "gun", name: "Mauser C96 'Broomhandle'", note: "The long-barrelled German pistol with a wooden holster stock.", price: 350, value: 16, detail: "7.63mm" },
-  { key: "greener", kind: "gun", name: "Greener Police Shotgun", note: "A Birmingham-made shotgun, used by police and gangs alike.", price: 500, value: 20, detail: "12-bore" },
-  { key: "lee_enfield", kind: "gun", name: "Short Magazine Lee-Enfield", note: "The army rifle of two wars.", price: 800, value: 28, detail: ".303" },
-  { key: "thompson", kind: "gun", name: "Thompson Submachine Gun", note: "The 'Tommy gun'. Rare and feared.", price: 2_500, value: 50, detail: ".45 ACP" }
+  { key: "webley", kind: "gun", name: "Webley Mk VI Revolver", note: "The old army sidearm, still carried by many.", price: 50, value: 5, detail: ".455", strength: 0 },
+  { key: "enfield", kind: "gun", name: "Enfield No. 2 Mk I Revolver", note: "Adopted by the army in 1932.", price: 90, value: 8, detail: ".38", strength: 3 },
+  { key: "colt", kind: "gun", name: "Colt M1911", note: "American automatic pistol, smuggled in from across the Atlantic.", price: 200, value: 12, detail: ".45 ACP", strength: 5 },
+  { key: "mauser", kind: "gun", name: "Mauser C96 'Broomhandle'", note: "The long-barrelled German pistol with a wooden holster stock.", price: 350, value: 16, detail: "7.63mm", strength: 8 },
+  { key: "greener", kind: "gun", name: "Greener Police Shotgun", note: "A Birmingham-made shotgun, used by police and gangs alike.", price: 500, value: 20, detail: "12-bore", strength: 11 },
+  { key: "lee_enfield", kind: "gun", name: "Short Magazine Lee-Enfield", note: "The army rifle of two wars.", price: 800, value: 28, detail: ".303", strength: 15 },
+  { key: "thompson", kind: "gun", name: "Thompson Submachine Gun", note: "The 'Tommy gun'. Rare and feared.", price: 2_500, value: 50, detail: ".45 ACP", strength: 20 }
 ];
 
 export const PROTECTION: StoreItem[] = [
@@ -93,14 +95,22 @@ export function findByType(typeKey: string): StoreItem | undefined {
 export type Equipped = Partial<Record<SlotKey, string>>;
 
 // Firepower = the guns in hand. Defence = protection from everything equipped.
-export function equipmentStats(equipped: Equipped): { firepower: number; protection: number } {
+// A gun only counts if the player is strong enough to hold it (strengthLevel given).
+export function canWield(item: StoreItem, strengthLevel: number): boolean {
+  return item.kind !== "gun" || strengthLevel >= (item.strength ?? 0);
+}
+
+export function equipmentStats(
+  equipped: Equipped,
+  strengthLevel: number = Number.POSITIVE_INFINITY
+): { firepower: number; protection: number } {
   let firepower = 0;
   let protection = 0;
   for (const typeKey of Object.values(equipped)) {
     if (!typeKey) continue;
     const item = findByType(typeKey);
     if (!item) continue;
-    if (item.kind === "gun") firepower += item.value;
+    if (item.kind === "gun" && canWield(item, strengthLevel)) firepower += item.value;
     if (item.kind === "protection") protection += item.value;
   }
   return { firepower, protection: Math.min(PROTECTION_CAP, protection) };
