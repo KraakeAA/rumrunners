@@ -1,3 +1,4 @@
+import { energyCostFor, levelOf } from "@/lib/training";
 import { denyIfDead } from "@/lib/alive";
 import { settleHunts } from "@/lib/whack";
 import { NextResponse } from "next/server";
@@ -163,7 +164,9 @@ export async function POST(req: Request) {
         now
       );
 
-      if (regen.energy < crime.energyCost) {
+      const energyCost = energyCostFor(crime.energyCost, levelOf(player.staminaPts));
+
+      if (regen.energy < energyCost) {
         throw new Error("NO_ENERGY");
       }
 
@@ -193,7 +196,7 @@ export async function POST(req: Request) {
       const updated = await tx.player.update({
         where: { id: player.id },
         data: {
-          energy: regen.energy - crime.energyCost,
+          energy: regen.energy - energyCost,
           maxEnergy: maxEnergyFor(newLevel),
           // A full tank has no running clock, so start one when energy is spent.
           lastEnergyAt:
