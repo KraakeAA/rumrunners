@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -44,6 +43,10 @@ model Player {
   kills        Int      @default(0)
   // When this life began. Bank history before this belongs to a previous life.
   bornAt       DateTime @default(now())
+  // Gymnasium training points (level = square root). See src/lib/training.ts.
+  strengthPts  Int      @default(0)
+  staminaPts   Int      @default(0)
+  agilityPts   Int      @default(0)
   energy       Int      @default(400)
   maxEnergy    Int      @default(400)
   experience   Int      @default(0)
@@ -60,6 +63,8 @@ model Player {
   // How many cars the garage holds (the Store sells more), and the booze being carried.
   garageSlots  Int      @default(5)
   cargo        Json?
+  // Where each crate being carried was bought: booze key -> city -> crates. Crates can't be sold where they were bought.
+  cargoFrom    Json?
   // Lifetime counters shown on the statistics page.
   theftWins     Int @default(0)
   theftFails    Int @default(0)
@@ -116,6 +121,7 @@ model Player {
 
   bjHand        BlackjackHand?
   lotteryTickets LotteryTicket[]
+  goldListings   GoldListing[]
 }
 
 // A car in a player's garage. The model key points into src/lib/era.ts.
@@ -131,6 +137,8 @@ model Car {
   heatAt     DateTime @default(now())
   // Crates of booze in the boot, keyed by booze key.
   cargo      Json?
+  // Set while the car is held by the Escrow agent; it can't be used or sold until the trade ends.
+  escrowId   String?
   createdAt DateTime @default(now())
 
   owner Player @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -149,6 +157,8 @@ model Casino {
   plays      Int       @default(0)
   wagered    Int       @default(0)
   ownedSince DateTime?
+  // Set while the casino is held by the Escrow agent: nobody can gamble at it or change it.
+  escrowId   String?
 
   owner Player? @relation("CasinoOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
@@ -394,4 +404,80 @@ model Transfer {
 
   @@index([fromId, createdAt])
   @@index([toId, createdAt])
+}
+
+// Gold put up for sale on the Marketplace. The gold is taken from the seller when listed and held here.
+// remaining = gold still unsold. Buyers take whole batches (batchSize 1 = sold individually,
+// batchSize = the full amount = sold all together). status: active, sold, removed.
+model GoldListing {
+  id         String   @id @default(cuid())
+  sellerId   String
+  sellerName String
+  amount     Int
+  remaining  Int
+  batchSize  Int      @default(1)
+  price      Int
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+
+  seller Player @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([status, price])
+  @@index([sellerId, status])
+}
+
+// One purchase of gold from a listing. The latest price is the "recent value".
+model GoldSale {
+  id        String   @id @default(cuid())
+  listingId String
+  sellerId  String
+  buyerId   String
+  quantity  Int
+  price     Int
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// A trade between two players, held by the Escrow agent. status: invited, active, completed, cancelled.
+// a is the player who sent the invitation, b the one invited. Items are held until both sides agree.
+model Escrow {
+  id          String    @id @default(cuid())
+  aId         String
+  aName       String
+  bId         String
+  bName       String
+  status      String    @default("invited")
+  aLocked     Boolean   @default(false)
+  bLocked     Boolean   @default(false)
+  aAgreed     Boolean   @default(false)
+  bAgreed     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  // The trade is cancelled automatically if it isn't finished by then (30 minutes).
+  expiresAt   DateTime?
+
+  items EscrowItem[]
+
+  @@index([aId, status])
+  @@index([bId, status])
+}
+
+// One thing a player has put into an escrow: cash, gold or a car.
+model EscrowItem {
+  id        String   @id @default(cuid())
+  escrowId  String
+  ownerId   String
+  kind      String
+  amount    Int      @default(0)
+  carId     String?
+  casinoId  String?
+  // What to call the item on screen: the car and its plate, or the casino and its city.
+  carName   String   @default("")
+  createdAt DateTime @default(now())
+
+  escrow Escrow @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+
+  @@index([escrowId])
 }
