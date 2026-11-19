@@ -1,6 +1,7 @@
-"use client";
+""use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
 import CasinoGames from "@/components/CasinoGames";
 import TableGames from "@/components/TableGames";
 import type { CasinoGameKey, CasinoView, FactoryView, VenueData } from "@/lib/venues";
@@ -287,61 +288,66 @@ const cityRegions: Record<string, string> = {
 
 function OwnerLine({
   owner,
-  mine,
   figure,
   figureNote,
   wealth
 }: {
   owner: string | null;
-  mine: boolean;
   figure: string;
   figureNote?: string;
   wealth: string | null;
 }) {
   if (!owner) {
     return (
-      <div style={{ lineHeight: 1.3 }}>
-        <span style={{ color: "#8a8470", fontStyle: "italic" }}>No owner</span>
-        <div style={{ color: GREEN }}>{figure}</div>
+      <div style={{ lineHeight: 1.35 }}>
+        <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 14 }}>No owner</div>
+        <div style={{ color: GREEN, fontSize: 13 }}>{figure}</div>
       </div>
     );
   }
   return (
-    <div style={{ lineHeight: 1.3 }}>
-      <span style={{ fontWeight: 700, color: "#f7efdb" }}>{mine ? `${owner} (you)` : owner}</span>
-      <div style={{ color: GREEN }}>
-        {figure}
-        {figureNote ? <em style={{ color: "#b7ad93" }}> {figureNote}</em> : null}
+    <div style={{ lineHeight: 1.35 }}>
+      <div style={{ fontSize: 15 }}>
+        <Link
+          href={`/profile/${encodeURIComponent(owner)}`}
+          style={{ color: "#f7efdb", textDecoration: "underline", textDecorationColor: "#6b5d3a", textUnderlineOffset: 3 }}
+        >
+          {owner}
+        </Link>
       </div>
-      {wealth && <div style={{ fontSize: 11, color: "#b7ad93" }}>{wealth}</div>}
+      <div style={{ fontSize: 14, color: "#b7ad93" }}>
+        {figure}
+        {figureNote ? <em> {figureNote}</em> : null}
+      </div>
+      {wealth && <div style={{ fontSize: 12, color: "#8f8a76" }}>{wealth}</div>}
     </div>
   );
 }
 
 function CityRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 8,
-        padding: "4px 8px",
-        borderTop: "1px solid #2b3630",
-        fontSize: 12
-      }}
-    >
-      <span style={{ color: "#c9bfa6", flexShrink: 0 }}>{label}</span>
-      <span style={{ textAlign: "right", minWidth: 0 }}>{children}</span>
+    <div style={{ display: "grid", gridTemplateColumns: "38% 1fr", borderTop: "1px solid #6b5d3a" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          padding: "8px 10px",
+          textAlign: "right",
+          background: "#17201c",
+          borderRight: "1px solid #6b5d3a",
+          color: "#e3d9bf",
+          fontSize: 14
+        }}
+      >
+        {label}:
+      </div>
+      <div style={{ padding: "8px 10px", minWidth: 0, background: "#1f2a25" }}>{children}</div>
     </div>
   );
 }
 
-export function CitiesSection({
-  onGo
-}: {
-  onGo: (section: string) => void;
-}) {
+export function CitiesSection() {
   const { data, error } = useVenues();
 
   if (error && !data) return <p className="flavour">{error}</p>;
@@ -353,7 +359,7 @@ export function CitiesSection({
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <Bar>Cities</Bar>
 
-      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+      <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
         {cities.map((city) => {
           const rows = data.casinos.filter((c) => c.city === city);
           const factory = data.factories.find((f) => f.city === city);
@@ -369,29 +375,22 @@ export function CitiesSection({
             >
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  gap: 8,
-                  padding: "5px 8px",
-                  background: "linear-gradient(180deg, #5c4a22, #3a2f16)",
-                  borderBottom: "1px solid #a08340"
+                  padding: "12px 8px 10px",
+                  textAlign: "center",
+                  background: "#1f2a25"
                 }}
               >
-                <span style={{ fontFamily: "Georgia, serif", fontSize: 16, color: "#f7efdb" }}>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 700, color: "#f7efdb", textShadow: "0 1px 3px #000" }}>
                   {city}
-                  <span style={{ marginLeft: 8, fontFamily: "inherit", fontSize: 11, color: "#c9bfa6" }}>
-                    {cityRegions[city] ?? "Britain"}
-                  </span>
-                </span>
-                {here && <span style={{ fontSize: 11, color: GREEN }}>You are here</span>}
+                </div>
+                <div style={{ fontSize: 14, color: "#b7ad93" }}>{cityRegions[city] ?? "Britain"}</div>
+                {here && <div style={{ fontSize: 12, color: GREEN, marginTop: 2 }}>You are here</div>}
               </div>
 
               {rows.map((c) => (
-                <CityRow key={c.id} label={c.label}>
+                <CityRow key={c.id} label={`${c.label} Owner`}>
                   <OwnerLine
                     owner={c.ownerName}
-                    mine={c.isMine}
                     figure={c.ownerId ? gbp(c.maxBet) : `Buy ${gbp(c.price)}`}
                     figureNote={c.ownerId ? "max bet" : undefined}
                     wealth={c.ownerWealth}
@@ -400,10 +399,9 @@ export function CitiesSection({
               ))}
 
               {factory && (
-                <CityRow label="Bullet Factory">
+                <CityRow label="Bullet Factory Owner">
                   <OwnerLine
                     owner={factory.ownerName}
-                    mine={factory.isMine}
                     figure={factory.ownerId ? `${gbp(factory.pricePerBullet)} each` : `Buy ${gbp(factory.price)}`}
                     figureNote={factory.ownerId ? `(${factory.stock.toLocaleString("en-GB")})` : undefined}
                     wealth={factory.ownerWealth}
@@ -416,14 +414,6 @@ export function CitiesSection({
         })}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 8 }}>
-        <button type="button" style={{ ...btn, padding: "5px 14px", fontSize: 12 }} onClick={() => onGo("Railway")}>
-          Travel
-        </button>
-        <button type="button" style={{ ...btn, padding: "5px 14px", fontSize: 12 }} onClick={() => onGo("Bullet Factory")}>
-          Bullet Factory
-        </button>
-      </div>
     </div>
   );
 }
