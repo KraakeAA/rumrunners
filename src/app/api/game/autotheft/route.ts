@@ -1,3 +1,4 @@
+import { energyCostFor, levelOf } from "@/lib/training";
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -71,7 +72,8 @@ export async function POST(req: Request) {
 
       const maxEnergy = maxEnergyFor(player.rankLevel);
       const regen = energyAfterRegen(player.energy, maxEnergy, player.lastEnergyAt, now);
-      if (regen.energy < level.energy) throw new Error("NO_ENERGY");
+      const energyCost = energyCostFor(level.energy, levelOf(player.staminaPts));
+      if (regen.energy < energyCost) throw new Error("NO_ENERGY");
 
       const owned = await tx.car.count({ where: { ownerId: player.id } });
       if (owned >= player.garageSlots) throw new Error(`GARAGE_FULL:${player.garageSlots}`);
@@ -101,7 +103,7 @@ export async function POST(req: Request) {
       const updated = await tx.player.update({
         where: { id: player.id },
         data: {
-          energy: regen.energy - level.energy,
+          energy: regen.energy - energyCost,
           maxEnergy: maxEnergyFor(newLevel),
           // A full tank has no running clock, so start one when energy is spent.
           lastEnergyAt:
