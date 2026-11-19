@@ -6,6 +6,8 @@ import { maxEnergyFor } from "@/lib/game";
 import DeadScreen from "@/components/DeadScreen";
 import { regenHealth } from "@/lib/whack";
 import { settleInterest } from "@/lib/interest";
+import { levelsOf } from "@/lib/training";
+import { expireEscrowsFor } from "@/lib/escrow";
 
 export default async function Home({
   searchParams
@@ -116,6 +118,15 @@ export default async function Home({
     );
   }
 
+  // Call off any escrow trade that has run out of time, so held goods come back.
+  if ((await expireEscrowsFor(prisma, player.id)) > 0) {
+    const fresh = await prisma.player.findUnique({ where: { id: player.id }, select: { money: true, gold: true } });
+    if (fresh) {
+      player.money = fresh.money;
+      player.gold = fresh.gold;
+    }
+  }
+
   // Pay any bank interest that has fallen due.
   if (player.bank > 0) {
     const acct = await settleInterest(prisma, player.id);
@@ -176,6 +187,7 @@ export default async function Home({
       composeTo={composeTo.slice(0, 40)}
       isAdmin={account?.isAdmin ?? false}
       playerId={player.id}
+      training={levelsOf(player)}
       player={{
         username: player.username,
         rank: player.rank,
