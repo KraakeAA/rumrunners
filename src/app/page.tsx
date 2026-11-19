@@ -5,6 +5,7 @@ import GameShell from "@/components/GameShell";
 import { maxEnergyFor } from "@/lib/game";
 import DeadScreen from "@/components/DeadScreen";
 import { regenHealth } from "@/lib/whack";
+import { settleInterest } from "@/lib/interest";
 
 export default async function Home({
   searchParams
@@ -115,6 +116,12 @@ export default async function Home({
     );
   }
 
+  // Pay any bank interest that has fallen due.
+  if (player.bank > 0) {
+    const acct = await settleInterest(prisma, player.id);
+    player.bank = acct.bank;
+  }
+
   // Heal slowly over time.
   const healed = regenHealth(player.health, player.healthAt);
   if (healed.health !== player.health) {
@@ -208,6 +215,7 @@ export default async function Home({
         ocsDone: player.ocsDone,
         ocsLed: player.ocsLed,
         ocEarned: player.ocEarned,
+        kills: player.kills,
         joinedAt: player.createdAt.toISOString()
       }}
       recentCrimes={recentCrimes.map((c) => ({
