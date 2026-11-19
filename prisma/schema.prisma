@@ -26,6 +26,8 @@ model Player {
   rankLevel    Int      @default(1)
   money        Int      @default(500)
   bank         Int      @default(0)
+  // When the bank balance last changed; interest is paid 24 hours after this.
+  bankSince    DateTime?
   gold         Int      @default(0)
   bullets      Int      @default(0)
   health       Int      @default(100)
@@ -40,6 +42,8 @@ model Player {
   // Health heals slowly; healthAt is when the last point was gained. kills is a lifetime count.
   healthAt     DateTime?
   kills        Int      @default(0)
+  // When this life began. Bank history before this belongs to a previous life.
+  bornAt       DateTime @default(now())
   energy       Int      @default(400)
   maxEnergy    Int      @default(400)
   experience   Int      @default(0)
@@ -159,7 +163,7 @@ model BulletFactory {
   city           String   @unique
   ownerId        String?
   stock          Int      @default(0)
-  pricePerBullet Int      @default(25)
+  pricePerBullet Int      @default(3)
   lastProducedAt DateTime @default(now())
   totalProduced  Int      @default(0)
   revenue        Int      @default(0)
@@ -352,4 +356,42 @@ model Hunt {
 
   @@index([hunterId, createdAt])
   @@index([targetId])
+}
+
+// A price on a player's head. status: active, paid (claimed by whoever killed him), bought_off.
+model Bounty {
+  id         String    @id @default(cuid())
+  targetId   String
+  targetName String
+  placerId   String
+  placerName String
+  amount     Int
+  reason     String    @default("")
+  anonymous  Boolean   @default(false)
+  status     String    @default("active")
+  claimedBy  String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([status, amount])
+  @@index([targetId, status])
+}
+
+// Money sent from one player's bank account to another's. The fee is destroyed.
+// kind: "player" for a direct transfer (later "marketplace" for Marketplace and Escrow sales).
+model Transfer {
+  id         String   @id @default(cuid())
+  fromId     String
+  fromName   String
+  toId       String
+  toName     String
+  amount     Int
+  fee        Int
+  received   Int
+  reference  String   @default("")
+  kind       String   @default("player")
+  createdAt  DateTime @default(now())
+
+  @@index([fromId, createdAt])
+  @@index([toId, createdAt])
 }
