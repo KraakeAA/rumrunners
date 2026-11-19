@@ -12,6 +12,8 @@ type Kit = {
   kind: string;
   value: number;
   detail: string | null;
+  strength?: number;
+  canWield?: boolean;
   equipped: boolean;
 };
 type Data = {
@@ -436,6 +438,11 @@ export default function CharacterPanel({
                   <p style={{ margin: "4px 0", color: "#b7ad93", fontSize: 12 }}>{kitItem.note}</p>
                   <p style={{ margin: "0 0 8px", fontSize: 12 }}>
                     {kitItem.kind === "gun" ? `Attack ${kitItem.value}` : `+${kitItem.value}% protection`}
+                    {kitItem.kind === "gun" && (kitItem.strength ?? 0) > 0 && (
+                      <span style={{ color: kitItem.canWield === false ? "#e4c04d" : "#b7ad93" }}>
+                        {" "}· Needs Strength {kitItem.strength}
+                      </span>
+                    )}
                   </p>
                   {kitItem.equipped ? (
                     <button type="button" disabled={busy} onClick={() => act("unequip", kitItem.type)} style={smallBtn}>
