@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 
+import { cancelEscrowsFor } from "@/lib/escrow";
+
 const SHIELD_MS = 7 * 24 * 60 * 60 * 1000;
 const NAME = /^[a-zA-Z0-9_]{3,18}$/;
 
@@ -67,6 +69,9 @@ export async function POST(req: Request) {
         throw new Refuse("Choose a new name or revive an old one.");
       }
 
+      // Any trade in progress is called off and the other side gets their goods back.
+      await cancelEscrowsFor(tx, me.id);
+
       // Wipe everything the old life owned.
       await tx.inventoryItem.deleteMany({ where: { playerId: me.id } });
       await tx.car.deleteMany({ where: { ownerId: me.id } });
@@ -89,6 +94,17 @@ export async function POST(req: Request) {
       await tx.casino.updateMany({ where: { ownerId: me.id }, data: { ownerId: null, ownedSince: null } });
       await tx.bulletFactory.updateMany({ where: { ownerId: me.id }, data: { ownerId: null } });
 
+      // Gold held in Marketplace listings goes back to the player; gold is the one thing that survives.
+      const listed = await tx.goldListing.findMany({
+        where: { sellerId: me.id, status: "active" },
+        select: { remaining: true }
+      });
+      const returned = listed.reduce((n, l) => n + l.remaining, 0);
+      await tx.goldListing.updateMany({
+        where: { sellerId: me.id, status: "active" },
+        data: { status: "removed", remaining: 0 }
+      });
+
       // Back to the start. Gold is the only thing that survives.
       await tx.player.update({
         where: { id: me.id },
@@ -109,6 +125,9 @@ export async function POST(req: Request) {
           energy: 400,
           maxEnergy: 400,
           experience: 0,
+          strengthPts: 0,
+          staminaPts: 0,
+          agilityPts: 0,
           lastEnergyAt: new Date(),
           lastCrimeAt: null,
           lastTheftAt: null,
@@ -119,6 +138,7 @@ export async function POST(req: Request) {
           selfBustUsed: false,
           garageSlots: 5,
           cargo: Prisma.DbNull,
+          cargoFrom: Prisma.DbNull,
           theftWins: 0,
           theftFails: 0,
           boozeBought: 0,
@@ -137,6 +157,7 @@ export async function POST(req: Request) {
           profileStatus: null,
           statusExpiresAt: null,
           profileViews: 0,
+          gold: { increment: returned },
           shieldUntil: new Date(Date.now() + SHIELD_MS),
           diedAt: null,
           killedBy: null
