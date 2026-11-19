@@ -17,19 +17,19 @@ export type CarModel = {
 };
 
 export const CARS: CarModel[] = [
-  { key: "austin_seven", name: "Austin Seven", maker: "Austin", year: "1922-39", speed: 50, boot: 3, price: 1_500, minutes: 60, tier: 1, scrap: 150, note: "Britain's people's car. Slow, tiny and everywhere." },
-  { key: "ford_model_y", name: "Ford Model Y", maker: "Ford (Dagenham)", year: "1932-37", speed: 58, boot: 5, price: 2_500, minutes: 55, tier: 1, scrap: 200, note: "Cheap, tidy and built in England." },
-  { key: "morris_eight", name: "Morris Eight", maker: "Morris", year: "1935-39", speed: 60, boot: 6, price: 3_500, minutes: 50, tier: 1, scrap: 250, note: "The family saloon nobody looks at twice." },
-  { key: "morris_commercial_van", name: "Morris-Commercial Van", maker: "Morris-Commercial", year: "1924-39", speed: 45, boot: 18, price: 5_500, minutes: 60, tier: 1, scrap: 300, note: "A baker's van with a false floor." },
-  { key: "wolseley_hornet", name: "Wolseley Hornet", maker: "Wolseley", year: "1930-36", speed: 68, boot: 4, price: 6_000, minutes: 45, tier: 2, scrap: 220, note: "A small six that punches above its weight." },
-  { key: "riley_nine", name: "Riley Nine", maker: "Riley", year: "1926-38", speed: 70, boot: 5, price: 7_000, minutes: 42, tier: 2, scrap: 250, note: "Light, quick and handles beautifully." },
-  { key: "bedford_wlg", name: "Bedford WLG Lorry", maker: "Bedford (Vauxhall)", year: "1931-39", speed: 38, boot: 40, price: 9_000, minutes: 60, tier: 2, scrap: 900, note: "Two tons of crates. Not built for getting away." },
-  { key: "ss1", name: "SS1 Coupé", maker: "SS Cars (Swallow)", year: "1932-36", speed: 75, boot: 2, price: 12_000, minutes: 35, tier: 3, scrap: 300, note: "Long, low and flashy. Hardly any room for cargo." },
-  { key: "humber_snipe", name: "Humber Snipe", maker: "Humber", year: "1930-39", speed: 75, boot: 12, price: 14_000, minutes: 38, tier: 3, scrap: 400, note: "Big, solid saloon favoured by the well-to-do." },
-  { key: "ford_v8", name: "Ford V8 Saloon", maker: "Ford", year: "1932-39", speed: 80, boot: 10, price: 18_000, minutes: 32, tier: 3, scrap: 450, note: "The fast, roomy car the gangs on both sides of the Atlantic love." },
-  { key: "bentley_35", name: "Bentley 3½ Litre", maker: "Bentley (Rolls-Royce)", year: "1933-39", speed: 90, boot: 6, price: 60_000, minutes: 25, tier: 4, scrap: 600, note: "The Silent Sports Car. Quick and quiet." },
-  { key: "bentley_blower", name: "Bentley 4½ Litre Supercharged", maker: "Bentley", year: "1929-31", speed: 100, boot: 3, price: 80_000, minutes: 20, tier: 4, scrap: 700, note: "The Blower. Fastest thing on the road, with room for little else." },
-  { key: "rolls_phantom_ii", name: "Rolls-Royce Phantom II", maker: "Rolls-Royce", year: "1929-35", speed: 90, boot: 16, price: 120_000, minutes: 28, tier: 4, scrap: 1_000, note: "Fast, enormous and nobody dares stop it." }
+  { key: "austin_seven", name: "Austin Seven", maker: "Austin", year: "1922-39", speed: 50, boot: 3, price: 150, minutes: 60, tier: 1, scrap: 150, note: "Britain's people's car. Slow, tiny and everywhere." },
+  { key: "ford_model_y", name: "Ford Model Y", maker: "Ford (Dagenham)", year: "1932-37", speed: 58, boot: 5, price: 250, minutes: 55, tier: 1, scrap: 200, note: "Cheap, tidy and built in England." },
+  { key: "morris_eight", name: "Morris Eight", maker: "Morris", year: "1935-39", speed: 60, boot: 6, price: 350, minutes: 50, tier: 1, scrap: 250, note: "The family saloon nobody looks at twice." },
+  { key: "morris_commercial_van", name: "Morris-Commercial Van", maker: "Morris-Commercial", year: "1924-39", speed: 45, boot: 18, price: 550, minutes: 60, tier: 1, scrap: 300, note: "A baker's van with a false floor." },
+  { key: "wolseley_hornet", name: "Wolseley Hornet", maker: "Wolseley", year: "1930-36", speed: 68, boot: 4, price: 600, minutes: 45, tier: 2, scrap: 220, note: "A small six that punches above its weight." },
+  { key: "riley_nine", name: "Riley Nine", maker: "Riley", year: "1926-38", speed: 70, boot: 5, price: 700, minutes: 42, tier: 2, scrap: 250, note: "Light, quick and handles beautifully." },
+  { key: "bedford_wlg", name: "Bedford WLG Lorry", maker: "Bedford (Vauxhall)", year: "1931-39", speed: 38, boot: 40, price: 900, minutes: 60, tier: 2, scrap: 900, note: "Two tons of crates. Not built for getting away." },
+  { key: "ss1", name: "SS1 Coupé", maker: "SS Cars (Swallow)", year: "1932-36", speed: 75, boot: 2, price: 1_200, minutes: 35, tier: 3, scrap: 300, note: "Long, low and flashy. Hardly any room for cargo." },
+  { key: "humber_snipe", name: "Humber Snipe", maker: "Humber", year: "1930-39", speed: 75, boot: 12, price: 1_400, minutes: 38, tier: 3, scrap: 400, note: "Big, solid saloon favoured by the well-to-do." },
+  { key: "ford_v8", name: "Ford V8 Saloon", maker: "Ford", year: "1932-39", speed: 80, boot: 10, price: 1_800, minutes: 32, tier: 3, scrap: 450, note: "The fast, roomy car the gangs on both sides of the Atlantic love." },
+  { key: "bentley_35", name: "Bentley 3½ Litre", maker: "Bentley (Rolls-Royce)", year: "1933-39", speed: 90, boot: 6, price: 6_000, minutes: 25, tier: 4, scrap: 600, note: "The Silent Sports Car. Quick and quiet." },
+  { key: "bentley_blower", name: "Bentley 4½ Litre Supercharged", maker: "Bentley", year: "1929-31", speed: 100, boot: 3, price: 8_000, minutes: 20, tier: 4, scrap: 700, note: "The Blower. Fastest thing on the road, with room for little else." },
+  { key: "rolls_phantom_ii", name: "Rolls-Royce Phantom II", maker: "Rolls-Royce", year: "1929-35", speed: 90, boot: 16, price: 12_000, minutes: 28, tier: 4, scrap: 1_000, note: "Fast, enormous and nobody dares stop it." }
 ];
 
 export function carModel(key: string): CarModel | undefined {
@@ -72,10 +72,10 @@ export type TheftLevel = {
 };
 
 export const THEFT_LEVELS: TheftLevel[] = [
-  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 20, baseChance: 0.75, weights: [70, 25, 4, 1], xp: 14, fine: 30, heat: [25, 35, 50, 65] },
-  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 30, baseChance: 0.78, weights: [40, 40, 16, 4], xp: 30, fine: 80, heat: [30, 40, 55, 70] },
-  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 40, baseChance: 0.8, weights: [15, 35, 35, 15], xp: 52, fine: 200, heat: [35, 45, 60, 75] },
-  { level: 4, name: "Society Motor Snatch", minRank: 9, blurb: "Take the grandest cars from outside the finest houses and hotels.", energy: 50, baseChance: 0.82, weights: [5, 20, 35, 40], xp: 80, fine: 500, heat: [40, 50, 65, 80] }
+  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 20, baseChance: 0.75, weights: [70, 25, 4, 1], xp: 14, fine: 3, heat: [25, 35, 50, 65] },
+  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 30, baseChance: 0.78, weights: [40, 40, 16, 4], xp: 30, fine: 8, heat: [30, 40, 55, 70] },
+  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 40, baseChance: 0.8, weights: [15, 35, 35, 15], xp: 52, fine: 20, heat: [35, 45, 60, 75] },
+  { level: 4, name: "Society Motor Snatch", minRank: 9, blurb: "Take the grandest cars from outside the finest houses and hotels.", energy: 50, baseChance: 0.82, weights: [5, 20, 35, 40], xp: 80, fine: 50, heat: [40, 50, 65, 80] }
 ];
 
 // Number plates: two letters and up to four digits, in the style of the 1930s.
@@ -94,13 +94,13 @@ export function makePlate(city: string): string {
   return `${code} ${digits}`;
 }
 
-export const PLATE_COST = 200; // £ to fit a new plate
+export const PLATE_COST = 20; // £ to fit a new plate
 export const PLATE_HEAT_DROP = 50; // heat removed by a new plate
 export const MAX_DAMAGE = 50; // worst damage on a freshly stolen car
 
 // Repairs cost more for finer cars.
 export function repairCost(damage: number, tier: number): number {
-  return damage * (10 + tier * 5);
+  return Math.round(damage * (10 + tier * 5) * 0.1);
 }
 
 // A knocked-about car is slower: up to +50% on the wait between journeys.
