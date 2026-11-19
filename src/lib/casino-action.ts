@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { HOUSE_MAX_BET } from "@/lib/venues";
+import { expireEscrowIfStale } from "@/lib/escrow";
 
 type Tx = Prisma.TransactionClient;
 
@@ -21,6 +22,12 @@ async function openTable(tx: Tx, userId: string, game: string, bet: number) {
   const casino = await tx.casino.findUnique({ where: { city_game: { city, game } } });
   if (!casino) throw new Error("CASINO_NOT_FOUND");
   if (casino.ownerId === player.id) throw new Error("OWN_CASINO");
+
+  // A casino held by the Escrow agent is shut. If its trade has run out of time it is released first.
+  if (casino.escrowId) {
+    const released = await expireEscrowIfStale(tx, casino.escrowId);
+    if (!released) throw new Error("IN_ESCROW");
+  }
 
   const limit = casino.ownerId ? casino.maxBet : HOUSE_MAX_BET;
   if (bet > limit) throw new Error("OVER_MAX_BET:" + limit);
@@ -112,6 +119,8 @@ export function wagerError(error: unknown, game: string) {
     return NextResponse.json({ error: "You do not have enough cash." }, { status: 400 });
   if (message === "OWN_CASINO")
     return NextResponse.json({ error: "You own this casino. Open its control page instead." }, { status: 400 });
+  if (message === "IN_ESCROW")
+    return NextResponse.json({ error: "This casino is being sold through Escrow and is closed until the trade ends." }, { status: 400 });
   if (message === "HAND_IN_PLAY")
     return NextResponse.json({ error: "Finish your current hand first." }, { status: 400 });
   if (message === "NO_HAND")
