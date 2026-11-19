@@ -68,6 +68,7 @@ export async function POST(req: Request) {
 
       if (action === "setMaxBet") {
         if (casino.ownerId !== player.id) throw new Error("NOT_OWNER");
+        if (casino.escrowId) throw new Error("IN_ESCROW");
         const maxBet = Number(body?.maxBet);
         if (!Number.isSafeInteger(maxBet) || maxBet < 1 || maxBet > ABSOLUTE_MAX_BET) {
           throw new Error("BAD_MAX_BET");
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
       NOT_IN_CITY: ["You need to be in this city to buy its casino.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
       NOT_OWNER: ["You do not own this casino.", 403],
+      IN_ESCROW: ["This casino is in an escrow trade and can't be changed.", 400],
       BAD_MAX_BET: [
         `Enter a maximum bet between £1 and £${ABSOLUTE_MAX_BET.toLocaleString("en-GB")}.`,
         400,
