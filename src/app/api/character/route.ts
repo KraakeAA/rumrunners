@@ -1,3 +1,4 @@
+import { levelOf } from "@/lib/training";
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +7,7 @@ import {
   SLOTS,
   cleanEquipped,
   equipmentStats,
+  canWield,
   findByType,
   slotOf,
   type Equipped
@@ -17,6 +19,7 @@ async function view(playerId: string) {
   if (!player) return null;
 
   const ownedKeys = new Set(owned.filter((o) => o.quantity > 0).map((o) => o.itemType));
+  const strength = levelOf(player.strengthPts);
   let equipped: Equipped = cleanEquipped(player.equipped);
 
   // Players who bought kit before slots existed: put their best item in each empty slot, once.
@@ -25,18 +28,18 @@ async function view(playerId: string) {
     for (const typeKey of ownedKeys) {
       const slot = slotOf(typeKey);
       const item = findByType(typeKey);
-      if (!slot || !item) continue;
+      if (!slot || !item || !canWield(item, strength)) continue;
       const current = best[slot] ? findByType(best[slot]!) : undefined;
       if (!current || item.value > current.value) best[slot] = typeKey;
     }
     equipped = best;
     await prisma.player.update({
       where: { id: playerId },
-      data: { equipped: JSON.parse(JSON.stringify(equipped)), protection: equipmentStats(best).protection }
+      data: { equipped: JSON.parse(JSON.stringify(equipped)), protection: equipmentStats(best, strength).protection }
     });
   }
 
-  const stats = equipmentStats(equipped);
+  const stats = equipmentStats(equipped, strength);
 
   const kit = [...ownedKeys]
     .map((typeKey) => {
@@ -51,6 +54,8 @@ async function view(playerId: string) {
         kind: item.kind,
         value: item.value,
         detail: item.detail ?? null,
+        strength: item.strength ?? 0,
+        canWield: canWield(item, strength),
         equipped: equipped[slot] === typeKey
       };
     })
@@ -63,6 +68,7 @@ async function view(playerId: string) {
     money: player.money,
     gold: player.gold,
     bullets: player.bullets,
+    strengthLevel: strength,
     firepower: stats.firepower,
     protection: stats.protection,
     slots: SLOTS.map((s) => {
@@ -121,6 +127,12 @@ export async function POST(req: Request) {
       if (!have || have.quantity < 1) {
         return NextResponse.json({ error: "You don't own that." }, { status: 400 });
       }
+      if (!canWield(item, levelOf(me.strengthPts))) {
+        return NextResponse.json(
+          { error: `You need Strength ${item.strength} to hold that. Train at the Gymnasium.` },
+          { status: 400 }
+        );
+      }
       equipped[slot] = typeKey;
     } else if (action === "unequip") {
       if (equipped[slot] === typeKey) delete equipped[slot];
@@ -130,7 +142,7 @@ export async function POST(req: Request) {
 
     await prisma.player.update({
       where: { id: me.id },
-      data: { equipped: JSON.parse(JSON.stringify(equipped)), protection: equipmentStats(equipped).protection }
+      data: { equipped: JSON.parse(JSON.stringify(equipped)), protection: equipmentStats(equipped, levelOf(me.strengthPts)).protection }
     });
 
     return NextResponse.json({
