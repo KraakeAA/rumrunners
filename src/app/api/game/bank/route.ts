@@ -1,8 +1,13 @@
+import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
+import { settleInterest } from "@/lib/interest";
 
 export async function POST(req: Request) {
+  const __dead = await denyIfDead();
+  if (__dead) return __dead;
+
   const userId = await getSessionUserId();
 
   if (!userId) {
@@ -32,9 +37,17 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const player = await tx.player.findUnique({
+      const first = await tx.player.findUnique({
         where: { userId }
       });
+
+      if (!first) {
+        throw new Error("PLAYER_NOT_FOUND");
+      }
+
+      const now = new Date();
+      await settleInterest(tx, first.id, now);
+      const player = await tx.player.findUnique({ where: { id: first.id } });
 
       if (!player) {
         throw new Error("PLAYER_NOT_FOUND");
@@ -48,7 +61,8 @@ export async function POST(req: Request) {
           where: { id: player.id },
           data: {
             money: { decrement: amount },
-            bank: { increment: amount }
+            bank: { increment: amount },
+            bankSince: now
           }
         });
         return { money: updated.money, bank: updated.bank };
@@ -62,7 +76,8 @@ export async function POST(req: Request) {
         where: { id: player.id },
         data: {
           money: { increment: amount },
-          bank: { decrement: amount }
+          bank: { decrement: amount },
+          bankSince: now
         }
       });
       return { money: updated.money, bank: updated.bank };
