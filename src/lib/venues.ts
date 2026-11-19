@@ -1,3 +1,5 @@
+import { wealthStatus } from "@/lib/wealth";
+
 // Shared settings and helpers for player-owned casinos and bullet factories.
 // Pure data, no database access, so the server and the browser can both use it.
 
@@ -24,11 +26,11 @@ export type CasinoGameDef = {
 
 // To make another game ownable later, add it here and call runWager() from its route.
 export const CASINO_GAMES: CasinoGameDef[] = [
-  { key: "Slots", label: "Slot Machines", price: 25_000, topMultiplier: 500 },
-  { key: "Keno", label: "Keno", price: 25_000, topMultiplier: 10_000 },
-  { key: "Blackjack", label: "Blackjack", price: 25_000, topMultiplier: 2.5 },
-  { key: "Roulette", label: "Roulette", price: 25_000, topMultiplier: 36 },
-  { key: "War", label: "War", price: 25_000, topMultiplier: 2 }
+  { key: "Slots", label: "Slot Machines", price: 2_500, topMultiplier: 500 },
+  { key: "Keno", label: "Keno", price: 2_500, topMultiplier: 10_000 },
+  { key: "Blackjack", label: "Blackjack", price: 2_500, topMultiplier: 2.5 },
+  { key: "Roulette", label: "Roulette", price: 2_500, topMultiplier: 36 },
+  { key: "War", label: "War", price: 2_500, topMultiplier: 2 }
 ];
 
 export function casinoDef(key: string): CasinoGameDef {
@@ -36,30 +38,22 @@ export function casinoDef(key: string): CasinoGameDef {
 }
 
 // Max bet of a house-run casino, and the starting max bet of a newly bought one.
-export const HOUSE_MAX_BET = 5_000;
+export const HOUSE_MAX_BET = 500;
 export const ABSOLUTE_MAX_BET = 1_000_000;
 
 export const FACTORY = {
-  price: 250_000, // cost to buy an unowned factory
-  steelCost: 10_000, // charged to the owner's cash on hand for every batch
+  price: 25_000, // cost to buy an unowned factory
+  steelCost: 1_000, // charged to the owner's cash on hand for every batch
   batchSize: 1_000, // bullets produced per batch
   intervalMs: 30 * 60 * 1000, // one batch every 30 minutes
-  defaultPrice: 25, // starting price per bullet
-  maxPrice: 10_000,
+  defaultPrice: 3, // starting price per bullet
+  maxPrice: 1_000,
   maxCatchUpRuns: 200 // most batches settled in a single catch-up
 };
 
 // Shown next to an owner's name, based on their cash on hand.
 export function wealthLabel(cash: number): string {
-  if (cash < 100) return "Penniless";
-  if (cash < 1_000) return "Down on Their Luck";
-  if (cash < 10_000) return "Getting By";
-  if (cash < 50_000) return "Comfortable";
-  if (cash < 250_000) return "Well-Off";
-  if (cash < 1_000_000) return "Rich";
-  if (cash < 5_000_000) return "Very Rich";
-  if (cash < 25_000_000) return "Excessively Rich";
-  return "Incredibly Rich";
+  return wealthStatus(cash, 0);
 }
 
 export type CasinoView = {
