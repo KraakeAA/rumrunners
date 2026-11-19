@@ -9,8 +9,10 @@ import {
   boozeCapacity,
   boozePrice,
   boozeRange,
+  cargoFromOf,
   cargoOf,
   cargoTotal,
+  sellableHere,
   type Cargo
 } from "@/lib/booze";
 
@@ -30,6 +32,7 @@ export async function GET() {
 
   const now = Date.now();
   const cargo = cargoOf(me.cargo);
+  const from = cargoFromOf(me.cargoFrom);
 
   const market = BOOZES.map((b) => {
     const { low, high } = boozeRange(b, me.currentCity);
@@ -43,6 +46,7 @@ export async function GET() {
       low,
       high,
       held: cargo[b.key] ?? 0,
+      sellable: sellableHere(cargo[b.key] ?? 0, from, b.key, me.currentCity),
       tag: band === "c" ? "low" : band === "d" ? "high" : "fair"
     };
   });
@@ -90,6 +94,7 @@ export async function POST(req: Request) {
       if (jailRemaining(me.jailUntil, new Date()) > 0) throw new Error("JAILED");
 
       const cargo: Cargo = cargoOf(me.cargo);
+      const from = cargoFromOf(me.cargoFrom);
       const price = boozePrice(booze, me.currentCity);
 
       if (action === "buy") {
@@ -103,21 +108,37 @@ export async function POST(req: Request) {
         if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
 
         cargo[booze.key] = (cargo[booze.key] ?? 0) + qty;
-        await tx.player.update({ where: { id: me.id }, data: { cargo } });
+        const origin = (from[booze.key] ??= {});
+        origin[me.currentCity] = (origin[me.currentCity] ?? 0) + qty;
+        await tx.player.update({ where: { id: me.id }, data: { cargo, cargoFrom: from } });
 
         return `Bought ${qty} crate${qty === 1 ? "" : "s"} of ${booze.name} for £${cost.toLocaleString("en-GB")}.`;
       }
 
       const held = cargo[booze.key] ?? 0;
       if (held < qty) throw new Error("NOT_ENOUGH");
+      if (sellableHere(held, from, booze.key, me.currentCity) < qty) throw new Error("BOUGHT_HERE");
 
       const earned = price * qty;
       if (held === qty) delete cargo[booze.key];
       else cargo[booze.key] = held - qty;
 
+      // Crates leave from the ones bought elsewhere; the ones bought here are untouched.
+      const origin = from[booze.key] ?? {};
+      let left = qty;
+      for (const city of Object.keys(origin)) {
+        if (city === me.currentCity) continue;
+        const take = Math.min(origin[city], left);
+        origin[city] -= take;
+        left -= take;
+        if (origin[city] <= 0) delete origin[city];
+        if (left === 0) break;
+      }
+      if (Object.keys(origin).length === 0) delete from[booze.key];
+
       await tx.player.update({
         where: { id: me.id },
-        data: { cargo, money: { increment: earned }, boozeSold: { increment: qty }, boozeEarned: { increment: earned } }
+        data: { cargo, cargoFrom: from, money: { increment: earned }, boozeSold: { increment: qty }, boozeEarned: { increment: earned } }
       });
 
       return `Sold ${qty} crate${qty === 1 ? "" : "s"} of ${booze.name} for £${earned.toLocaleString("en-GB")}.`;
@@ -131,7 +152,8 @@ export async function POST(req: Request) {
       JAILED: ["There is no bootlegging from a prison cell.", 403],
       TOO_MUCH: ["You can't carry that many crates. Rank up to carry more.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
-      NOT_ENOUGH: ["You don't have that many crates of that.", 400]
+      NOT_ENOUGH: ["You don't have that many crates of that.", 400],
+      BOUGHT_HERE: ["You can't sell crates in the city where you bought them. Take them to another city.", 400]
     };
     if (map[m]) {
       return NextResponse.json({ error: map[m][0] }, { status: map[m][1] });
