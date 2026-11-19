@@ -1,7 +1,7 @@
-
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -26,6 +26,10 @@ import CharacterPanel from "@/components/CharacterPanel";
 import WhackSection from "@/components/WhackSection";
 import HospitalSection from "@/components/HospitalSection";
 import HitlistSection from "@/components/HitlistSection";
+import GoldMarketplace from "@/components/GoldMarketplace";
+import GymnasiumSection from "@/components/Gymnasium";
+import EscrowSection from "@/components/EscrowSection";
+import { energyCostFor } from "@/lib/training";
 import GraveyardSection from "@/components/GraveyardSection";
 import BankSection from "@/components/BankSection";
 import { wealthStatus } from "@/lib/wealth";
@@ -300,7 +304,7 @@ function StatTable({
 // Anything that acts on the game world is shut while you are in jail.
 const JAIL_BLOCKED = new Set([
   "Crimes", "Auto Theft", "Bootlegging", "Whack", "Hitlist", "Organised Crime",
-  "Rackets", "Search", "Shooting Range", "Railway", "Bullet Factory", "Store",
+  "Rackets", "Search", "Gymnasium", "Railway", "Bullet Factory", "Store",
   "Blackjack", "Keno", "Lottery", "Roulette", "Slot Machines", "War"
 ]);
 
@@ -326,7 +330,7 @@ const menuGroups = [
     items: [
       "Auto Theft", "Bootlegging", "Crew", "Crimes",
       "Graveyard", "Gymnasium", "Whack", "Hitlist",
-      "Organised Crime", "Rackets", "Search", "Shooting Range"
+      "Organised Crime", "Rackets", "Search"
     ]
   },
   {
@@ -352,6 +356,7 @@ export default function GameShell({
   playerId,
   recentCrimes = [],
   stats = EMPTY_STATS,
+  training,
   composeTo = ""
 }: {
   player: Player;
@@ -359,6 +364,7 @@ export default function GameShell({
   playerId: string;
   recentCrimes?: CrimeLog[];
   stats?: PlayerStats;
+  training?: { strength: number; stamina: number; agility: number };
   composeTo?: string;
 }) {
   const [section, setSection] = useState(composeTo ? "Send Letter" : "Home");
@@ -377,6 +383,12 @@ export default function GameShell({
   const [money, setMoney] = useState(player.money);
   const [bullets, setBullets] = useState(player.bullets);
   const [bank, setBank] = useState(player.bank);
+  const [gold, setGold] = useState(player.gold);
+  const [staminaLevel, setStaminaLevel] = useState(training?.stamina ?? 0);
+  const onTrainingLevels = useCallback(
+    (l: { strength: number; stamina: number; agility: number }) => setStaminaLevel(l.stamina),
+    []
+  );
   const [rank, setRank] = useState(player.rank);
   const [rankLevel, setRankLevel] = useState(player.rankLevel);
   const [experience, setExperience] = useState(player.experience);
@@ -656,6 +668,7 @@ export default function GameShell({
     setMenuGroup("");
     setMenuOpen((open) => !open);
   }
+
   function renderStatistics() {
     const attempts = crimeByType.reduce((n, c) => n + c.attempts, 0);
     const succeeded = crimeByType.reduce((n, c) => n + c.successes, 0);
@@ -824,7 +837,7 @@ export default function GameShell({
               <StatRow label="In bank" value={gbp(bank)} />
               <StatRow label="Cash and bank total" value={gbp(money + bank)} />
               <StatRow label="Wealth status" value={wealthStatus(money, bank)} />
-              <StatRow label="Gold" value={player.gold.toLocaleString("en-GB")} />
+              <StatRow label="Gold" value={gold.toLocaleString("en-GB")} />
 
               <StatGroup title="Earnings" />
               <StatRow label="Cash earned from crimes" value={gbp(cashEarned)} />
@@ -1040,7 +1053,7 @@ export default function GameShell({
                   flexShrink: 0
                 }}
               />
-              Gold {player.gold.toLocaleString("en-GB")}
+              Gold {gold.toLocaleString("en-GB")}
             </span>
 
             <span
@@ -1618,7 +1631,8 @@ export default function GameShell({
                   }
 
                   const wait = status.crimeLeft(crime.id);
-                  const needsEnergy = energy < crime.energyCost;
+                  const crimeEnergy = energyCostFor(crime.energyCost, staminaLevel);
+                  const needsEnergy = energy < crimeEnergy;
                   const disabled = busy || wait > 0 || needsEnergy || status.jailLeft > 0;
 
                   return (
@@ -1661,7 +1675,7 @@ export default function GameShell({
                           color: needsEnergy ? "#e08f7f" : "#e4c04d"
                         }}
                       >
-                        ⚡{crime.energyCost}
+                        ⚡{crimeEnergy}
                       </span>
 
                       <button
@@ -1727,6 +1741,7 @@ export default function GameShell({
             <AutoTheftSection
               rankLevel={rankLevel}
               energy={energy}
+              staminaLevel={staminaLevel}
               theftLeft={status.theftLeft}
               onActed={status.refresh}
               jailLeft={status.jailLeft}
@@ -1757,9 +1772,7 @@ export default function GameShell({
           )}
 
           {section === "Marketplace" && (
-            <p className="flavour">
-              Buy and sell goods with other players.
-            </p>
+            <GoldMarketplace onCash={setMoney} onGold={setGold} />
           )}
 
           {section === "Railway" && (
@@ -1775,11 +1788,7 @@ export default function GameShell({
             />
           )}
 
-          {section === "Escrow" && (
-            <p className="flavour">
-              Secure player-to-player trading.
-            </p>
-          )}
+          {section === "Escrow" && <EscrowSection onCash={setMoney} onGold={setGold} />}
 
           {section === "Jail" && (
             <JailSection onChanged={status.refresh} />
@@ -1790,9 +1799,10 @@ export default function GameShell({
           {section === "Graveyard" && <GraveyardSection />}
 
           {section === "Gymnasium" && (
-            <p className="flavour">
-              Train strength, stamina and accuracy. Coming later.
-            </p>
+            <GymnasiumSection
+              onEnergy={setEnergy}
+              onLevels={onTrainingLevels}
+            />
           )}
 
           {section === "Search" && (
@@ -1808,7 +1818,7 @@ export default function GameShell({
           )}
 
           {section === "Cities" && (
-            <CitiesSection onGo={(target) => navigate(target)} />
+            <CitiesSection />
           )}
 
           {section === "Find Player" && <FindPlayerSection />}
