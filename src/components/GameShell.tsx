@@ -25,6 +25,9 @@ import FindPlayerSection from "@/components/FindPlayer";
 import CharacterPanel from "@/components/CharacterPanel";
 import WhackSection from "@/components/WhackSection";
 import HospitalSection from "@/components/HospitalSection";
+import HitlistSection from "@/components/HitlistSection";
+import GraveyardSection from "@/components/GraveyardSection";
+import BankSection from "@/components/BankSection";
 import { wealthStatus } from "@/lib/wealth";
 import {
   CRIMES,
@@ -112,6 +115,7 @@ type PlayerStats = {
   ocsDone: number;
   ocsLed: number;
   ocEarned: number;
+  kills: number;
   joinedAt: string | null;
 };
 
@@ -129,6 +133,7 @@ const EMPTY_STATS: PlayerStats = {
   ocsDone: 0,
   ocsLed: 0,
   ocEarned: 0,
+  kills: 0,
   joinedAt: null
 };
 
@@ -634,8 +639,7 @@ export default function GameShell({
     }
 
     if (item === "Profile") {
-      window.location.href =
-        `/profile/${encodeURIComponent(player.username)}`;
+      window.location.href = "/profile-edit";
       return;
     }
 
@@ -652,7 +656,6 @@ export default function GameShell({
     setMenuGroup("");
     setMenuOpen((open) => !open);
   }
-
   function renderStatistics() {
     const attempts = crimeByType.reduce((n, c) => n + c.attempts, 0);
     const succeeded = crimeByType.reduce((n, c) => n + c.successes, 0);
@@ -746,6 +749,7 @@ export default function GameShell({
               <StatRow label="Health" value={`${player.health}%`} />
               <StatRow label="Protection" value={`${player.protection}%`} />
               <StatRow label="Bullets" value={bullets.toLocaleString("en-GB")} />
+              <StatRow label="Kills" value={stats.kills.toLocaleString("en-GB")} />
               <StatRow label="Location" value={currentCity} />
             </>
           )}
@@ -1688,55 +1692,7 @@ export default function GameShell({
           )}
 
           {section === "Local Bank" && (
-            <>
-              <p className="lead">
-                Cash on the street can be taken. Money in the bank is safer.
-              </p>
-
-              <div className="bank-panel">
-                <div className="bank-balances">
-                  <div>
-                    <span>On hand</span>
-                    <b>£{money.toLocaleString("en-GB")}</b>
-                  </div>
-
-                  <div>
-                    <span>In bank</span>
-                    <b>£{bank.toLocaleString("en-GB")}</b>
-                  </div>
-                </div>
-
-                <label>
-                  Amount (£)
-                  <input
-                    type="number"
-                    min="1"
-                    value={bankAmount}
-                    onChange={(e) => setBankAmount(e.target.value)}
-                  />
-                </label>
-
-                <div className="bank-actions">
-                  <button
-                    className="button"
-                    disabled={busy}
-                    onClick={() => bankAction("deposit")}
-                  >
-                    Deposit
-                  </button>
-
-                  <button
-                    className="button secondary"
-                    disabled={busy}
-                    onClick={() => bankAction("withdraw")}
-                  >
-                    Withdraw
-                  </button>
-                </div>
-              </div>
-
-              {notice && <p className="notice">{notice}</p>}
-            </>
+            <BankSection money={money} bank={bank} onMoney={setMoney} onBank={setBank} />
           )}
 
           {section === "Keno" && (
@@ -1792,11 +1748,7 @@ export default function GameShell({
 
           {section === "Whack" && <WhackSection onCash={setMoney} />}
 
-          {section === "Hitlist" && (
-            <p className="flavour">
-              View and manage your targets.
-            </p>
-          )}
+          {section === "Hitlist" && <HitlistSection onCash={setMoney} />}
 
           {section === "Rackets" && (
             <p className="flavour">
@@ -1835,11 +1787,7 @@ export default function GameShell({
 
           {section === "Hospital" && <HospitalSection onCash={setMoney} />}
 
-          {section === "Graveyard" && (
-            <p className="flavour">
-              Remember those who have fallen.
-            </p>
-          )}
+          {section === "Graveyard" && <GraveyardSection />}
 
           {section === "Gymnasium" && (
             <p className="flavour">
