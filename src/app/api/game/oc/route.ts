@@ -79,7 +79,7 @@ export async function GET() {
   const usedIds = used.map((u) => u.carId as string);
 
   const carRows = await prisma.car.findMany({
-    where: { ownerId: me.id, damage: 0, id: { notIn: usedIds } },
+    where: { ownerId: me.id, damage: 0, escrowId: null, id: { notIn: usedIds } },
     orderBy: { createdAt: "asc" }
   });
 
@@ -269,7 +269,7 @@ export async function POST(req: Request) {
 
         if (joined.role === "driver") {
           const carId = String(body.carId ?? "");
-          const car = await tx.car.findFirst({ where: { id: carId, ownerId: me.id } });
+          const car = await tx.car.findFirst({ where: { id: carId, ownerId: me.id, escrowId: null } });
           const model = car ? carModel(car.model) : undefined;
           if (!car || !model) throw new Error("NO_CAR");
           if (car.damage > 0) throw new Error("CAR_DAMAGED");
