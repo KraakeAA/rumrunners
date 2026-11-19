@@ -26,14 +26,14 @@ const band = (london: Band, birmingham: Band, manchester: Band, liverpool: Band,
 });
 
 export const BOOZES: Booze[] = [
-  { key: "scotch", name: "Scotch Whisky", base: 120, bands: band("d", "n", "n", "n", "c") },
-  { key: "irish", name: "Irish Whiskey", base: 110, bands: band("d", "d", "n", "c", "n") },
-  { key: "gin", name: "London Gin", base: 70, bands: band("c", "n", "n", "d", "d") },
-  { key: "rum", name: "Navy Rum", base: 90, bands: band("n", "d", "n", "c", "d") },
-  { key: "brandy", name: "French Brandy", base: 160, bands: band("n", "d", "d", "c", "n") },
-  { key: "champagne", name: "Champagne", base: 220, bands: band("c", "d", "d", "n", "d") },
-  { key: "stout", name: "Irish Stout", base: 40, bands: band("n", "d", "n", "c", "n") },
-  { key: "port", name: "Port Wine", base: 100, bands: band("n", "c", "d", "n", "d") }
+  { key: "scotch", name: "Scotch Whisky", base: 12, bands: band("d", "n", "n", "n", "c") },
+  { key: "irish", name: "Irish Whiskey", base: 11, bands: band("d", "d", "n", "c", "n") },
+  { key: "gin", name: "London Gin", base: 7, bands: band("c", "n", "n", "d", "d") },
+  { key: "rum", name: "Navy Rum", base: 9, bands: band("n", "d", "n", "c", "d") },
+  { key: "brandy", name: "French Brandy", base: 16, bands: band("n", "d", "d", "c", "n") },
+  { key: "champagne", name: "Champagne", base: 22, bands: band("c", "d", "d", "n", "d") },
+  { key: "stout", name: "Irish Stout", base: 4, bands: band("n", "d", "n", "c", "n") },
+  { key: "port", name: "Port Wine", base: 10, bands: band("n", "c", "d", "n", "d") }
 ];
 
 const RANGE: Record<Band, [number, number]> = {
