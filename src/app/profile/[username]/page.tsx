@@ -80,6 +80,7 @@ export default async function PlayerProfile({
       protection: true,
       money: true,
       bank: true,
+      kills: true,
       createdAt: true,
       updatedAt: true,
       profileQuote: true,
@@ -276,6 +277,10 @@ export default async function PlayerProfile({
           <div style={row}>
             <div style={label}>Wealth:</div>
             <div style={value}>{wealthStatus(player.money, player.bank)}</div>
+          </div>
+          <div style={row}>
+            <div style={label}>Kills:</div>
+            <div style={value}>{player.kills.toLocaleString("en-GB")}</div>
           </div>
           <div style={row}>
             <div style={label}>Last seen:</div>
