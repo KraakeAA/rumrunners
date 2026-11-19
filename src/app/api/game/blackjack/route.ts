@@ -1,3 +1,4 @@
+import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -76,6 +77,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const __dead = await denyIfDead();
+  if (__dead) return __dead;
+
   const who = await me();
   if (!who) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
