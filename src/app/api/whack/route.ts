@@ -192,6 +192,23 @@ export async function POST(req: Request) {
             data: { kills: { increment: 1 }, experience: { increment: 100 } }
           });
           message = `${target.username} is dead. You shot him down in ${hunt.foundCity}.`;
+
+          // Whoever kills him collects every bounty on his head.
+          const prizes = await tx.bounty.findMany({
+            where: { targetId: target.id, status: "active" }
+          });
+          const reward = prizes.reduce((n, b) => n + b.amount, 0);
+          if (reward > 0) {
+            await tx.bounty.updateMany({
+              where: { targetId: target.id, status: "active" },
+              data: { status: "paid", claimedBy: me.username, resolvedAt: now }
+            });
+            await tx.player.update({
+              where: { id: me.id },
+              data: { money: { increment: reward } }
+            });
+            message += ` The bounties on him paid £${reward.toLocaleString("en-GB")}.`;
+          }
         } else {
           message = `You hit ${target.username} for ${damage}. He is down to ${left}% health.`;
         }
