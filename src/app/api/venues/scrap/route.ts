@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       const player = await tx.player.findUnique({ where: { userId } });
       if (!player) throw new Error("PLAYER_NOT_FOUND");
 
-      const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id } });
+      const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id, escrowId: null } });
       const model = car ? carModel(car.model) : undefined;
       if (!car || !model) throw new Error("NO_CAR");
 
