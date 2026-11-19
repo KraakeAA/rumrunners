@@ -2,6 +2,7 @@ import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { expireEscrowsFor } from "@/lib/escrow";
 import {
   PLATE_COST,
   PLATE_HEAT_DROP,
@@ -27,8 +28,10 @@ export async function GET() {
       return NextResponse.json({ error: "Player not found." }, { status: 404 });
     }
 
+    await expireEscrowsFor(prisma, player.id);
+
     const rows = await prisma.car.findMany({
-      where: { ownerId: player.id },
+      where: { ownerId: player.id, escrowId: null },
       orderBy: { createdAt: "asc" },
     });
 
@@ -98,7 +101,7 @@ export async function POST(req: Request) {
       const player = await tx.player.findUnique({ where: { userId } });
       if (!player) throw new Error("PLAYER_NOT_FOUND");
 
-      const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id } });
+      const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id, escrowId: null } });
       const model = car ? carModel(car.model) : undefined;
       if (!car || !model) throw new Error("NO_CAR");
       const now = new Date();
