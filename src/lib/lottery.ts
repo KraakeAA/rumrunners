@@ -1,7 +1,7 @@
 import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 
-export const TICKET_PRICE = 100;
+export const TICKET_PRICE = 10;
 export const MAX_TICKETS_PER_PLAYER = 100;
 export const HOUSE_CUT = 0.1; // share of the pot kept by the house
 export const DRAW_DAY = 3; // Wednesday
