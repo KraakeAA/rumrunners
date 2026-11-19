@@ -9,6 +9,7 @@ type Row = {
   low: number;
   high: number;
   held: number;
+  sellable: number;
   tag: "low" | "fair" | "high";
 };
 
@@ -143,6 +144,12 @@ export default function BootleggingSection({ onCash }: { onCash: (money: number)
                 </div>
                 <div style={{ fontSize: 11, color: "#b7ad93" }}>
                   {m.held > 0 ? `${m.held} on you` : "None on you"}
+                  {m.held > 0 && m.sellable < m.held && (
+                    <span style={{ color: "#e4c04d" }}>
+                      {" "}
+                      · {m.sellable > 0 ? `${m.sellable} sellable here` : "bought here, can't sell here"}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -174,8 +181,8 @@ export default function BootleggingSection({ onCash }: { onCash: (money: number)
                 </button>
                 <button
                   className="button secondary"
-                  style={{ ...small, flex: 1, opacity: busy || m.held === 0 ? 0.55 : 1 }}
-                  disabled={busy || m.held === 0}
+                  style={{ ...small, flex: 1, opacity: busy || m.sellable === 0 ? 0.55 : 1 }}
+                  disabled={busy || m.sellable === 0}
                   onClick={() => trade("sell", m.key)}
                 >
                   Sell
@@ -187,7 +194,7 @@ export default function BootleggingSection({ onCash }: { onCash: (money: number)
 
         <p style={{ margin: "2px 0 0", fontSize: 11, color: "#b7ad93", textAlign: "center", lineHeight: 1.4 }}>
           Prices differ in every city. Buy where it&apos;s low, take the train to another city,
-          and sell where it&apos;s high. You can carry more crates with every rank.
+          and sell where it&apos;s high. Crates can&apos;t be sold in the city where you bought them. You can carry more crates with every rank.
         </p>
       </div>
     </div>
