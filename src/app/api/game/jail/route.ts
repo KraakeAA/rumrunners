@@ -1,3 +1,4 @@
+import { agilityBonus, levelOf } from "@/lib/training";
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
         if (myLeft <= 0) throw new Error("NOT_JAILED");
         if (me.selfBustUsed) throw new Error("SELF_USED");
 
-        const chance = clamp(0.35 - (me.jailSecurity - 1) * 0.06, 0.1, 0.35);
+        const chance = clamp(0.35 - (me.jailSecurity - 1) * 0.06, 0.1, 0.35) + agilityBonus(levelOf(me.agilityPts));
         const success = Math.random() < chance;
 
         if (success) {
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
         if (jailRemaining(target.jailUntil, now) <= 0) throw new Error("ALREADY_FREE");
 
         const security = target.jailSecurity;
-        const chance = clamp(0.7 - (security - 1) * 0.12, 0.2, 0.7);
+        const chance = clamp(0.7 - (security - 1) * 0.12, 0.2, 0.7) + agilityBonus(levelOf(me.agilityPts));
         const success = Math.random() < chance;
 
         if (success) {
