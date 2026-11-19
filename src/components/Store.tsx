@@ -105,7 +105,9 @@ export default function StoreSection({ onCash }: { onCash: (money: number) => vo
   const list = data.items.filter((i) => i.kind === tab);
 
   function stat(i: Item) {
-    if (i.kind === "gun") return `Attack ${i.value}${i.detail ? ` · ${i.detail}` : ""}`;
+    if (i.kind === "gun") {
+      return `Attack ${i.value}${i.detail ? ` · ${i.detail}` : ""}${i.strength ? ` · Needs Strength ${i.strength}` : ""}`;
+    }
     if (i.kind === "protection") return `+${i.value}% protection`;
     return `+${i.value} car spaces`;
   }
