@@ -97,3 +97,25 @@ export const CARRY_PER_RANK = 10;
 export function boozeCapacity(rankLevel: number): number {
   return BASE_CARRY + Math.max(0, rankLevel - 1) * CARRY_PER_RANK;
 }
+
+// Where the crates being carried were bought: booze key -> city -> crates.
+export type CargoFrom = Record<string, Record<string, number>>;
+
+export function cargoFromOf(value: unknown): CargoFrom {
+  const out: CargoFrom = {};
+  if (value && typeof value === "object") {
+    for (const [k, cities] of Object.entries(value as Record<string, unknown>)) {
+      if (!boozeByKey(k) || !cities || typeof cities !== "object") continue;
+      for (const [city, v] of Object.entries(cities as Record<string, unknown>)) {
+        const n = Math.floor(Number(v));
+        if (n > 0) (out[k] ??= {})[city] = n;
+      }
+    }
+  }
+  return out;
+}
+
+// Crates of one booze that may be sold in a city: everything carried except what was bought there.
+export function sellableHere(held: number, from: CargoFrom, key: string, city: string): number {
+  return Math.max(0, held - (from[key]?.[city] ?? 0));
+}
