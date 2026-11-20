@@ -41,7 +41,7 @@ export async function GET() {
       }),
       prisma.car.findMany({ where: { ownerId: me.id, escrowId: null }, orderBy: { createdAt: "asc" } }),
       prisma.ocSlot.findMany({ where: { playerId: me.id, carId: { not: null } }, select: { carId: true } }),
-      prisma.casino.findMany({ where: { ownerId: me.id, escrowId: null }, orderBy: { city: "asc" } })
+      prisma.casino.findMany({ where: { ownerId: me.id, escrowId: null, game: { not: "War" } }, orderBy: { city: "asc" } })
     ]);
     const busyCars = new Set(committed.map((c) => c.carId as string));
 
@@ -172,7 +172,6 @@ export async function POST(req: Request) {
         if (!other) throw new Refuse("Nobody by that name.");
         if (other.id === me.id) throw new Refuse("You can't trade with yourself.");
         if (other.health <= 0) throw new Refuse("That player is dead.");
-
         const already = await tx.escrow.findFirst({
           where: {
             status: { in: ["invited", "active"] },
@@ -292,7 +291,7 @@ export async function POST(req: Request) {
         } else if (kind === "casino") {
           if (mine >= MAX_ITEMS_PER_SIDE) throw new Refuse(`You can offer at most ${MAX_ITEMS_PER_SIDE} things.`);
           const casinoId = String(body.casinoId ?? "");
-          const casino = await tx.casino.findFirst({ where: { id: casinoId, ownerId: me.id, escrowId: null } });
+          const casino = await tx.casino.findFirst({ where: { id: casinoId, ownerId: me.id, escrowId: null, game: { not: "War" } } });
           if (!casino) throw new Refuse("Choose a casino you own.");
 
           const held = await tx.casino.updateMany({ where: { id: casino.id, ownerId: me.id, escrowId: null }, data: { escrowId: id } });
