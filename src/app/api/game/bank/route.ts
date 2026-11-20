@@ -1,4 +1,5 @@
 import { denyIfDead } from "@/lib/alive";
+import { lockPlayer } from "@/lib/lock";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const first = await tx.player.findUnique({
         where: { userId }
       });
