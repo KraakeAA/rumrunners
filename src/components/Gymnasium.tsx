@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { GameImage } from "@/components/GameImage";
 
 type Session = { key: string; name: string; energy: number; xp: number };
 type Stat = {
@@ -34,42 +35,6 @@ const bar: CSSProperties = {
 };
 const box: CSSProperties = { border: "1px solid #6b5d3a", background: "#1f2a25", padding: "8px 10px", fontSize: 13 };
 
-// A row of 30 blocks: one for every level, the current one part filled.
-function LevelBar({ level, fraction, max }: { level: number; fraction: number; max: number }) {
-  return (
-    <div style={{ display: "flex", gap: 2, height: 14 }} aria-label={`Level ${level} of ${max}`}>
-      {Array.from({ length: max }, (_, i) => {
-        const filled = i < level;
-        const partial = i === level;
-        return (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              background: "#0e1411",
-              border: `1px solid ${filled || partial ? "#8a7038" : "#34402f"}`,
-              position: "relative",
-              overflow: "hidden"
-            }}
-          >
-            {(filled || partial) && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: filled ? "100%" : `${Math.round(fraction * 100)}%`,
-                  background: "linear-gradient(180deg, #c9a653, #8a7038)"
-                }}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function GymnasiumSection({
   onEnergy,
   onLevels
@@ -81,6 +46,7 @@ export default function GymnasiumSection({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [good, setGood] = useState(false);
+  const [pick, setPick] = useState<{ stat: string; session: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -155,61 +121,113 @@ export default function GymnasiumSection({
               : s.key === "agility"
                 ? `+${data.perks.jailBonus}% chance when breaking out of jail`
                 : null;
+          const pct = s.maxed ? 100 : Math.min(100, Math.round((s.into / Math.max(1, s.needed)) * 100));
           return (
-            <div key={s.key} style={box}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontFamily: "Georgia, serif", fontSize: 16, color: "#f7efdb" }}>{s.label}</span>
-                <strong style={{ color: "#e4c04d", fontSize: 15 }}>
-                  Level {s.level} / {data.maxLevel}
-                </strong>
-              </div>
-              <div style={{ fontSize: 12, color: "#b7ad93", margin: "2px 0 6px" }}>
-                {s.blurb}
-                {perk && <div style={{ color: "#9be39f" }}>{perk}</div>}
-              </div>
+            <div key={s.key} style={{ border: "1px solid #6b5d3a", background: "#1f2a25" }}>
+              <div style={{ ...bar, fontSize: 14, padding: "4px 8px" }}>{s.label}</div>
+              <div style={{ display: "flex", alignItems: "stretch" }}>
+                <div style={{ position: "relative", width: 104, flexShrink: 0, borderRight: "1px solid #3d4a41" }}>
+                  <GameImage slot={`gym/${s.key}`} width={104} height="100%" />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: "Georgia, serif",
+                      color: "#f7efdb",
+                      textShadow: "0 2px 4px #000",
+                      pointerEvents: "none"
+                    }}
+                  >
+                    <span style={{ fontSize: 15 }}>Level</span>
+                    <span style={{ fontSize: 34, lineHeight: 1 }}>{s.level}</span>
+                  </div>
+                </div>
 
-              <LevelBar level={s.level} fraction={s.into / s.needed} max={data.maxLevel} />
-              <div style={{ fontSize: 11, color: "#8f8a76", margin: "3px 0 8px" }}>
-                {s.maxed
-                  ? "Fully trained"
-                  : `${s.into.toLocaleString("en-GB")} / ${s.needed.toLocaleString("en-GB")} xp to level ${s.level + 1}`}
-              </div>
-
-              {!data.jailed && !s.maxed && (
-                <div style={{ display: "grid", gap: 4 }}>
-                  {s.sessions.map((x) => (
-                    <div
-                      key={x.key}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {!data.jailed && !s.maxed && (
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: "#2a3630", color: "#d8cfb8" }}>
+                          <th style={{ textAlign: "left", padding: "3px 6px", fontWeight: 600 }}>Exercise</th>
+                          <th style={{ width: 38, padding: "3px 2px", background: "#243b27" }}>XP</th>
+                          <th style={{ width: 38, padding: "3px 2px", background: "#3b2b27" }}>⚡</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {s.sessions.map((x) => {
+                          const on = pick?.stat === s.key && pick.session === x.key;
+                          return (
+                            <tr
+                              key={x.key}
+                              onClick={() => setPick({ stat: s.key, session: x.key })}
+                              style={{
+                                cursor: "pointer",
+                                background: on ? "#3a2f20" : "transparent",
+                                borderTop: "1px solid #34402f"
+                              }}
+                            >
+                              <td style={{ padding: "5px 6px", color: "#f7efdb" }}>
+                                <input
+                                  type="radio"
+                                  name="exercise"
+                                  checked={on}
+                                  onChange={() => setPick({ stat: s.key, session: x.key })}
+                                  style={{ marginRight: 6, verticalAlign: "middle" }}
+                                />
+                                {x.name}
+                              </td>
+                              <td style={{ textAlign: "center", background: "#1c2d20", color: "#9be39f" }}>+{x.xp}</td>
+                              <td style={{ textAlign: "center", background: "#2d211e", color: "#e4c04d" }}>{x.energy}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                  <div style={{ padding: "4px 6px", fontSize: 11, color: "#b7ad93", borderTop: "1px solid #34402f" }}>
+                    {s.maxed
+                      ? "Fully trained."
+                      : `Required xp for next level: ${s.into.toLocaleString("en-GB")} / ${s.needed.toLocaleString("en-GB")}`}
+                    {perk && <div style={{ color: "#9be39f" }}>{perk}</div>}
+                  </div>
+                  <div style={{ margin: "0 6px 5px", height: 12, background: "#0e1411", border: "1px solid #34402f", position: "relative" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(180deg, #3fae45, #1f6b27)" }} />
+                    <span
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "4px 6px",
-                        background: "#17201c",
-                        border: "1px solid #34402f"
+                        position: "absolute",
+                        inset: 0,
+                        textAlign: "center",
+                        fontSize: 9,
+                        lineHeight: "11px",
+                        color: "#f7efdb"
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, color: "#f7efdb" }}>{x.name}</div>
-                        <div style={{ fontSize: 11, color: "#b7ad93" }}>
-                          ⚡{x.energy} · +{x.xp} xp
-                        </div>
-                      </div>
-                      <button
-                        className="button"
-                        style={{ padding: "5px 14px", fontSize: 12, flexShrink: 0, opacity: busy ? 0.55 : 1 }}
-                        disabled={busy}
-                        onClick={() => train(s.key, x.key)}
-                      >
-                        Train
-                      </button>
-                    </div>
-                  ))}
+                      {pct}%
+                    </span>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
+
+        {!data.jailed && (
+          <div style={{ textAlign: "center", margin: "2px 0" }}>
+            <button
+              type="button"
+              className="button"
+              style={{ padding: "7px 26px", fontSize: 14, opacity: busy || !pick ? 0.55 : 1 }}
+              disabled={busy || !pick}
+              onClick={() => pick && train(pick.stat, pick.session)}
+            >
+              Work out!
+            </button>
+          </div>
+        )}
 
         <div style={{ ...bar, marginTop: 6 }}>Guns and the Strength they need</div>
         <div style={box}>
