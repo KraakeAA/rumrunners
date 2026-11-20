@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_COOLDOWNS, THEFT_LEVELS } from "@/lib/era";
-import { GameImage, JobCard, heatMeter, meter, slugify } from "@/components/GameImage";
+import { GameImage, JobCard, slugify } from "@/components/GameImage";
 import { clock } from "@/components/EnergyBar";
 import { rankForLevel } from "@/lib/ranks";
 import { energyCostFor } from "@/lib/training";
@@ -255,19 +255,15 @@ export default function AutoTheftSection({
             const levelEnergy = energyCostFor(l.energy, staminaLevel);
             const tired = energy < levelEnergy;
             const disabled = busy || wait > 0 || tired || jailLeft > 0 || CARS.length === 0;
-            const avgTier = l.weights.reduce((sum, w, i) => sum + w * (i + 1), 0) / 100;
-            const avgHeat = l.heat.reduce((sum, h) => sum + h, 0) / l.heat.length;
             return (
               <JobCard
                 key={l.level}
                 slot={slot}
                 title={l.name}
                 description={l.blurb}
-                meters={[
-                  meter("Take", avgTier / 4 * 5, TIER_NAMES[Math.min(4, Math.max(1, Math.round(avgTier)))]),
-                  heatMeter(avgHeat / 16)
-                ]}
+                meters={[]}
                 seconds={THEFT_COOLDOWNS[l.level] ?? 60}
+                hideTime
                 energy={levelEnergy}
                 tired={tired}
                 waiting={wait > 0}
