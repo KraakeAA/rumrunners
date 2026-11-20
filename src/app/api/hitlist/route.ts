@@ -1,3 +1,4 @@
+import { isHiddenStaff } from "@/lib/staff";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -75,6 +76,8 @@ export async function POST(req: Request) {
           where: { username: { equals: name, mode: "insensitive" } }
         });
         if (!target) throw new Refuse("There is nobody by that name.");
+        const targetUser = await tx.user.findUnique({ where: { id: target.userId }, select: { isAdmin: true, staffRole: true } });
+        if (isHiddenStaff(targetUser)) throw new Refuse("There is nobody by that name.");
         if (target.id === me.id) throw new Refuse("You can't put a price on your own head.");
         if (target.health <= 0) throw new Refuse("That man is already dead.");
 
