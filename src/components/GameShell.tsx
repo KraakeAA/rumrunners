@@ -37,6 +37,7 @@ import EscrowSection from "@/components/EscrowSection";
 import { energyCostFor } from "@/lib/training";
 import GraveyardSection from "@/components/GraveyardSection";
 import BankSection from "@/components/BankSection";
+import CrewSection from "@/components/CrewSection";
 import { wealthStatus } from "@/lib/wealth";
 import {
   CRIMES,
@@ -1813,11 +1814,7 @@ export default function GameShell({
             />
           )}
 
-          {section === "Crew" && (
-            <p className="flavour">
-              Your crew and criminal associates.
-            </p>
-          )}
+          {section === "Crew" && <CrewSection onCash={setMoney} />}
 
           {section === "Gold" && (
             <p className="flavour">
