@@ -23,6 +23,9 @@ type Data = {
   money: number;
   gold: number;
   bullets: number;
+  strengthLevel: number;
+  staminaLevel: number;
+  agilityLevel: number;
   firepower: number;
   protection: number;
   slots: Slot[];
@@ -47,9 +50,9 @@ const bar: CSSProperties = {
 
 const slotBox = (filled: boolean, picked: boolean): CSSProperties => ({
   width: "100%",
-  minHeight: 58,
+  minHeight: 40,
   boxSizing: "border-box",
-  padding: 4,
+  padding: 2,
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
@@ -60,8 +63,8 @@ const slotBox = (filled: boolean, picked: boolean): CSSProperties => ({
   borderRadius: 3,
   background: filled ? "linear-gradient(180deg, #2f3a33, #1b231e)" : "#121815",
   color: filled ? "#f1e8d3" : "#6f6a58",
-  fontSize: 10,
-  lineHeight: 1.15,
+  fontSize: 9,
+  lineHeight: 1.1,
   textTransform: filled ? "none" : "uppercase",
   letterSpacing: filled ? 0 : 0.5,
   cursor: "pointer",
@@ -91,7 +94,7 @@ function Figure({ worn }: { worn: Record<string, string | undefined> }) {
   const side = worn.sidearm;
 
   return (
-    <svg viewBox="0 0 100 150" width="100%" style={{ maxHeight: 200 }} aria-hidden="true">
+    <svg viewBox="0 0 100 150" width="100%" style={{ maxHeight: 130 }} aria-hidden="true">
       {/* Behind the figure: the door and the car */}
       {home && (
         <g>
@@ -295,11 +298,11 @@ export default function CharacterPanel({
         position: "fixed",
         inset: 0,
         zIndex: 1000,
-        background: "rgba(0,0,0,0.72)",
+        background: "rgba(0,0,0,0.45)",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
-        padding: "56px 8px 12px",
+        padding: "52px 22px 12px",
         overflowY: "auto"
       }}
     >
@@ -307,21 +310,33 @@ export default function CharacterPanel({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: 380,
+          maxWidth: 340,
           boxSizing: "border-box",
           border: "1px solid #6b5d3a",
           background: "#161d19",
           color: "#f1e8d3",
-          fontSize: 13
+          fontSize: 12
         }}
       >
-        <div style={bar}>
-          <strong style={{ letterSpacing: 1 }}>CHARACTER</strong>
+        <div
+          style={{
+            ...bar,
+            padding: "4px 8px",
+            justifyContent: "center",
+            position: "relative",
+            background: "linear-gradient(180deg, #2a2418, #0f0d09)",
+            borderTop: "1px solid #6b5d3a",
+            borderBottom: "1px solid #6b5d3a",
+            fontFamily: "inherit",
+            fontSize: 14
+          }}
+        >
+          <strong style={{ letterSpacing: 1.5 }}>CHARACTER</strong>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            style={{ background: "none", border: 0, color: "#f7efdb", fontSize: 20, cursor: "pointer", lineHeight: 1 }}
+            style={{ position: "absolute", right: 8, top: 4, background: "none", border: 0, color: "#f7efdb", fontSize: 20, cursor: "pointer", lineHeight: 1 }}
           >
             ×
           </button>
@@ -340,13 +355,13 @@ export default function CharacterPanel({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "76px 1fr 76px",
-                gap: 6,
-                padding: 8,
+                gridTemplateColumns: "58px 1fr 58px",
+                gap: 4,
+                padding: 6,
                 alignItems: "start"
               }}
             >
-              <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ display: "grid", gap: 4 }}>
                 {slotCol("left").map((s) => (
                   <button
                     key={s.key}
@@ -367,7 +382,7 @@ export default function CharacterPanel({
               </div>
 
               <div style={{ textAlign: "center", minWidth: 0 }}>
-                <div style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 14, overflowWrap: "anywhere" }}>
+                <div style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 13, overflowWrap: "anywhere" }}>
                   {data.name}
                 </div>
                 <Figure worn={Object.fromEntries(data.slots.map((sl) => [sl.key, sl.item?.type]))} />
@@ -387,7 +402,7 @@ export default function CharacterPanel({
                 <div style={{ fontSize: 11, color: "#b7ad93" }}>{data.health}% health</div>
               </div>
 
-              <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ display: "grid", gap: 4 }}>
                 {slotCol("right").map((s) => (
                   <button
                     key={s.key}
@@ -408,25 +423,75 @@ export default function CharacterPanel({
               </div>
             </div>
 
-            {/* NUMBERS */}
+            {/* CASH, GOLD AND BULLETS */}
+            <div style={{ padding: "4px 10px", background: "#121815", borderTop: "1px solid #2a3a30", display: "grid", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  aria-hidden="true"
+                  style={{ width: 22, height: 12, borderRadius: 2, border: "1px solid #3f8a4d", background: "linear-gradient(135deg, #4f9a5a, #2a5c34)", flexShrink: 0 }}
+                />
+                <span style={{ fontSize: 13 }}>{gbp(data.money)}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  aria-hidden="true"
+                  style={{ width: 16, height: 16, marginLeft: 3, borderRadius: "50%", border: "1px solid #7a5a0c", background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)", flexShrink: 0 }}
+                />
+                <span style={{ fontSize: 13 }}>{data.gold.toLocaleString("en-GB")}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <svg viewBox="0 0 24 12" width="22" height="12" aria-hidden="true" style={{ flexShrink: 0 }}>
+                  <rect x="1" y="2" width="16" height="3.5" rx="1.5" fill="#b08040" />
+                  <rect x="15" y="2" width="6" height="3.5" rx="1.5" fill="#d9a441" />
+                  <rect x="3" y="7" width="16" height="3.5" rx="1.5" fill="#b08040" />
+                  <rect x="17" y="7" width="6" height="3.5" rx="1.5" fill="#d9a441" />
+                </svg>
+                <span style={{ fontSize: 13 }}>{data.bullets.toLocaleString("en-GB")}</span>
+              </div>
+            </div>
+
+            {/* ATTRIBUTES, FIREPOWER AND DEFENCE */}
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: "4px 10px",
-                padding: "6px 10px",
+                gap: 6,
+                padding: 6,
+                background: "#1b211d",
                 borderTop: "1px solid #2a3a30",
-                borderBottom: "1px solid #2a3a30",
-                background: "#1f2a25"
+                borderBottom: "1px solid #2a3a30"
               }}
             >
-              <span>Cash <strong style={{ color: "#9be39f" }}>{gbp(data.money)}</strong></span>
-              <span>Gold <strong style={{ color: "#e4c04d" }}>{data.gold.toLocaleString("en-GB")}</strong></span>
-              <span>Bullets <strong>{data.bullets.toLocaleString("en-GB")}</strong></span>
-              <span>Firepower <strong style={{ color: "#e4c04d" }}>{data.firepower}</strong></span>
-              <span style={{ gridColumn: "1 / -1" }}>
-                Protection <strong style={{ color: "#8ec9e8" }}>{data.protection}%</strong>
-              </span>
+              <div style={{ border: "1px solid #3a3a34", background: "#141916", padding: "4px 8px", lineHeight: 1.45, fontSize: 12 }}>
+                <div><span>{data.strengthLevel}</span> <span style={{ color: "#e4a03a" }}>Strength</span></div>
+                <div><span>{data.staminaLevel}</span> <span style={{ color: "#e4a03a" }}>Stamina</span></div>
+                <div><span>{data.agilityLevel}</span> <span style={{ color: "#e4a03a" }}>Agility</span></div>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <div style={{ display: "flex", justifyContent: "space-around" }}>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#e4c04d" }}>{data.firepower}</div>
+                    <div style={{ fontSize: 12, color: "#d4cab2" }}>Firepower</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#8ec9e8" }}>{data.protection}%</div>
+                    <div style={{ fontSize: 12, color: "#d4cab2" }}>Defence</div>
+                  </div>
+                </div>
+                <div style={{ position: "relative", height: 14, marginTop: 8, background: "#2a1210", border: "1px solid #55452e", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.max(0, Math.min(100, data.health))}%`, height: "100%", background: "linear-gradient(180deg, #d63a2e, #7a1810)" }} />
+                  <span style={{ position: "absolute", inset: 0, fontSize: 10, lineHeight: "13px", fontWeight: 700, color: "#fff", textShadow: "0 1px 2px #000" }}>
+                    {data.health} / 100
+                  </span>
+                </div>
+                <div style={{ position: "relative", height: 14, marginTop: 5, background: "#141916", border: "1px solid #3a3a34", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.max(0, Math.min(100, data.protection))}%`, height: "100%", background: "linear-gradient(180deg, #4c8ac0, #234a70)" }} />
+                  <span style={{ position: "absolute", inset: 0, fontSize: 10, lineHeight: "13px", fontWeight: 700, color: "#fff", textShadow: "0 1px 2px #000" }}>
+                    {data.protection} / 100
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* SELECTED ITEM */}
