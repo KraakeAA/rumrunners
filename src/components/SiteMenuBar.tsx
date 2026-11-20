@@ -232,62 +232,35 @@ export default function SiteMenuBar() {
       </div>
 
       {open && (
-        <div style={{ border: "1px solid #6b5d3a", borderTop: 0, background: "#1f2a25", padding: 6 }}>
+        <div className="menu-screen" style={{ border: "1px solid #6b5d3a", borderTop: 0, background: "#1f2a25", padding: 6 }}>
           {group === "" ? (
-            <div style={{ display: "grid", gap: 4 }}>
-              {groups.map((g) => (
-                <button
-                  key={g.title}
-                  type="button"
-                  onClick={() => setGroup(g.title)}
-                  style={{
-                    padding: "9px 10px",
-                    textAlign: "left",
-                    border: "1px solid #6b5d3a",
-                    background: "#2a3630",
-                    color: "#f7efdb",
-                    fontSize: 14,
-                    cursor: "pointer"
-                  }}
-                >
-                  {g.title}
-                </button>
-              ))}
-            </div>
+            <>
+              <p className="side-heading">MENU</p>
+              <div className="category-grid">
+                {groups.map((g) => (
+                  <button key={g.title} type="button" className="nav-category" onClick={() => setGroup(g.title)}>
+                    {g.title}
+                  </button>
+                ))}
+              </div>
+            </>
           ) : (
-            <div style={{ display: "grid", gap: 4 }}>
-              <button
-                type="button"
-                onClick={() => setGroup("")}
-                style={{
-                  padding: "8px 10px",
-                  textAlign: "left",
-                  border: "1px solid #a08340",
-                  background: "#3a3222",
-                  color: "#f7efdb",
-                  fontSize: 14,
-                  cursor: "pointer"
-                }}
-              >
+            <div className="category-content">
+              <button type="button" className="category-back" onClick={() => setGroup("")}>
                 « {group}
               </button>
-              {items.map((item) => (
-                <a
-                  key={item}
-                  href={menuHref(item)}
-                  style={{
-                    display: "block",
-                    padding: "9px 10px",
-                    border: "1px solid #6b5d3a",
-                    background: "#2a3630",
-                    color: "#f7efdb",
-                    fontSize: 14,
-                    textDecoration: "none"
-                  }}
-                >
-                  {item}
-                </a>
-              ))}
+              <div className="nav-buttons">
+                {items.map((item) => (
+                  <a
+                    key={item}
+                    href={menuHref(item)}
+                    className={item === "Logout" ? "nav-item logout-menu-item" : "nav-item"}
+                    style={{ display: "block", textDecoration: "none", boxSizing: "border-box" }}
+                  >
+                    {item}
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>
