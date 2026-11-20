@@ -1,4 +1,5 @@
 import { denyIfDead } from "@/lib/alive";
+import { lockPlayer } from "@/lib/lock";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -171,6 +172,7 @@ export async function POST(req: Request) {
 
   try {
     const message = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const me = await tx.player.findUnique({ where: { userId } });
       if (!me) throw new Error("PLAYER_NOT_FOUND");
 
@@ -346,6 +348,13 @@ export async function POST(req: Request) {
           throw new Error("SHARES_UNSET");
         }
 
+        // Nobody on the job may have died since they signed up.
+        const crewmen = await tx.player.findMany({
+          where: { id: { in: [weapons, explosives, driver].map((x) => x.playerId as string) } },
+          select: { health: true }
+        });
+        if (crewmen.length !== 3 || crewmen.some((c) => c.health <= 0)) throw new Error("MEMBER_DEAD");
+
         // The driver's car must still be there, theirs, and undamaged.
         const car = driver.carId
           ? await tx.car.findFirst({ where: { id: driver.carId, ownerId: driver.playerId as string } })
@@ -447,6 +456,9 @@ export async function POST(req: Request) {
       // ---------- SET PERCENT ----------
       if (action === "percent") {
         if (slot.state === "empty") throw new Error("SLOT_EMPTY");
+        // Once someone has joined on an agreed share it can't be cut behind their back.
+        // To change it, remove them and invite them again.
+        if (slot.state !== "invited" && slot.percent !== null) throw new Error("SHARE_LOCKED");
         await tx.ocSlot.update({ where: { id: slot.id }, data: { percent: parsePercent() } });
         return "Share updated.";
       }
@@ -486,6 +498,8 @@ export async function POST(req: Request) {
         });
         if (!target) throw new Error("NO_SUCH_PLAYER");
         if (target.id === me.id) throw new Error("SELF_INVITE");
+        const targetAlive = await tx.player.findUnique({ where: { id: target.id }, select: { health: true } });
+        if (!targetAlive || targetAlive.health <= 0) throw new Error("NO_SUCH_PLAYER");
 
         const theirs = await tx.organisedCrime.findUnique({ where: { leaderId: target.id } });
         const theirJoined = await tx.ocSlot.findFirst({
@@ -557,6 +571,8 @@ export async function POST(req: Request) {
       DRIVER_CAR_BAD: ["The driver's car is no longer fit to drive. Ask them to pick another.", 400],
       BAD_ROLE: ["Unknown position.", 400],
       BAD_PERCENT: ["A share must be a whole number from 0 to 100.", 400],
+      SHARE_LOCKED: ["That share was agreed when they joined. Remove them and invite them again to change it.", 400],
+      MEMBER_DEAD: ["One of your crew has died. Remove them and invite someone else.", 400],
       PERCENT_TOTAL: ["The shares can't add up to more than 100%.", 400],
       SLOT_EMPTY: ["That position is empty.", 400],
       SLOT_TAKEN: ["That position is already filled or offered.", 400],
