@@ -1,4 +1,5 @@
 import { denyIfDead } from "@/lib/alive";
+import { lockPlayer, lockPlayerId } from "@/lib/lock";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -37,6 +38,7 @@ async function finish(userId: string, hand: Hand, player: Card[], dealerStart: C
   const outcome = { player, dealer, label, multiplier };
 
   const paid = await prisma.$transaction(async (tx) => {
+    await lockPlayerId(tx, hand.playerId);
     const removed = await tx.blackjackHand.deleteMany({ where: { id: hand.id } });
     if (removed.count !== 1) throw new Error("NO_HAND");
     return finishEscrow(tx, hand.playerId, GAME, hand.city, hand.bet, multiplier, outcome);
@@ -94,6 +96,7 @@ export async function POST(req: Request) {
       }
 
       const started = await prisma.$transaction(async (tx) => {
+        await lockPlayer(tx, who.userId);
         const existing = await tx.blackjackHand.findUnique({ where: { playerId: who.player.id } });
         if (existing) throw new Error("HAND_IN_PLAY");
 
