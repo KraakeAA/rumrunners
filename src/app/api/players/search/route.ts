@@ -1,3 +1,4 @@
+import { NOT_HIDDEN_STAFF } from "@/lib/staff";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -20,6 +21,7 @@ export async function GET(req: Request) {
     const rows = await prisma.player.findMany({
       where: {
         ...nameFilter,
+        user: NOT_HIDDEN_STAFF,
         ...(status === "alive" ? { health: { gt: 0 } } : {}),
         ...(status === "dead" ? { health: { lte: 0 } } : {})
       },
