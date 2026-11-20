@@ -1,7 +1,7 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
+import { staffLevel } from "@/lib/staff";
 
 type Context = {
   params: Promise<{ topicId: string }>;
@@ -113,21 +113,40 @@ export async function PATCH(
     );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { isAdmin: true }
-  });
-
-  if (!user?.isAdmin) {
-    return NextResponse.json(
-      { error: "Administrator access required." },
-      { status: 403 }
-    );
-  }
-
   try {
     const { topicId } = await context.params;
     const data = await request.json().catch(() => null);
+
+    const [user, existing] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { isAdmin: true, staffRole: true, player: { select: { id: true } } }
+      }),
+      prisma.forumTopic.findUnique({ where: { id: topicId }, select: { authorId: true } })
+    ]);
+
+    if (!user || !existing) {
+      return NextResponse.json({ error: "Topic not found." }, { status: 404 });
+    }
+
+    // Staff (helpers, moderators, admins) can pin and lock anything.
+    // Everyone else can only lock or unlock a topic they started.
+    const isStaff = staffLevel(user) >= 1;
+    const isAuthor = user.player?.id === existing.authorId;
+
+    if (!isStaff && !isAuthor) {
+      return NextResponse.json(
+        { error: "You cannot change this topic." },
+        { status: 403 }
+      );
+    }
+
+    if (!isStaff && data && typeof data.pinned === "boolean") {
+      return NextResponse.json(
+        { error: "Only staff can pin topics." },
+        { status: 403 }
+      );
+    }
 
     if (!data) {
       return NextResponse.json(
