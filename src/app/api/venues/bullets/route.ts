@@ -1,4 +1,5 @@
 import { denyIfDead } from "@/lib/alive";
+import { lockPlayer } from "@/lib/lock";
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     await ensureVenues();
 
     const result = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const player = await tx.player.findUnique({ where: { userId } });
       if (!player) throw new Error("PLAYER_NOT_FOUND");
       if (player.currentCity !== city) throw new Error("NOT_IN_CITY");
