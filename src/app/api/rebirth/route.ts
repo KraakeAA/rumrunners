@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lockPlayer } from "@/lib/lock";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
     const mode = String(body.mode ?? "");
 
     await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const me = await tx.player.findUnique({ where: { userId } });
       if (!me) throw new Refuse("Player not found.");
       if (me.health > 0) throw new Refuse("You are still alive.");
