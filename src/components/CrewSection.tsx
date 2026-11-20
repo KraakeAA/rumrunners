@@ -510,7 +510,7 @@ export default function CrewSection({ onCash }: { onCash: (money: number) => voi
         <>
           <div style={{ ...box, marginTop: 6, borderTop: "1px solid #6b5d3a", textAlign: "center" }}>
             <div style={sub}>Crew bank</div>
-            <div style={{ fontFamily: "Georgia, serif", fontSize: 22, color: "#f7efdb" }}>{gbp(crew.bank)}</div>
+            <div style={{ fontFamily: "Georgia, serif", fontSize: 16, color: "#f7efdb" }}>{gbp(crew.bank)}</div>
             <div style={sub}>You hold {gbp(data.money)} in cash.</div>
           </div>
           <div style={box}>
