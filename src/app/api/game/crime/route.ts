@@ -1,4 +1,5 @@
 import { energyCostFor, levelOf } from "@/lib/training";
+import { lockPlayer } from "@/lib/lock";
 import { denyIfDead } from "@/lib/alive";
 import { settleHunts } from "@/lib/whack";
 import { NextResponse } from "next/server";
@@ -129,6 +130,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const player = await tx.player.findUnique({
         where: { userId }
       });
