@@ -17,6 +17,7 @@ import {
 } from "@/lib/game";
 import { rankForLevel } from "@/lib/ranks";
 import { THEFT_COOLDOWNS } from "@/lib/era";
+import { crimeForCity } from "@/lib/city-crimes";
 import { jailRemaining, sendToJail, sentenceFor } from "@/lib/jail";
 import { notifyPromotion } from "@/lib/promotion";
 import { settleLotteries } from "@/lib/lottery";
@@ -182,8 +183,10 @@ export async function POST(req: Request) {
       });
       const streak = streakFromLogs(recent);
 
+      // The same job reads differently in each city; the numbers do not change.
+      const local = crimeForCity(crime, player.currentCity);
       const roll = playCrime(
-        crime,
+        local,
         player.rankLevel,
         streak,
         player.money
@@ -246,6 +249,7 @@ export async function POST(req: Request) {
         rank: updated.rank,
         rankLevel: updated.rankLevel,
         crimeName: crime.name,
+        displayName: local.name,
         xpGained: roll.xp,
         leveledUp: newLevel > player.rankLevel,
         tier: roll.tier,
