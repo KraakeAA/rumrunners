@@ -72,6 +72,44 @@ export async function POST(req: Request) {
       // Any trade in progress is called off and the other side gets their goods back.
       await cancelEscrowsFor(tx, me.id);
 
+      // Keep this life's totals in the game-wide statistics before they are wiped.
+      const crimeGroups = await tx.crimeLog.groupBy({
+        by: ["success"],
+        where: { playerId: me.id },
+        _count: { _all: true },
+        _sum: { cashChange: true }
+      });
+      const crimesTotal = crimeGroups.reduce((n, g) => n + g._count._all, 0);
+      const won = crimeGroups.find((g) => g.success);
+      const crimesWon = won?._count._all ?? 0;
+      const crimeCash = Math.max(0, won?._sum.cashChange ?? 0);
+      await tx.statRetired.upsert({
+        where: { id: "retired" },
+        create: {
+          id: "retired",
+          theftWins: me.theftWins,
+          theftFails: me.theftFails,
+          ocsLed: me.ocsLed,
+          ocEarned: me.ocEarned,
+          kills: me.kills,
+          boozeSold: me.boozeSold,
+          crimesTotal,
+          crimesWon,
+          crimeCash
+        },
+        update: {
+          theftWins: { increment: me.theftWins },
+          theftFails: { increment: me.theftFails },
+          ocsLed: { increment: me.ocsLed },
+          ocEarned: { increment: me.ocEarned },
+          kills: { increment: me.kills },
+          boozeSold: { increment: me.boozeSold },
+          crimesTotal: { increment: crimesTotal },
+          crimesWon: { increment: crimesWon },
+          crimeCash: { increment: crimeCash }
+        }
+      });
+
       // Wipe everything the old life owned.
       await tx.inventoryItem.deleteMany({ where: { playerId: me.id } });
       await tx.car.deleteMany({ where: { ownerId: me.id } });
