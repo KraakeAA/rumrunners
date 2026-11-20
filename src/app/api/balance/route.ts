@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
+import { staffLevel } from "@/lib/staff";
 
 // A tiny read so the top bar can keep cash, bank, gold and bullets current
 // when other people's actions change them (a gambler at your casino, a sale).
@@ -10,7 +11,7 @@ export async function GET() {
 
   const me = await prisma.player.findUnique({
     where: { userId },
-    select: { id: true, money: true, bank: true, gold: true, bullets: true }
+    select: { id: true, money: true, bank: true, gold: true, bullets: true, health: true, user: { select: { isAdmin: true, staffRole: true } } }
   });
   if (!me) return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
@@ -24,6 +25,6 @@ export async function GET() {
     })
   ]);
 
-  const { id: _id, ...cash } = me;
-  return NextResponse.json({ ...cash, unreadMail, latestMailId: latest?.id ?? "" }, { headers: { "Cache-Control": "no-store" } });
+  const { id: _id, user, ...cash } = me;
+  return NextResponse.json({ ...cash, staff: staffLevel(user), unreadMail, latestMailId: latest?.id ?? "" }, { headers: { "Cache-Control": "no-store" } });
 }
