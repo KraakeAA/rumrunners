@@ -214,7 +214,7 @@ export default function BootleggingSection({ onCash }: { onCash: (money: number)
           More crates with every rank.
         </div>
 
-        <div style={subBar}>Purchase</div>
+        <div style={subBar}>Buy and sell</div>
         <div style={grid}>
           {data.market.map((m) => (
             <div key={m.key} style={tile}>
@@ -224,41 +224,35 @@ export default function BootleggingSection({ onCash }: { onCash: (money: number)
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#f7efdb" }}>{gbp(m.price)}</div>
               <div style={{ fontSize: 10, color: tagColour[m.tag] }}>{tagLabel[m.tag]}</div>
-              {!data.jailed && (
-                <input
-                  aria-label={`Buy crates of ${m.name}`}
-                  inputMode="numeric"
-                  value={buy[m.key] ?? ""}
-                  onChange={(e) => setBuy({ ...buy, [m.key]: e.target.value.replace(/\D/g, "") })}
-                  style={input}
-                />
-              )}
-            </div>
-          ))}
-        </div>
 
-        <div style={subBar}>Your stock</div>
-        <div style={grid}>
-          {data.market.map((m) => (
-            <div key={m.key} style={tile}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: m.held > 0 ? "#f7efdb" : "#8a8470" }}>
-                {m.held}
-              </div>
-              <div style={{ fontSize: 10, color: "#b7ad93" }}>crates</div>
               {!data.jailed && (
-                <input
-                  aria-label={`Sell crates of ${m.name}`}
-                  inputMode="numeric"
-                  disabled={m.sellable === 0}
-                  value={sell[m.key] ?? ""}
-                  onChange={(e) => setSell({ ...sell, [m.key]: e.target.value.replace(/\D/g, "") })}
-                  style={{ ...input, opacity: m.sellable === 0 ? 0.35 : 1 }}
-                />
-              )}
-              {m.held > 0 && m.sellable < m.held && (
-                <div style={{ fontSize: 9, lineHeight: 1.2, color: "#e4c04d" }}>
-                  {m.sellable > 0 ? `${m.sellable} sellable here` : "can't sell here"}
-                </div>
+                <>
+                  <div style={{ fontSize: 10, color: "#7fe08f", fontWeight: 700, marginTop: 2 }}>BUY</div>
+                  <input
+                    aria-label={`Buy crates of ${m.name}`}
+                    inputMode="numeric"
+                    value={buy[m.key] ?? ""}
+                    onChange={(e) => setBuy({ ...buy, [m.key]: e.target.value.replace(/\D/g, "") })}
+                    style={input}
+                  />
+
+                  <div style={{ fontSize: 10, color: "#e4c04d", fontWeight: 700, marginTop: 2 }}>
+                    SELL · {m.held} held
+                  </div>
+                  <input
+                    aria-label={`Sell crates of ${m.name}`}
+                    inputMode="numeric"
+                    disabled={m.sellable === 0}
+                    value={sell[m.key] ?? ""}
+                    onChange={(e) => setSell({ ...sell, [m.key]: e.target.value.replace(/\D/g, "") })}
+                    style={{ ...input, opacity: m.sellable === 0 ? 0.35 : 1 }}
+                  />
+                  {m.held > 0 && m.sellable < m.held && (
+                    <div style={{ fontSize: 9, lineHeight: 1.2, color: "#e4c04d" }}>
+                      {m.sellable > 0 ? `${m.sellable} sellable here` : "can't sell here"}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))}
