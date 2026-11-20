@@ -143,7 +143,7 @@ export default function GymnasiumSection({
                     }}
                   >
                     <span style={{ fontSize: 12 }}>Level</span>
-                    <span style={{ fontSize: 26, lineHeight: 1 }}>{s.level}</span>
+                    <span style={{ fontSize: 20, lineHeight: 1 }}>{s.level}</span>
                   </div>
                 </div>
 
