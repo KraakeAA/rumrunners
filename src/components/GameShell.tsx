@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useRef,
   useEffect,
   useMemo,
   useState,
@@ -27,7 +28,7 @@ import WhackSection from "@/components/WhackSection";
 import SearchSection from "@/components/SearchSection";
 import { crimeForCity } from "@/lib/city-crimes";
 import CrimePopup from "@/components/CrimePopup";
-import { Banner, JobCard, slugify, takeMeter } from "@/components/GameImage";
+import { Banner, JobCard, slugify } from "@/components/GameImage";
 import HospitalSection from "@/components/HospitalSection";
 import HitlistSection from "@/components/HitlistSection";
 import GoldMarketplace from "@/components/GoldMarketplace";
@@ -407,6 +408,9 @@ export default function GameShell({
   );
   // Other people's actions change your cash (a gambler at your casino, a gold
   // sale), so check the balance every few seconds while the page is showing.
+  const [liveUnread, setLiveUnread] = useState<number | null>(null);
+  const [latestMailId, setLatestMailId] = useState("");
+  const checkBalanceRef = useRef<() => void>(() => {});
   useEffect(() => {
     let alive = true;
     let inFlight = false;
@@ -421,12 +425,16 @@ export default function GameShell({
         if (typeof d.bank === "number") setBank(d.bank);
         if (typeof d.gold === "number") setGold(d.gold);
         if (typeof d.bullets === "number") setBullets(d.bullets);
+        if (typeof d.unreadMail === "number") setLiveUnread(d.unreadMail);
+        if (typeof d.latestMailId === "string") setLatestMailId(d.latestMailId);
       } catch {
         /* try again next time */
       } finally {
         inFlight = false;
       }
     }
+    checkBalanceRef.current = check;
+    check();
     const t = window.setInterval(check, 4000);
     document.addEventListener("visibilitychange", check);
     return () => {
@@ -448,6 +456,7 @@ export default function GameShell({
   const [outcome, setOutcome] = useState<CrimeResult | null>(null);
   const [streak, setStreak] = useState(() => streakFromLogs(recentCrimes));
   const [statsCategory, setStatsCategory] = useState("Current");
+  const [crimeTier, setCrimeTier] = useState(-1);
 
   useEffect(() => {
     const updateClock = () => {
@@ -950,16 +959,18 @@ export default function GameShell({
     );
   }
 
-  // Every crime you can do, plus the next one up shown greyed out.
-  const availableCrimes = useMemo(() => {
-    const open = CRIMES.filter((c) => c.minRankLevel <= rankLevel);
-    const locked = CRIMES.filter((c) => c.minRankLevel > rankLevel);
-    const nextLevel = locked.length
-      ? Math.min(...locked.map((c) => c.minRankLevel))
-      : 0;
-
-    return [...open, ...locked.filter((c) => c.minRankLevel === nextLevel).slice(0, 1)];
-  }, [rankLevel]);
+  // Crimes come in tiers of four. Every crime is listed; the ones above
+  // your rank are greyed out with the rank that unlocks them.
+  const crimeTiers = useMemo(() => {
+    const out: (typeof CRIMES)[number][][] = [];
+    for (let i = 0; i < CRIMES.length; i += 4) out.push(CRIMES.slice(i, i + 4));
+    return out;
+  }, []);
+  const topOpenTier = Math.max(
+    0,
+    crimeTiers.reduce((n, t, i) => (t[0].minRankLevel <= rankLevel ? i : n), 0)
+  );
+  const activeTier = crimeTier === -1 ? topOpenTier : Math.min(crimeTier, crimeTiers.length - 1);
 
   return (
     <div className="game">
@@ -1178,7 +1189,7 @@ export default function GameShell({
             }}
           >
             ✉
-            {status.unreadMail > 0 && (
+            {(liveUnread ?? status.unreadMail) > 0 && (
               <span
                 aria-hidden="true"
                 style={{
@@ -1197,7 +1208,7 @@ export default function GameShell({
                   textAlign: "center"
                 }}
               >
-                {status.unreadMail > 9 ? "9+" : status.unreadMail}
+                {(liveUnread ?? status.unreadMail) > 9 ? "9+" : (liveUnread ?? status.unreadMail)}
               </span>
             )}
           </button>
@@ -1468,21 +1479,6 @@ export default function GameShell({
                 Crimes
               </div>
 
-              <div style={{ border: "1px solid #6b5d3a", borderTop: 0 }}>
-                <div
-                  style={{
-                    padding: "4px 10px",
-                    fontSize: 12,
-                    color: streak > 0 ? "#7fe08f" : "#b7ad93",
-                    background: "#17201c"
-                  }}
-                >
-                  {streak > 0
-                    ? `Streak ${streak}/${MAX_STREAK}`
-                    : "No streak. Land a job to start one."}
-                </div>
-              </div>
-
               {status.jailLeft > 0 && (
                 <p className="notice">
                   You are in jail for another {clock(status.jailLeft)}.{" "}
@@ -1500,11 +1496,42 @@ export default function GameShell({
 
               {notice && <p className="notice">{notice}</p>}
 
-              <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
-                {availableCrimes.map((baseCrime) => {
+              <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                {crimeTiers.map((t, i) => {
+                  const open = t[0].minRankLevel <= rankLevel;
+                  const on = i === activeTier;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setCrimeTier(i)}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        padding: "8px 0",
+                        fontSize: 15,
+                        border: on ? "1px solid #f0dfa8" : "1px solid #6b5d3a",
+                        background: on ? "#8f8668" : "#4a4640",
+                        color: open ? "#f7efdb" : "#9a9382",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {i + 1}
+                      {!open && <span style={{ fontSize: 11 }}> 🔒</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ margin: "4px 0 6px", fontSize: 12, color: "#b7ad93", textAlign: "center" }}>
+                {crimeTiers[activeTier][0].minRankLevel <= rankLevel
+                  ? `Tier ${activeTier + 1} · unlocked`
+                  : `Tier ${activeTier + 1} unlocks at ${rankForLevel(crimeTiers[activeTier][0].minRankLevel)}`}
+              </div>
+
+              <div style={{ display: "grid", gap: 4 }}>
+                {crimeTiers[activeTier].map((baseCrime) => {
                   const crime = crimeForCity(baseCrime, currentCity);
-                  const avgCash = (crime.minCash + crime.maxCash) / 2;
-                  const takeLevel = avgCash < 100 ? 1 : avgCash < 400 ? 2 : avgCash < 1500 ? 3 : avgCash < 5000 ? 4 : 5;
                   if (crime.minRankLevel > rankLevel) {
                     return (
                       <JobCard
@@ -1531,9 +1558,7 @@ export default function GameShell({
                       slot={`crimes/${crime.id}`}
                       title={crime.name}
                       description={crime.description}
-                      meters={[
-                        takeMeter(takeLevel)
-                      ]}
+                      meters={[]}
                       seconds={crimeCooldownSeconds(crime.energyCost)}
                       hideTime
                       energy={crimeEnergy}
@@ -1670,7 +1695,11 @@ export default function GameShell({
             <MailboxSection
               onOpenOc={() => navigate("Organised Crime")}
               onReply={openLetter}
-              onChanged={status.refresh}
+              refreshKey={latestMailId}
+              onChanged={() => {
+                status.refresh();
+                checkBalanceRef.current();
+              }}
             />
           )}
 
