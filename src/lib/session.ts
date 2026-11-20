@@ -1,6 +1,6 @@
-
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
 const secret = process.env.SESSION_SECRET;
 
@@ -40,9 +40,16 @@ export async function getSessionUserId(): Promise<string | null> {
   try {
     const { payload } = await jwtVerify(token, key);
 
-    return typeof payload.userId === "string"
-      ? payload.userId
-      : null;
+    if (typeof payload.userId !== "string") return null;
+
+    // A banned account counts as signed out.
+    const account = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { banned: true }
+    });
+    if (!account || account.banned) return null;
+
+    return payload.userId;
   } catch {
     return null;
   }
