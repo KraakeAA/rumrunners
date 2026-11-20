@@ -300,14 +300,14 @@ function OwnerLine({
   if (!owner) {
     return (
       <div style={{ lineHeight: 1.35 }}>
-        <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 14 }}>No owner</div>
-        <div style={{ color: GREEN, fontSize: 13 }}>{figure}</div>
+        <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 12 }}>No owner</div>
+        <div style={{ color: GREEN, fontSize: 11 }}>{figure}</div>
       </div>
     );
   }
   return (
     <div style={{ lineHeight: 1.35 }}>
-      <div style={{ fontSize: 15 }}>
+      <div style={{ fontSize: 12 }}>
         <Link
           href={`/profile/${encodeURIComponent(owner)}`}
           style={{ color: "#f7efdb", textDecoration: "underline", textDecorationColor: "#6b5d3a", textUnderlineOffset: 3 }}
@@ -315,11 +315,11 @@ function OwnerLine({
           {owner}
         </Link>
       </div>
-      <div style={{ fontSize: 14, color: "#b7ad93" }}>
+      <div style={{ fontSize: 11, color: "#b7ad93" }}>
         {figure}
         {figureNote ? <em> {figureNote}</em> : null}
       </div>
-      {wealth && <div style={{ fontSize: 12, color: "#8f8a76" }}>{wealth}</div>}
+      {wealth && <div style={{ fontSize: 10, color: "#8f8a76" }}>{wealth}</div>}
     </div>
   );
 }
@@ -332,17 +332,17 @@ function CityRow({ label, children }: { label: string; children: ReactNode }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
-          padding: "8px 10px",
+          padding: "4px 8px",
           textAlign: "right",
           background: "#17201c",
           borderRight: "1px solid #6b5d3a",
           color: "#e3d9bf",
-          fontSize: 14
+          fontSize: 12
         }}
       >
         {label}:
       </div>
-      <div style={{ padding: "8px 10px", minWidth: 0, background: "#1f2a25" }}>{children}</div>
+      <div style={{ padding: "4px 8px", minWidth: 0, background: "#1f2a25" }}>{children}</div>
     </div>
   );
 }
@@ -359,7 +359,7 @@ export function CitiesSection() {
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <Bar>Cities</Bar>
 
-      <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+      <div style={{ display: "grid", gap: 4, marginTop: 4 }}>
         {cities.map((city) => {
           const rows = data.casinos.filter((c) => c.city === city);
           const factory = data.factories.find((f) => f.city === city);
@@ -375,16 +375,15 @@ export function CitiesSection() {
             >
               <div
                 style={{
-                  padding: "12px 8px 10px",
+                  padding: "5px 8px 4px",
                   textAlign: "center",
                   background: "#1f2a25"
                 }}
               >
-                <div style={{ fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 700, color: "#f7efdb", textShadow: "0 1px 3px #000" }}>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 700, color: "#f7efdb", textShadow: "0 1px 3px #000" }}>
                   {city}
                 </div>
-                <div style={{ fontSize: 14, color: "#b7ad93" }}>{cityRegions[city] ?? "Britain"}</div>
-                {here && <div style={{ fontSize: 12, color: GREEN, marginTop: 2 }}>You are here</div>}
+                <div style={{ fontSize: 11, color: "#b7ad93" }}>{cityRegions[city] ?? "Britain"}</div>
               </div>
 
               {rows.map((c) => (
