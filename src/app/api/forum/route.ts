@@ -1,4 +1,5 @@
 
+import { staffLevel } from "@/lib/staff";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -112,6 +113,19 @@ export async function POST(request: NextRequest) {
         { error: "Player not found." },
         { status: 404 }
       );
+    }
+
+    // Only staff start topics on the Official board.
+    if (category === "OFFICIAL" && staffLevel(user) < 1) {
+      return NextResponse.json({ error: "Only staff can start topics on the Official board." }, { status: 403 });
+    }
+
+    // Stop floods: at most 5 new topics in 10 minutes.
+    const recentTopics = await prisma.forumTopic.count({
+      where: { authorId: user.player.id, createdAt: { gt: new Date(Date.now() - 10 * 60_000) } }
+    });
+    if (recentTopics >= 5) {
+      return NextResponse.json({ error: "Slow down. You can start 5 topics every 10 minutes." }, { status: 429 });
     }
 
     const topic = await prisma.forumTopic.create({
