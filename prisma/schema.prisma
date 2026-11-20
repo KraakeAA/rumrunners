@@ -77,6 +77,12 @@ model Player {
   jailReason   String?
   jailSecurity Int      @default(1)
   selfBustUsed Boolean  @default(false)
+  // Busting other players out: totals and streaks (a streak of fails is negative).
+  bustWins     Int      @default(0)
+  bustFails    Int      @default(0)
+  bustStreak   Int      @default(0)
+  bustBest     Int      @default(0)
+  bustWorst    Int      @default(0)
   // How many cars the garage holds (the Store sells more), and the booze being carried.
   garageSlots  Int      @default(5)
   cargo        Json?
@@ -126,6 +132,7 @@ model Player {
 
   forumTopics ForumTopic[] @relation("ForumTopicAuthor")
   forumPosts  ForumPost[]  @relation("ForumPostAuthor")
+  bustMilestones BustMilestone[]
 
   ownedCasinos         Casino[]        @relation("CasinoOwner")
   ownedBulletFactories BulletFactory[] @relation("BulletFactoryOwner")
@@ -609,4 +616,17 @@ model StatSnapshot {
   data    Json
 
   @@index([takenAt])
+}
+
+// A landmark bust (1st, 10th, 100th...) and who was freed.
+model BustMilestone {
+  id        String   @id @default(cuid())
+  playerId  String
+  number    Int
+  freed     String
+  createdAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, number])
 }
