@@ -836,3 +836,140 @@ button, input { font: inherit; }
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Tight, compact feel on phones: smaller type, less padding, fuller screen */
+@media (max-width: 900px) {
+  html, body {
+    font-size: 14px;
+  }
+
+  .main-content {
+    padding: 6px 6px 10px;
+  }
+
+  .main-content p {
+    line-height: 1.4;
+  }
+
+  .main-content h2 {
+    font-size: 16px;
+    margin: 12px 0 6px;
+  }
+
+  .button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .notice {
+    padding: 6px 8px;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .flavour {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .result-strip {
+    padding: 6px 8px;
+    margin-top: 8px;
+    font-size: 12px;
+  }
+
+  .side-heading {
+    margin: 0 0 6px 2px;
+  }
+
+  .category-grid {
+    gap: 4px;
+  }
+
+  .nav-category {
+    padding: 9px 8px;
+    font-size: 13px;
+  }
+
+  .category-content {
+    gap: 4px;
+  }
+
+  .category-back {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .nav-buttons {
+    gap: 4px;
+  }
+
+  .nav-item {
+    padding: 8px 8px;
+    font-size: 12px;
+  }
+
+  .city-strip {
+    padding: 4px 10px;
+    min-height: 0;
+    gap: 4px;
+  }
+
+  .city-location strong,
+  .city-era strong {
+    font-size: 13px;
+  }
+
+  .city-location span,
+  .city-era span {
+    font-size: 10px;
+  }
+
+  .game-status-strip {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .footer {
+    padding: 8px;
+  }
+
+  .activity-list li {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .bank-panel {
+    padding: 10px;
+  }
+
+  .bank-panel input,
+  .auth-panel input {
+    padding: 7px;
+  }
+
+  .casino-game {
+    padding-top: 10px;
+  }
+
+  .casino-controls {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .keno-grid {
+    gap: 3px;
+    margin: 8px 0;
+  }
+
+  .keno-number {
+    padding: 6px 0;
+  }
+
+  .slot-reel {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+}
