@@ -155,7 +155,7 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
   // Roulette
   const [pick, setPick] = useState<string>("red");
   const [straight, setStraight] = useState("");
-  const [spin, setSpin] = useState<{ result: number; win: boolean; payout: number } | null>(null);
+  const [spin, setSpin] = useState<{ result: number; win: boolean; payout: number; picked: string } | null>(null);
 
   function report(d: Played) {
     if (typeof d.money === "number") onCash(d.money);
@@ -241,7 +241,11 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
       number: pick === "number" ? Number(straight) : undefined
     });
     if (!d) return;
-    setSpin(d);
+    const picked =
+      pick === "number"
+        ? String(Number(straight))
+        : ROULETTE_OPTIONS.find((o) => o.type === pick)?.label ?? pick;
+    setSpin({ ...d, picked });
     report(d);
   }
 
@@ -397,7 +401,9 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
                 </span>
               </div>
               {resultBox(
-                spin.win ? `A winner! You get back ${gbp(spin.payout)}.` : "No luck this time.",
+                `You picked ${spin.picked} ${spin.win ? "and it landed on" : "but it landed on"} ${spin.result}. You won ${gbp(
+                  spin.win ? spin.payout : 0
+                )}.`,
                 spin.win
               )}
             </>
