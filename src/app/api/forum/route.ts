@@ -1,8 +1,9 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 
-const categories = ["OFFICIAL", "CLASSIFIEDS", "OFF_TOPIC"];
+const categories = ["OFFICIAL", "CLASSIFIEDS", "OFF_TOPIC", "SUGGESTIONS"];
 
 export async function GET(request: NextRequest) {
   try {
