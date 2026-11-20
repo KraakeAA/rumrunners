@@ -13,6 +13,8 @@ import {
 } from "@/lib/jail";
 import { notifyPromotion } from "@/lib/promotion";
 
+const BUST_MILESTONES = [1, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+
 // The prison: who is inside, and how long you have left yourself.
 export async function GET() {
   const userId = await getSessionUserId();
@@ -42,7 +44,25 @@ export async function GET() {
     }
   });
 
+  const milestones = await prisma.bustMilestone.findMany({
+    where: { playerId: me.id },
+    orderBy: { number: "asc" },
+    take: 20
+  });
+
   return NextResponse.json({
+    bustStats: {
+      wins: me.bustWins,
+      fails: me.bustFails,
+      streak: me.bustStreak,
+      best: me.bustBest,
+      worst: me.bustWorst,
+      milestones: milestones.map((m) => ({
+        number: m.number,
+        freed: m.freed,
+        date: m.createdAt.toISOString().slice(0, 10)
+      }))
+    },
     me: {
       remaining: jailRemaining(me.jailUntil, now),
       reason: me.jailReason,
@@ -141,14 +161,24 @@ export async function POST(req: Request) {
           const xp = 4 + security * 4;
           const newXp = me.experience + xp;
           const newLevel = Math.max(me.rankLevel, levelFromXp(newXp));
+          const streak = me.bustStreak > 0 ? me.bustStreak + 1 : 1;
+          const wins = me.bustWins + 1;
           await tx.player.update({
             where: { id: me.id },
             data: {
               experience: newXp,
               rankLevel: newLevel,
-              rank: rankForLevel(newLevel)
+              rank: rankForLevel(newLevel),
+              bustWins: wins,
+              bustStreak: streak,
+              bustBest: Math.max(me.bustBest, streak)
             }
           });
+          if (BUST_MILESTONES.includes(wins)) {
+            await tx.bustMilestone.create({
+              data: { playerId: me.id, number: wins, freed: target.username }
+            });
+          }
           await notifyPromotion(tx, me.id, me.rankLevel, newLevel);
           return {
             success: true,
@@ -158,6 +188,15 @@ export async function POST(req: Request) {
 
         // Caught: the would-be rescuer ends up inside. The cell time grows
         // with the prison's security and the rescuer's own rank.
+        const failStreak = me.bustStreak < 0 ? me.bustStreak - 1 : -1;
+        await tx.player.update({
+          where: { id: me.id },
+          data: {
+            bustFails: { increment: 1 },
+            bustStreak: failStreak,
+            bustWorst: Math.min(me.bustWorst, failStreak)
+          }
+        });
         const penalty = sentenceFor(security, me.rankLevel).seconds;
         await sendToJail(
           tx,
