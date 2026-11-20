@@ -39,6 +39,13 @@ export function casinoDef(key: string): CasinoGameDef {
 
 // Max bet of a house-run casino, and the starting max bet of a newly bought one.
 export const HOUSE_MAX_BET = 500;
+
+// War is always run by the house and can never be bought. Its stakes and wins
+// are the way money goes into and out of the game, so its limit is higher.
+export const HOUSE_ONLY_GAMES: string[] = ["War"];
+export const WAR_MAX_BET = 100_000;
+export const isHouseOnly = (game: string) => HOUSE_ONLY_GAMES.includes(game);
+export const houseMaxBet = (game: string) => (game === "War" ? WAR_MAX_BET : HOUSE_MAX_BET);
 export const ABSOLUTE_MAX_BET = 1_000_000;
 
 export const FACTORY = {
