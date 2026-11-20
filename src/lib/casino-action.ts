@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lockPlayer } from "@/lib/lock";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -169,6 +170,7 @@ export async function runWager(
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const { player, casino, city } = await openTable(tx, userId, game, bet);
       return settle(tx, player, casino, game, bet, multiplier, outcome, false, city);
     });
