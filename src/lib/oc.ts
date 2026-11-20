@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 // Organised crime: pure data, safe for server and browser.
 
 export const OC_START_COST = 5; // £ the leader pays to start a crew
@@ -75,4 +76,52 @@ export function rollVault(
     boost,
     boostNote
   };
+}
+
+// When a player dies: if they led a crew it is called off and everyone in it is told; if they were
+// a member (or had been invited) their seat is freed so the crew isn't left waiting on a dead man.
+export async function cancelLedOc(
+  tx: Pick<Prisma.TransactionClient, "organisedCrime" | "ocSlot" | "message">,
+  playerId: string,
+  playerName: string
+) {
+  const led = await tx.organisedCrime.findUnique({
+    where: { leaderId: playerId },
+    include: { slots: true }
+  });
+  if (led) {
+    for (const s of led.slots) {
+      if (!s.playerId) continue;
+      await tx.message.create({
+        data: {
+          toId: s.playerId,
+          fromName: playerName,
+          subject: "Crew cancelled",
+          body: `${playerName} died, so the organised crime in ${led.city} has been cancelled.`
+        }
+      });
+    }
+    await tx.organisedCrime.delete({ where: { id: led.id } });
+  }
+
+  const seats = await tx.ocSlot.findMany({
+    where: { playerId },
+    include: { oc: { select: { leaderId: true, city: true } } }
+  });
+  for (const seat of seats) {
+    await tx.ocSlot.update({
+      where: { id: seat.id },
+      data: { state: "empty", playerId: null, percent: null, choice: null, carId: null }
+    });
+    if (seat.state !== "invited") {
+      await tx.message.create({
+        data: {
+          toId: seat.oc.leaderId,
+          fromName: playerName,
+          subject: "Crew member died",
+          body: `${playerName} has died. The ${seat.role} position in your ${seat.oc.city} crew is open again.`
+        }
+      });
+    }
+  }
 }
