@@ -1,3 +1,4 @@
+import { isHiddenStaff } from "@/lib/staff";
 import { levelOf } from "@/lib/training";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -96,6 +97,8 @@ export async function POST(req: Request) {
           where: { username: { equals: name, mode: "insensitive" } }
         });
         if (!target) throw new Refuse("There is nobody by that name.");
+        const targetUser = await tx.user.findUnique({ where: { id: target.userId }, select: { isAdmin: true, staffRole: true } });
+        if (isHiddenStaff(targetUser)) throw new Refuse("There is nobody by that name.");
         if (target.id === me.id) throw new Refuse("You can't hire a detective to find yourself.");
         if (target.health <= 0) throw new Refuse("That man is already dead.");
         if (isShielded(target, now)) throw new Refuse("That player is new to the city and under protection.");
@@ -153,6 +156,8 @@ export async function POST(req: Request) {
           await prisma.hunt.update({ where: { id: hunt.id }, data: { status: "lost" } });
           throw new Refuse("He has left the city. The trail is lost.");
         }
+        const shotUser = await tx.user.findUnique({ where: { id: target.userId }, select: { isAdmin: true, staffRole: true } });
+        if (isHiddenStaff(shotUser)) throw new Refuse("The trail has gone cold.");
         if (isShielded(target, now)) throw new Refuse("That player is under protection.");
 
         // Let them heal first, then take the damage off what they have now.
