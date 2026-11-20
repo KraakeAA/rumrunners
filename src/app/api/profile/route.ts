@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cancelLedOc } from "@/lib/oc";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const action = String(body.action ?? "");
 
-  const me = await prisma.player.findUnique({ where: { userId }, select: { id: true } });
+  const me = await prisma.player.findUnique({ where: { userId }, select: { id: true, username: true } });
   if (!me) return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
   if (action === "quote") {
@@ -120,6 +121,7 @@ export async function POST(req: Request) {
     if (done.count === 0) {
       return NextResponse.json({ error: "You are already dead." }, { status: 400 });
     }
+    await cancelLedOc(prisma, me.id, me.username);
     return NextResponse.json({ ok: true, message: "You are dead." });
   }
 
