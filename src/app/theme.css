@@ -125,7 +125,8 @@ body {
   gap: 5px !important;
   padding: 6px 0 !important;
 }
-.game-status-strip button {
+.game-status-strip button,
+.game-status-strip a {
   flex: 1 1 22% !important;
   flex-direction: column !important;
   gap: 0 !important;
@@ -137,8 +138,10 @@ body {
   font-size: 10px !important;
   line-height: 1.2 !important;
 }
-.game-status-strip button span { color: #f7efdb !important; }
-.game-status-strip button strong { color: #c4f0c8 !important; font-size: 11px !important; font-weight: 700 !important; }
+.game-status-strip button span,
+.game-status-strip a span { color: #f7efdb !important; }
+.game-status-strip button strong,
+.game-status-strip a strong { color: #c4f0c8 !important; font-size: 11px !important; font-weight: 700 !important; }
 
 .footer { color: #8a8470; border-top: 1px solid #2a3a30; }
 
