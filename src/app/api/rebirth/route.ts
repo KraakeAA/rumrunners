@@ -85,6 +85,9 @@ export async function POST(req: Request) {
         data: { playerId: null, state: "empty", percent: null, choice: null, carId: null }
       });
       await tx.message.deleteMany({ where: { toId: me.id } });
+      // A crew leader's crew ends with them; a member simply leaves.
+      await tx.crewApplication.deleteMany({ where: { playerId: me.id } });
+      await tx.crew.deleteMany({ where: { leaderId: me.id } });
       // Detectives he hired, and any still looking for him, die with the old life.
       await tx.hunt.deleteMany({ where: { OR: [{ hunterId: me.id }, { targetId: me.id }] } });
       await tx.bounty.updateMany({
@@ -110,6 +113,7 @@ export async function POST(req: Request) {
         where: { id: me.id },
         data: {
           username: newName,
+          crewId: null,
           rank: "Scum",
           rankLevel: 1,
           money: 500,
