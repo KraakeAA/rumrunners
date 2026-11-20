@@ -94,6 +94,13 @@ export function makePlate(city: string): string {
   return `${code} ${digits}`;
 }
 
+// Shipping a car to another city by rail freight. The plate stays as it is,
+// so the car keeps the number of the city it was stolen in.
+export const SHIP_CITIES = ["London", "Birmingham", "Manchester", "Liverpool", "Glasgow"];
+export function shipCost(price: number): number {
+  return Math.max(25, Math.round(price * 0.05));
+}
+
 export const PLATE_COST = 20; // £ to fit a new plate
 export const PLATE_HEAT_DROP = 50; // heat removed by a new plate
 export const MAX_DAMAGE = 50; // worst damage on a freshly stolen car
