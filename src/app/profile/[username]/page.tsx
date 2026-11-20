@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { renderBB } from "@/lib/bbcode";
 import { wealthStatus } from "@/lib/wealth";
+import SiteMenuBar from "@/components/SiteMenuBar";
 
 const ONLINE_MS = 5 * 60 * 1000;
 
@@ -142,17 +143,6 @@ export default async function PlayerProfile({
     fontSize: 12,
     borderRight: "1px solid #6b5d3a"
   };
-  const navStyle: CSSProperties = {
-    ...row,
-    borderTop: "1px solid #6b5d3a",
-    flex: 1,
-    justifyContent: "center",
-    padding: "6px 0",
-    color: "#f1e8d3",
-    textDecoration: "none",
-    fontSize: 12
-  };
-
   return (
     <main
       style={{
@@ -167,16 +157,7 @@ export default async function PlayerProfile({
       }}
     >
       <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
-        <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
-          <Link href="/" style={navStyle}>
-            Back to game
-          </Link>
-          {isMe && (
-            <Link href="/profile-edit" style={navStyle}>
-              Edit profile
-            </Link>
-          )}
-        </div>
+        <SiteMenuBar />
 
         <div style={bar}>Profile For {player.username}</div>
 
