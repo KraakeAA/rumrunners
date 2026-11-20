@@ -121,13 +121,13 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
           <span style={{ flex: 1, textAlign: "center" }}>You are in jail!</span>
         </div>
 
-        <div style={{ border: "1px solid #6b5d3a", borderTop: 0, background: "#1f2a25", textAlign: "center", padding: "10px 10px 12px" }}>
+        <div style={{ border: "1px solid #6b5d3a", borderTop: 0, background: "#1f2a25", textAlign: "center", padding: "6px 8px 8px" }}>
           <div style={{ fontSize: 12, color: "#b7ad93" }}>{me.reason ?? "Sentenced"}</div>
           <div style={{ fontSize: 12, color: "#c9bfa6", marginTop: 6 }}>Time Remaining</div>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: 38, color: "#f7efdb", letterSpacing: 2, lineHeight: 1.1 }}>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 28, color: "#f7efdb", letterSpacing: 2, lineHeight: 1.1 }}>
             {hms(myLeft)}
           </div>
-          <div style={{ color: "#e4c04d", fontSize: 22, letterSpacing: 3, margin: "2px 0 8px" }}>
+          <div style={{ color: "#e4c04d", fontSize: 16, letterSpacing: 3, margin: "0 0 4px" }}>
             {stars(me.security)}
           </div>
 
