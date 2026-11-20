@@ -26,11 +26,13 @@ const bar: CSSProperties = {
 export default function MailboxSection({
   onOpenOc,
   onReply,
-  onChanged
+  onChanged,
+  refreshKey = ""
 }: {
   onOpenOc: () => void;
   onReply: (name: string) => void;
   onChanged?: () => void;
+  refreshKey?: string;
 }) {
   const [mail, setMail] = useState<Mail[] | null>(null);
   const [open, setOpen] = useState("");
@@ -48,7 +50,8 @@ export default function MailboxSection({
 
   useEffect(() => {
     load();
-  }, [load]);
+    // refreshKey changes whenever a new letter arrives, so reload then.
+  }, [load, refreshKey]);
 
   async function post(action: "read" | "delete", id: string) {
     await fetch("/api/mail", {
