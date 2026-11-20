@@ -220,11 +220,11 @@ export default function BankSection({
         <div style={{ display: "flex", ...cell, borderTop: 0, gap: 8, justifyContent: "space-around", textAlign: "center" }}>
           <div>
             <div style={{ fontSize: 11, color: "#b7ad93" }}>On hand</div>
-            <strong style={{ fontSize: 16 }}>{gbp(money)}</strong>
+            <strong style={{ fontSize: 14 }}>{gbp(money)}</strong>
           </div>
           <div>
             <div style={{ fontSize: 11, color: "#b7ad93" }}>In bank</div>
-            <strong style={{ fontSize: 16 }}>{gbp(bank)}</strong>
+            <strong style={{ fontSize: 14 }}>{gbp(bank)}</strong>
           </div>
         </div>
         <div style={{ ...cell, borderTop: 0, fontSize: 12, textAlign: "center", color: "#c9bfa6" }}>
