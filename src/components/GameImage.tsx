@@ -12,7 +12,7 @@ const EXTENSIONS = ["jpg", "png", "webp"];
 export function slugify(name: string) {
   return name
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
@@ -257,6 +257,88 @@ export function JobCard({
               {buttonLabel}
             </button>
           </div>
+        </div>
+        {pct !== null && (
+          <div style={{ height: 3, background: "#0e1411" }}>
+            <div style={{ height: "100%", width: `${pct}%`, background: "#5f9a2a" }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // A card with no meters (the Crimes page): picture beside the name, then one
+  // slim row with the cost and the button.
+  if (meters.length === 0) {
+    const pct =
+      waiting && typeof waitLeft === "number" && typeof seconds === "number" && seconds > 0
+        ? Math.max(0, Math.min(100, (1 - waitLeft / seconds) * 100))
+        : null;
+    return (
+      <div
+        style={{
+          border: "1px solid #6b5d3a",
+          background: "#1f2a25",
+          opacity: locked ? 0.7 : waiting ? 0.85 : 1
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            padding: "6px 8px",
+            alignItems: "center",
+            background: "#2a3630",
+            borderBottom: "1px solid #3d4a41"
+          }}
+        >
+          <GameImage slot={slot} width={44} height={44} dim={locked} />
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: "Georgia, serif",
+                fontSize: 15,
+                fontWeight: 700,
+                lineHeight: 1.2,
+                color: locked ? "#8a8470" : "#f7efdb"
+              }}
+            >
+              {title}
+            </div>
+            <div style={{ fontSize: 11, color: "#b7ad93", lineHeight: 1.25 }}>{description}</div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            padding: "5px 8px"
+          }}
+        >
+          {locked ? (
+            <span style={{ fontSize: 12, color: "#8a8470" }}>{lockedText}</span>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <strong style={{ fontSize: 12, color: "#f7efdb" }}>Cost:</strong>
+              {typeof seconds === "number" && !hideTime && <span style={chip}>⏱ {seconds}s</span>}
+              {typeof energy === "number" && (
+                <span style={{ ...chip, color: tired ? "#f09a8c" : "#f1e8d3" }}>
+                  <span style={{ color: "#d9473b" }}>⚡</span> {energy}
+                </span>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            className="button"
+            style={{ width: 84, padding: "4px 0", fontSize: 13, opacity: disabled || locked ? 0.55 : 1 }}
+            disabled={disabled || locked}
+            onClick={onClick}
+          >
+            {buttonLabel}
+          </button>
         </div>
         {pct !== null && (
           <div style={{ height: 3, background: "#0e1411" }}>
