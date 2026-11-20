@@ -13,6 +13,7 @@ type Data = {
   showOcStatus: boolean;
   showProfileViews: boolean;
   showOrganization: boolean;
+  suicideInHours?: number;
 };
 
 const OPTIONS: { key: keyof Data; label: string }[] = [
@@ -67,6 +68,7 @@ export default function ProfileEditor() {
   const [msg, setMsg] = useState("");
   const [good, setGood] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmDeath, setConfirmDeath] = useState(false);
 
   useEffect(() => {
     fetch("/api/profile", { cache: "no-store" })
@@ -100,6 +102,31 @@ export default function ProfileEditor() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function dieNow() {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "suicide", confirm: true })
+      });
+      if (r.ok) {
+        window.location.href = "/";
+        return;
+      }
+      const j = await r.json().catch(() => ({}));
+      setConfirmDeath(false);
+      setGood(false);
+      setMsg(String(j.error ?? "That did not work."));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setConfirmDeath(false);
+      setGood(false);
+      setMsg("Could not reach the server.");
+    }
+    setBusy(false);
   }
 
   if (!d) {
@@ -237,7 +264,72 @@ export default function ProfileEditor() {
             </button>
           </div>
         </section>
+
+        <section>
+          <div style={{ ...bar, background: "linear-gradient(180deg, #7a2a22, #3d1511)", borderColor: "#b0504a" }}>Suicide</div>
+          <div style={{ ...cell, textAlign: "center" }}>
+            <div style={{ fontSize: 12, color: "#c9bfa6", marginBottom: 8 }}>
+              End your life. You lose your rank, cash, cars and kit. Only your gold survives.
+              {(d.suicideInHours ?? 0) > 0 && (
+                <div style={{ marginTop: 4, color: "#f0c2b8" }}>
+                  Your account must be 24 hours old first. {d.suicideInHours} hour(s) to go.
+                </div>
+              )}
+            </div>
+            <button
+              className="button"
+              style={{ ...blue, background: "linear-gradient(180deg, #8a2f26, #4a1814)", opacity: busy || (d.suicideInHours ?? 0) > 0 ? 0.5 : 1 }}
+              disabled={busy || (d.suicideInHours ?? 0) > 0}
+              onClick={() => setConfirmDeath(true)}
+            >
+              Suicide
+            </button>
+          </div>
+        </section>
       </div>
+
+      {confirmDeath && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            display: "grid",
+            placeItems: "center",
+            padding: 16,
+            background: "rgba(0, 0, 0, 0.75)"
+          }}
+        >
+          <div style={{ width: "100%", maxWidth: 320, border: "2px solid #b0504a", background: "#1f2a25" }}>
+            <div style={{ ...bar, background: "linear-gradient(180deg, #7a2a22, #3d1511)" }}>Are you sure?</div>
+            <div style={{ padding: 12, textAlign: "center", fontSize: 14 }}>
+              <p style={{ margin: "0 0 12px" }}>
+                This will kill your character. It cannot be undone.
+              </p>
+              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                <button
+                  className="button"
+                  style={{ ...blue, minWidth: 90, background: "linear-gradient(180deg, #8a2f26, #4a1814)", opacity: busy ? 0.6 : 1 }}
+                  disabled={busy}
+                  onClick={dieNow}
+                >
+                  Yes
+                </button>
+                <button
+                  className="button secondary"
+                  style={{ ...blue, minWidth: 90 }}
+                  disabled={busy}
+                  onClick={() => setConfirmDeath(false)}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
