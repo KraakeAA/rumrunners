@@ -6,7 +6,9 @@ import {
   ABSOLUTE_MAX_BET,
   CASINO_GAMES,
   CITIES,
+  HOUSE_MAX_BET,
   casinoDef,
+  isHouseOnly,
 } from "@/lib/venues";
 import { ensureVenues } from "@/lib/venues-server";
 
@@ -39,6 +41,8 @@ export async function POST(req: Request) {
         where: { city_game: { city, game } },
       });
       if (!casino) throw new Error("CASINO_NOT_FOUND");
+
+      if (isHouseOnly(game)) throw new Error("HOUSE_ONLY");
 
       if (action === "buy") {
         if (casino.ownerId) throw new Error("ALREADY_OWNED");
@@ -77,6 +81,16 @@ export async function POST(req: Request) {
         return { message: `Maximum bet set to £${maxBet.toLocaleString("en-GB")}.` };
       }
 
+      if (action === "drop") {
+        if (casino.ownerId !== player.id) throw new Error("NOT_OWNER");
+        if (casino.escrowId) throw new Error("IN_ESCROW");
+        await tx.casino.updateMany({
+          where: { id: casino.id, ownerId: player.id },
+          data: { ownerId: null, ownedSince: null, maxBet: HOUSE_MAX_BET, profit: 0, plays: 0, wagered: 0 }
+        });
+        return { message: `You have dropped the ${city} ${casinoDef(game).label} casino. It is back on the market.` };
+      }
+
       throw new Error("BAD_ACTION");
     });
 
@@ -85,6 +99,7 @@ export async function POST(req: Request) {
     const m = error instanceof Error ? error.message : "";
     const map: Record<string, [string, number]> = {
       ALREADY_OWNED: ["Someone already owns this casino.", 400],
+      HOUSE_ONLY: ["That table is always run by the house.", 400],
       NOT_IN_CITY: ["You need to be in this city to buy its casino.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
       NOT_OWNER: ["You do not own this casino.", 403],
