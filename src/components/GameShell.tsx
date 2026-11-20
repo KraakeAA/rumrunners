@@ -38,6 +38,10 @@ import { energyCostFor } from "@/lib/training";
 import GraveyardSection from "@/components/GraveyardSection";
 import BankSection from "@/components/BankSection";
 import CrewSection from "@/components/CrewSection";
+import AdminSection from "@/components/AdminSection";
+import UpdatesSection from "@/components/UpdatesSection";
+import InfoPage from "@/components/InfoPage";
+import HelpDesk from "@/components/HelpDesk";
 import { wealthStatus } from "@/lib/wealth";
 import {
   CRIMES,
@@ -426,6 +430,7 @@ const SKYLINE = (() => {
 export default function GameShell({
   player,
   isAdmin = false,
+  staffLevel = 0,
   playerId,
   recentCrimes = [],
   stats = EMPTY_STATS,
@@ -435,6 +440,7 @@ export default function GameShell({
 }: {
   player: Player;
   isAdmin?: boolean;
+  staffLevel?: number;
   playerId: string;
   recentCrimes?: CrimeLog[];
   stats?: PlayerStats;
@@ -442,10 +448,13 @@ export default function GameShell({
   composeTo?: string;
   startSection?: string;
 }) {
+  const groups = staffLevel >= 2
+    ? menuGroups.map((g) => (g.title === "Main" ? { ...g, items: [...g.items, "Admin"] } : g))
+    : menuGroups;
   const [section, setSection] = useState(
     composeTo
       ? "Send Letter"
-      : menuGroups.some((g) => g.items.includes(startSection))
+      : groups.some((g) => g.items.includes(startSection))
         ? startSection
         : "Home"
   );
@@ -809,7 +818,6 @@ export default function GameShell({
       (n, g) => Math.max(n, g.biggestPayout),
       0
     );
-
     const sortedCrimes = [...crimeByType].sort((a, b) =>
       a.crimeType.localeCompare(b.crimeType)
     );
@@ -1428,7 +1436,7 @@ export default function GameShell({
                   <p className="side-heading">MENU</p>
 
                   <div className="category-grid">
-                    {menuGroups.map((group) => (
+                    {groups.map((group) => (
                       <button
                         key={group.title}
                         type="button"
@@ -1451,7 +1459,7 @@ export default function GameShell({
                   </button>
 
                   <div className="nav-buttons">
-                    {menuGroups
+                    {groups
                       .find((g) => g.title === menuGroup)
                       ?.items.map((item) => (
                         <button
@@ -1609,7 +1617,6 @@ export default function GameShell({
                   ? `Tier ${activeTier + 1} · unlocked`
                   : `Tier ${activeTier + 1} unlocks at ${rankForLevel(crimeTiers[activeTier][0].minRankLevel)}`}
               </div>
-
               <div style={{ display: "grid", gap: 4 }}>
                 {crimeTiers[activeTier].map((baseCrime) => {
                   const crime = crimeForCity(baseCrime, currentCity);
@@ -1732,7 +1739,7 @@ export default function GameShell({
             <TravelSection onArrive={(city) => setCurrentCity(city)} />
           )}
 
-          {section === "Garage" && <GarageSection />}
+          {section === "Garage" && <GarageSection onCash={setMoney} />}
 
           {section === "Bullet Factory" && (
             <BulletFactorySection
@@ -1760,11 +1767,9 @@ export default function GameShell({
 
           {section === "Search" && <SearchSection onCash={setMoney} />}
 
-          {section === "Updates" && (
-            <p className="flavour">
-              Development updates will be posted here.
-            </p>
-          )}
+          {section === "Updates" && <UpdatesSection />}
+
+          {section === "Admin" && staffLevel >= 2 && <AdminSection staff={staffLevel} />}
 
           {section === "Cities" && (
             <CitiesSection />
@@ -1850,28 +1855,20 @@ export default function GameShell({
             </p>
           )}
 
-          {section === "Wiki" && (
-            <p className="flavour">
-              The Rumrunners game guide.
-            </p>
-          )}
+          {section === "Wiki" && <InfoPage kind="wiki" />}
 
-          {section === "Terms of Service" && (
-            <p className="flavour">
-              Game rules and terms of service.
-            </p>
-          )}
+          {section === "Terms of Service" && <InfoPage kind="terms" />}
 
-          {section === "Help Desk" && (
-            <p className="flavour">
-              Help and support for players.
-            </p>
-          )}
+          {section === "Help Desk" && <HelpDesk />}
 
           {section === "Suggestion Box" && (
-            <p className="flavour">
-              Send suggestions for future improvements.
-            </p>
+            <ForumBoard
+              key="SUGGESTIONS"
+              category="SUGGESTIONS"
+              title="Suggestion Box"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
           )}
 
           {section === "Full Site" && (
@@ -1939,7 +1936,7 @@ export default function GameShell({
               <p className="side-heading">MENU</p>
 
               <div className="category-grid">
-                {menuGroups.map((group) => (
+                {groups.map((group) => (
                   <button
                     key={group.title}
                     className="nav-category"
@@ -1960,7 +1957,7 @@ export default function GameShell({
               </button>
 
               <div className="nav-buttons">
-                {menuGroups
+                {groups
                   .find((g) => g.title === selectedGroup)
                   ?.items.map((item) => (
                     <button
