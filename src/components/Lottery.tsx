@@ -134,7 +134,7 @@ export default function LotterySection({ onCash }: { onCash: (money: number) => 
       <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
         <div style={{ ...box, textAlign: "center" }}>
           <div style={{ fontSize: 12, color: "#c9bfa6" }}>Next draw · {drawLabel}</div>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: 17, color: "#f7efdb", margin: "1px 0" }}>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 15, color: "#f7efdb", margin: "1px 0" }}>
             {countdown(left)}
           </div>
           <div style={{ fontSize: 13, color: "#d4cab2" }}>
