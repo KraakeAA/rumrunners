@@ -92,6 +92,7 @@ export default async function PlayerProfile({
       showProfileViews: true,
       showOcStatus: true,
       showOrganization: true,
+      crew: { select: { id: true, name: true, color: true } },
       forumTopics: { select: { id: true } },
       forumPosts: { select: { id: true } },
       jailUntil: true
@@ -204,6 +205,30 @@ export default async function PlayerProfile({
           )}
         </div>
 
+        {player.crew && player.showOrganization && (
+          <div
+            style={{
+              ...row,
+              justifyContent: "center",
+              padding: "5px 8px",
+              background: player.crew.color,
+              color: "#fff",
+              textShadow: "0 1px 2px #000",
+              borderColor: player.crew.color
+            }}
+          >
+            <span>
+              Member of{" "}
+              <Link
+                href={`/crew/${player.crew.id}`}
+                style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}
+              >
+                {player.crew.name}
+              </Link>
+            </span>
+          </div>
+        )}
+
         {player.showOcStatus && (
           <div
             style={{
@@ -240,7 +265,15 @@ export default async function PlayerProfile({
           {player.showOrganization && (
             <div style={row}>
               <div style={label}>Organisation:</div>
-              <div style={value}>None</div>
+              <div style={value}>
+                {player.crew ? (
+                  <Link href={`/crew/${player.crew.id}`} style={{ color: "#e4c04d" }}>
+                    {player.crew.name}
+                  </Link>
+                ) : (
+                  "None"
+                )}
+              </div>
             </div>
           )}
           <div style={row}>
