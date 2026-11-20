@@ -30,10 +30,10 @@ const wrap: CSSProperties = {
   color: "#e8e0d4"
 };
 const head: CSSProperties = {
-  padding: 8,
+  padding: 6,
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 19,
+  fontSize: 15,
   letterSpacing: 1,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #94764d, #59432b 50%, #302115)",
