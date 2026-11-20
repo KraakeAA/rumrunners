@@ -59,6 +59,18 @@ public/images/cars/
   bentley-4-litre-supercharged.jpg   (Bentley 4½ Litre Supercharged)
   rolls-royce-phantom-ii.jpg   (Rolls-Royce Phantom II)
 
+BOOTLEGGING BOOZE PICTURES (about 200 x 200 pixels, a bottle or crate)
+
+public/images/booze/
+  scotch.jpg   (Scotch Whisky)
+  irish.jpg   (Irish Whiskey)
+  gin.jpg   (London Gin)
+  rum.jpg   (Navy Rum)
+  brandy.jpg   (French Brandy)
+  champagne.jpg   (Champagne)
+  stout.jpg   (Irish Stout)
+  port.jpg   (Port Wine)
+
 WIDE BANNERS (about 1150 x 300 pixels)
 
 public/images/banners/
