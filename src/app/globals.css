@@ -354,7 +354,6 @@ button, input { font: inherit; }
   text-align: center;
 }
 
-.nav-category:hover,
 .nav-category:active {
   background: #332b20;
   border-color: var(--gold);
@@ -395,8 +394,7 @@ button, input { font: inherit; }
   cursor: pointer;
 }
 
-.nav-item:hover,
-.nav-item.active {
+.nav-item:active {
   background: #332b20;
   color: #e4c58d;
   border-color: var(--gold);
