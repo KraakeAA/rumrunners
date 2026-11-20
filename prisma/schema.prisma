@@ -122,6 +122,61 @@ model Player {
   bjHand        BlackjackHand?
   lotteryTickets LotteryTicket[]
   goldListings   GoldListing[]
+
+  // Crews (gangs): at most one crew joined or led, and any number of applications.
+  crewId           String?
+  crew             Crew?             @relation("CrewMembers", fields: [crewId], references: [id], onDelete: SetNull)
+  ledCrew          Crew?             @relation("CrewLeader")
+  crewApplications CrewApplication[]
+  crewDonations    CrewDonation[]
+
+  @@index([crewId])
+}
+
+// A crew (gang). Only ten can exist at once. Members pay into the crew bank; only the leader can take money out.
+model Crew {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  motto     String?  @db.Text
+  // The questions an applicant must answer, set by the leader: a list of strings.
+  questions Json?
+  bank      Int      @default(0)
+  leaderId  String   @unique
+  createdAt DateTime @default(now())
+
+  leader       Player            @relation("CrewLeader", fields: [leaderId], references: [id], onDelete: Cascade)
+  members      Player[]          @relation("CrewMembers")
+  applications CrewApplication[]
+  donations    CrewDonation[]
+}
+
+// A player's application to join a crew, with their answers. Deleted once the leader decides.
+model CrewApplication {
+  id        String   @id @default(cuid())
+  crewId    String
+  playerId  String
+  answers   Json?
+  createdAt DateTime @default(now())
+
+  crew   Crew   @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([crewId, playerId])
+}
+
+// Money a member put into the crew bank.
+model CrewDonation {
+  id        String   @id @default(cuid())
+  crewId    String
+  playerId  String
+  amount    Int
+  createdAt DateTime @default(now())
+
+  crew   Crew   @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([crewId])
 }
 
 // A car in a player's garage. The model key points into src/lib/era.ts.
