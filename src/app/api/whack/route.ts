@@ -1,4 +1,6 @@
 import { isHiddenStaff } from "@/lib/staff";
+import { lockPlayerId } from "@/lib/lock";
+import { cancelLedOc } from "@/lib/oc";
 import { levelOf } from "@/lib/training";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -80,6 +82,7 @@ export async function POST(req: Request) {
     let message = "";
 
     await prisma.$transaction(async (tx) => {
+      await lockPlayerId(tx, first.id);
       const me = await tx.player.findUnique({ where: { id: first.id } });
       if (!me) throw new Refuse("Player not found.");
       if (me.health <= 0) throw new Refuse("You are dead.");
@@ -146,6 +149,8 @@ export async function POST(req: Request) {
         const stats = equipmentStats(cleanEquipped(me.equipped), levelOf(me.strengthPts));
         if (stats.firepower <= 0) throw new Refuse("You need a gun in your hand. Equip one from your Character.");
 
+        // Lock the target so two shooters can't both "kill" him and both collect the bounties.
+        await lockPlayerId(tx, hunt.targetId);
         const target = await tx.player.findUnique({ where: { id: hunt.targetId } });
         if (!target || target.health <= 0) {
           // Written outside the transaction so the refusal below does not undo it.
@@ -189,6 +194,7 @@ export async function POST(req: Request) {
         });
 
         if (killed) {
+          await cancelLedOc(tx, target.id, target.username);
           await tx.hunt.updateMany({
             where: { targetId: target.id, status: { in: ["searching", "found"] } },
             data: { status: "lost" }
