@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_LEVELS } from "@/lib/era";
+import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_COOLDOWNS, THEFT_LEVELS } from "@/lib/era";
+import { GameImage, JobCard, heatMeter, meter, slugify } from "@/components/GameImage";
 import { clock } from "@/components/EnergyBar";
 import { rankForLevel } from "@/lib/ranks";
 import { energyCostFor } from "@/lib/training";
@@ -188,6 +189,9 @@ export default function AutoTheftSection({
           <div style={{ padding: 10, lineHeight: 1.6 }}>
             {result.success ? (
               <>
+                <div style={{ maxWidth: 300, margin: "0 auto 8px" }}>
+                  <GameImage slot={`cars/${slugify(result.car.name)}`} width="100%" height={150} />
+                </div>
                 <div>
                   You took a <strong>{result.car.name}</strong> from {result.place}. It is now in your
                   garage in {result.city}, plate {result.plate}.
@@ -228,78 +232,50 @@ export default function AutoTheftSection({
 
       <div style={{ ...panel, marginBottom: 6 }}>
         <div style={barStyle}>Auto Theft</div>
-        <div style={{ display: "grid", gap: 0 }}>
+        <div style={{ padding: 6 }}>
           {THEFT_LEVELS.filter(
             (l, i) => rankLevel >= l.minRank || (i === 0 || rankLevel >= THEFT_LEVELS[i - 1].minRank)
           ).map((l) => {
+            const slot = `autotheft/level-${l.level}`;
             if (rankLevel < l.minRank) {
               return (
-                <div
+                <JobCard
                   key={l.level}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "5px 8px",
-                    borderBottom: "1px solid #2b3630",
-                    opacity: 0.6,
-                    background: "#161b18",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#8a8470" }}>
-                      {l.name}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#8a8470" }}>
-                      Unlocks at {rankForLevel(l.minRank)}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="button"
-                    style={{ flexShrink: 0, width: 70, padding: "5px 0", fontSize: 12, opacity: 0.55 }}
-                    disabled
-                  >
-                    Locked
-                  </button>
-                </div>
+                  slot={slot}
+                  title={l.name}
+                  description={l.blurb}
+                  meters={[]}
+                  locked
+                  lockedText={`Unlocks at ${rankForLevel(l.minRank)}`}
+                  buttonLabel="Locked"
+                />
               );
             }
             const wait = theftLeft(l.level);
             const levelEnergy = energyCostFor(l.energy, staminaLevel);
             const tired = energy < levelEnergy;
             const disabled = busy || wait > 0 || tired || jailLeft > 0 || CARS.length === 0;
+            const avgTier = l.weights.reduce((sum, w, i) => sum + w * (i + 1), 0) / 100;
+            const avgHeat = l.heat.reduce((sum, h) => sum + h, 0) / l.heat.length;
             return (
-              <div
+              <JobCard
                 key={l.level}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "5px 8px",
-                  borderBottom: "1px solid #2b3630",
-                  opacity: wait > 0 ? 0.75 : 1,
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#f7efdb" }}>
-                    {l.name}
-                  </div>
-                  <div style={{ ...sub, lineHeight: 1.3 }}>{l.blurb}</div>
-                </div>
-                <span title="Energy cost" style={{ flexShrink: 0, fontSize: 12, color: tired ? "#e08f7f" : "#e4c04d" }}>
-                  ⚡{levelEnergy}
-                </span>
-                <button
-                  type="button"
-                  className="button"
-                  style={{ flexShrink: 0, width: 70, padding: "5px 0", fontSize: 12, opacity: disabled ? 0.55 : 1 }}
-                  disabled={disabled}
-                  onClick={() => steal(l.level)}
-                >
-                  {jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : tired ? "Tired" : "Steal"}
-                </button>
-              </div>
+                slot={slot}
+                title={l.name}
+                description={l.blurb}
+                meters={[
+                  meter("Take", avgTier / 4 * 5, TIER_NAMES[Math.min(4, Math.max(1, Math.round(avgTier)))]),
+                  heatMeter(avgHeat / 16)
+                ]}
+                seconds={THEFT_COOLDOWNS[l.level] ?? 60}
+                energy={levelEnergy}
+                tired={tired}
+                waiting={wait > 0}
+                waitLeft={wait}
+                disabled={disabled}
+                buttonLabel={jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : tired ? "Tired" : "Steal!"}
+                onClick={() => steal(l.level)}
+              />
             );
           })}
         </div>
