@@ -174,7 +174,8 @@ export function JobCard({
   lockedText,
   waiting,
   waitLeft,
-  hideTime
+  hideTime,
+  compact
 }: {
   slot: string;
   title: string;
@@ -191,7 +192,81 @@ export function JobCard({
   waiting?: boolean;
   waitLeft?: number;
   hideTime?: boolean;
+  compact?: boolean;
 }) {
+  if (compact) {
+    const pct =
+      waiting && typeof waitLeft === "number" && typeof seconds === "number" && seconds > 0
+        ? Math.max(0, Math.min(100, (1 - waitLeft / seconds) * 100))
+        : null;
+    return (
+      <div
+        style={{
+          border: "1px solid #6b5d3a",
+          background: "#1f2a25",
+          marginBottom: 4,
+          opacity: locked ? 0.7 : waiting ? 0.85 : 1,
+          position: "relative"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px" }}>
+          <GameImage slot={slot} width={46} height={46} dim={locked} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: "Georgia, serif",
+                fontSize: 14,
+                fontWeight: 700,
+                lineHeight: 1.2,
+                color: locked ? "#8a8470" : "#f7efdb"
+              }}
+            >
+              {title}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                lineHeight: 1.25,
+                color: "#b7ad93",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden"
+              }}
+            >
+              {description}
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 4, justifyItems: "center", flexShrink: 0 }}>
+            {locked ? (
+              <span style={{ fontSize: 10, color: "#8a8470", textAlign: "center", maxWidth: 76 }}>{lockedText}</span>
+            ) : (
+              typeof energy === "number" && (
+                <span style={{ fontSize: 11, color: tired ? "#f09a8c" : "#f1e8d3" }}>
+                  <span style={{ color: "#d9473b" }}>⚡</span> {energy}
+                </span>
+              )
+            )}
+            <button
+              type="button"
+              className="button"
+              style={{ width: 76, padding: "5px 0", fontSize: 13, opacity: disabled || locked ? 0.55 : 1 }}
+              disabled={disabled || locked}
+              onClick={onClick}
+            >
+              {buttonLabel}
+            </button>
+          </div>
+        </div>
+        {pct !== null && (
+          <div style={{ height: 3, background: "#0e1411" }}>
+            <div style={{ height: "100%", width: `${pct}%`, background: "#5f9a2a" }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const body: ReactNode = locked ? (
     <div style={{ fontSize: 12, color: "#8a8470", padding: "4px 0" }}>{lockedText}</div>
   ) : (
