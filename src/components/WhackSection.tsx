@@ -57,8 +57,6 @@ function span(ms: number) {
   return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const minutesText = (m: number) => (m >= 60 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`);
-
 export default function WhackSection({
   onCash
 }: {
@@ -67,7 +65,6 @@ export default function WhackSection({
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
@@ -113,7 +110,6 @@ export default function WhackSection({
         setData(d);
         setMessage(String(d.message ?? ""));
         if (typeof d.money === "number") onCash?.(d.money);
-        if (body.action === "hire") setTarget("");
       }
     } catch {
       setError("Unable to connect. Please try again.");
@@ -132,12 +128,16 @@ export default function WhackSection({
     return "The trail went cold.";
   }
 
+  const targets = (data?.hunts ?? []).filter(
+    (h) => h.status === "found" && h.windowEndsAt && new Date(h.windowEndsAt).getTime() > now
+  );
+
   return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <div style={bar}>Whack</div>
       <div style={{ ...box, borderTop: 0, color: "#c9bfa6", fontSize: 12 }}>
-        Hire a detective to find a man. When he reports, you have {data ? minutesText(data.windowMinutes) : "a few hours"} to
-        get to that city with a gun in your hand and take the shot.
+        Once a detective has found your man, get to his city with a gun in your hand and take the shot before the trail goes cold.
+        Hire detectives on the Search page.
       </div>
 
       {data && (
@@ -157,46 +157,13 @@ export default function WhackSection({
       {message && <p className="notice" style={{ color: "#9be39f" }}>{message}</p>}
 
       <div style={{ marginTop: 8 }}>
-        <div style={bar}>Hire a detective</div>
-        <div style={{ ...box, borderTop: 0, display: "grid", gap: 8 }}>
-          <input
-            style={input}
-            placeholder="Name of the man to find"
-            aria-label="Target name"
-            autoCapitalize="none"
-            autoCorrect="off"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-          />
-          {(data?.detectives ?? []).map((d) => (
-            <div key={d.key} style={{ border: "1px solid #6b5d3a", padding: 8, background: "#17201c" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <strong style={{ fontFamily: "Georgia, serif" }}>{d.name}</strong>
-                <span style={{ color: "#e4c04d" }}>{gbp(d.price)}</span>
-              </div>
-              <div style={{ fontSize: 12, color: "#b7ad93", margin: "2px 0 6px" }}>
-                {d.note} Reports in {minutesText(d.minutes)}.
-              </div>
-              <button
-                type="button"
-                className="button"
-                style={{ padding: "5px 16px", fontSize: 13, opacity: busy || !target.trim() ? 0.55 : 1 }}
-                disabled={busy || !target.trim() || (data ? data.money < d.price : true)}
-                onClick={() => act({ action: "hire", tier: d.key, target: target.trim() })}
-              >
-                {data && data.money < d.price ? "Can't afford" : "Hire"}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ marginTop: 8 }}>
-        <div style={bar}>Your hunts</div>
-        {!data || data.hunts.length === 0 ? (
-          <div style={{ ...box, borderTop: 0, color: "#c9bfa6" }}>No detectives on the payroll.</div>
+        <div style={bar}>Targets found</div>
+        {!data || targets.length === 0 ? (
+          <div style={{ ...box, borderTop: 0, color: "#c9bfa6" }}>
+            No one has been found. Hire a detective on the Search page.
+          </div>
         ) : (
-          data.hunts.map((h) => {
+          targets.map((h) => {
             const live = h.status === "found" && h.windowEndsAt && new Date(h.windowEndsAt).getTime() > now;
             const here = data.city === h.foundCity;
             return (
