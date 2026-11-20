@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const OPTION_KEYS = [
   "allowProfileImages",
   "friendsOnlyImages",
@@ -31,8 +33,12 @@ export async function GET() {
   });
   if (!p) return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
+  const account = await prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } });
+  const left = account ? DAY_MS - (Date.now() - account.createdAt.getTime()) : 0;
+  const suicideInHours = left > 0 ? Math.ceil(left / 3600000) : 0;
+
   const live = p.profileStatus && (!p.statusExpiresAt || p.statusExpiresAt.getTime() > Date.now());
-  return NextResponse.json({ ...p, profileStatus: live ? p.profileStatus : null });
+  return NextResponse.json({ ...p, profileStatus: live ? p.profileStatus : null, suicideInHours });
 }
 
 export async function POST(req: Request) {
@@ -92,6 +98,29 @@ export async function POST(req: Request) {
     }
     await prisma.player.update({ where: { id: me.id }, data });
     return NextResponse.json({ ok: true, message: "Your options have been saved." });
+  }
+
+  if (action === "suicide") {
+    if (body.confirm !== true) {
+      return NextResponse.json({ error: "Please confirm first." }, { status: 400 });
+    }
+    const account = await prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } });
+    const left = account ? DAY_MS - (Date.now() - account.createdAt.getTime()) : 0;
+    if (left > 0) {
+      return NextResponse.json(
+        { error: `Your account must be 24 hours old first. ${Math.ceil(left / 3600000)} hour(s) to go.` },
+        { status: 400 }
+      );
+    }
+    // Same as being shot dead: health to nothing, so the death page takes over.
+    const done = await prisma.player.updateMany({
+      where: { id: me.id, health: { gt: 0 } },
+      data: { health: 0, healthAt: null, diedAt: new Date(), killedBy: "suicide" }
+    });
+    if (done.count === 0) {
+      return NextResponse.json({ error: "You are already dead." }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, message: "You are dead." });
   }
 
   return NextResponse.json({ error: "Unknown action." }, { status: 400 });
