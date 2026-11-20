@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -65,6 +66,14 @@ export async function POST(
         { error: "This discussion is locked." },
         { status: 403 }
       );
+    }
+
+    // Stop floods: at most 10 replies a minute.
+    const recentPosts = await prisma.forumPost.count({
+      where: { authorId: user.player.id, createdAt: { gt: new Date(Date.now() - 60_000) } }
+    });
+    if (recentPosts >= 10) {
+      return NextResponse.json({ error: "Slow down. Try again in a minute." }, { status: 429 });
     }
 
     const post = await prisma.forumPost.create({
