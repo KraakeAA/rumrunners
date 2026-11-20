@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import SiteMenuBar from "@/components/SiteMenuBar";
 
 type Data = {
   username: string;
@@ -104,6 +105,7 @@ export default function ProfileEditor() {
   if (!d) {
     return (
       <main style={{ minHeight: "100vh", background: "#0b0f0d", color: "#f1e8d3", padding: 8 }}>
+        <SiteMenuBar />
         Loading…
       </main>
     );
@@ -121,16 +123,8 @@ export default function ProfileEditor() {
         fontFamily: '"DejaVu Sans", Verdana, Arial, sans-serif'
       }}
     >
+      <SiteMenuBar />
       <div style={{ maxWidth: 560, margin: "0 auto", display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", gap: 6 }}>
-          <a href={`/profile/${encodeURIComponent(d.username)}`} style={{ ...cell, flex: 1, textAlign: "center", color: "#f1e8d3", textDecoration: "none" }}>
-            View profile
-          </a>
-          <a href="/" style={{ ...cell, flex: 1, textAlign: "center", color: "#f1e8d3", textDecoration: "none" }}>
-            Back to game
-          </a>
-        </div>
-
         {msg && (
           <div style={{ ...cell, textAlign: "center", color: good ? "#7fe08f" : "#f09a8c" }}>{msg}</div>
         )}
@@ -161,7 +155,12 @@ export default function ProfileEditor() {
         </section>
 
         <section>
-          <div style={bar}>Profile (View)</div>
+          <a
+            href={`/profile/${encodeURIComponent(d.username)}`}
+            style={{ ...bar, display: "block", textDecoration: "none", cursor: "pointer" }}
+          >
+            Profile (View) ›
+          </a>
           <div style={{ ...cell, background: "#17201c", textAlign: "center", color: "#d4cab2" }}>Quote</div>
           <div style={{ ...cell, display: "grid", gap: 8 }}>
             <textarea
