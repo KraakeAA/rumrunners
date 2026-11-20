@@ -6,6 +6,7 @@ import { getSessionUserId } from "@/lib/session";
 import { renderBB } from "@/lib/bbcode";
 import { wealthStatus } from "@/lib/wealth";
 import SiteMenuBar from "@/components/SiteMenuBar";
+import { staffLevel } from "@/lib/staff";
 
 const ONLINE_MS = 5 * 60 * 1000;
 
@@ -93,6 +94,7 @@ export default async function PlayerProfile({
       showOcStatus: true,
       showOrganization: true,
       crew: { select: { id: true, name: true, color: true } },
+      user: { select: { isAdmin: true, staffRole: true } },
       forumTopics: { select: { id: true } },
       forumPosts: { select: { id: true } },
       jailUntil: true
@@ -127,6 +129,9 @@ export default async function PlayerProfile({
   ]);
   const inCrew = Boolean(led || slot);
 
+  const level = staffLevel(player.user);
+  const staffTitle = level === 3 ? "Admin" : level === 2 ? "Mod" : level === 1 ? "Help Desk" : "";
+  const shownRank = level >= 2 ? staffTitle : player.rank;
   const online = Date.now() - player.updatedAt.getTime() < ONLINE_MS;
   const jailed = player.jailUntil ? player.jailUntil.getTime() > Date.now() : false;
   const alive = player.health > 0;
@@ -204,6 +209,21 @@ export default async function PlayerProfile({
             </div>
           )}
         </div>
+
+        {level > 0 && (
+          <div
+            style={{
+              ...row,
+              justifyContent: "center",
+              padding: "4px 8px",
+              background: level === 3 ? "#0f5a1c" : level === 2 ? "#1e4a6b" : "#3d3a5a",
+              color: "#fff",
+              fontWeight: 700
+            }}
+          >
+            {level === 3 ? "Game Admin" : level === 2 ? "Game Moderator" : "Help Desk Operator"}
+          </div>
+        )}
 
         {player.crew && player.showOrganization && (
           <div
@@ -286,7 +306,7 @@ export default async function PlayerProfile({
           </div>
           <div style={row}>
             <div style={label}>Rank:</div>
-            <div style={value}>{player.rank}</div>
+            <div style={value}>{shownRank}</div>
           </div>
           <div style={row}>
             <div style={label}>Wealth:</div>
