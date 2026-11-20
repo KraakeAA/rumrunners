@@ -315,7 +315,7 @@ const BANNER_PAGES = new Set([
   "Local Bank",
   "Bootlegging", "Organised Crime", "Whack", "Rackets",
   "Marketplace", "Railway", "Garage", "Bullet Factory", "Escrow", "Jail",
-  "Hospital", "Graveyard", "Cities", "Store", "Lottery", "Gold",
+  "Hospital", "Graveyard", "Store", "Lottery", "Gold",
   "Pawn Shop", "Stock Market", "Brothel", "Crew", "Find Player"
 ]);
 
@@ -708,6 +708,7 @@ export default function GameShell({
       setBusy(false);
     }
   }
+
   async function bankAction(action: "deposit" | "withdraw") {
     const amount = Number(bankAmount);
 
