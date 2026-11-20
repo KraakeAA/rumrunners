@@ -1,8 +1,10 @@
+
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/session";
+import { clientIp, tooMany } from "@/lib/ratelimit";
 
 const schema = z.object({
   email: z.string().email().max(254),
@@ -23,18 +25,24 @@ export async function POST(req: Request) {
     );
   }
 
-  const { email, username, password } = parsed.data;
+  const { username, password } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
 
-  const existing = await prisma.user.findUnique({
-    where: { email }
+  if (tooMany(`register:${clientIp(req)}`, 5, 60 * 60_000)) {
+    return NextResponse.json({ error: "Too many sign-ups from here. Try again later." }, { status: 429 });
+  }
+
+  // Emails and names are compared ignoring capitals, so "Ben" and "ben" can't both exist.
+  const existing = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } }
   });
 
-  const nameTaken = await prisma.player.findUnique({
-    where: { username }
+  const nameTaken = await prisma.player.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } }
   });
 
-  const ghostName = await prisma.pastLife.findUnique({
-    where: { username }
+  const ghostName = await prisma.pastLife.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } }
   });
 
   if (existing || nameTaken || ghostName) {
