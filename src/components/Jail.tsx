@@ -19,6 +19,15 @@ type Me = {
   selfBustUsed: boolean;
 };
 
+type BustStats = {
+  wins: number;
+  fails: number;
+  streak: number;
+  best: number;
+  worst: number;
+  milestones: { number: number; freed: string; date: string }[];
+};
+
 const bar: CSSProperties = {
   padding: "6px 8px",
   display: "flex",
@@ -50,6 +59,7 @@ const mins = (secs: number) =>
 export default function JailSection({ onChanged }: { onChanged: () => void }) {
   const [me, setMe] = useState<Me | null>(null);
   const [inmates, setInmates] = useState<Inmate[]>([]);
+  const [stats, setStats] = useState<BustStats | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [good, setGood] = useState(false);
@@ -61,6 +71,7 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
       if (!r.ok) return;
       const d = await r.json();
       setMe(d.me);
+      setStats(d.bustStats ?? null);
       setInmates(d.inmates ?? []);
       setTick(0);
     } catch {
@@ -308,6 +319,81 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
       <p style={{ fontSize: 11, color: "#b7ad93", textAlign: "center", margin: "8px 0 0" }}>
         Higher security means longer odds, and if you fail you end up inside yourself.
       </p>
+
+      {stats && (
+        <>
+          <div style={{ ...bar, marginTop: 12 }}>
+            <span style={{ flex: 1, textAlign: "center" }}>Your Statistics</span>
+          </div>
+          <div style={{ border: "1px solid #6b5d3a", borderTop: 0 }}>
+            {(() => {
+              const total = stats.wins + stats.fails;
+              const pct = (n: number) => (total > 0 ? ((n / total) * 100).toFixed(1) : "0.0");
+              const rows: [string, string, boolean][] = [
+                ["Successful:", `${stats.wins.toLocaleString("en-GB")} (${pct(stats.wins)}%)`, false],
+                ["Failed:", `${stats.fails.toLocaleString("en-GB")} (${pct(stats.fails)}%)`, false],
+                ["Total:", total.toLocaleString("en-GB"), false],
+                ["Current Streak:", String(stats.streak), stats.streak < 0],
+                ["Best Streak:", String(stats.best), false],
+                ["Worst Streak:", String(stats.worst), false]
+              ];
+              return rows.map(([label, value, bad], i) => (
+                <div
+                  key={label}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "34% 1fr",
+                    borderTop: i === 0 ? 0 : "1px solid #6b5d3a",
+                    fontSize: 13
+                  }}
+                >
+                  <div style={{ padding: "5px 6px", background: "#2a382f", borderRight: "1px solid #6b5d3a", color: "#f1e8d3" }}>{label}</div>
+                  <div style={{ padding: "5px 6px", background: bad ? "#523b3b" : "#222e27", color: "#f1e8d3" }}>{value}</div>
+                </div>
+              ));
+            })()}
+          </div>
+
+          <div style={{ ...bar, marginTop: 14 }}>
+            <span style={{ flex: 1, textAlign: "center" }}>Milestone Busts</span>
+          </div>
+          <div style={{ border: "1px solid #6b5d3a", borderTop: 0, fontSize: 13 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "18% 1fr 30%",
+                padding: "5px 8px",
+                fontWeight: 700,
+                background: "#2a382f",
+                borderBottom: "1px solid #6b5d3a"
+              }}
+            >
+              <span>Bust</span>
+              <span style={{ textAlign: "center" }}>Username</span>
+              <span style={{ textAlign: "right" }}>Date</span>
+            </div>
+            {stats.milestones.length === 0 && (
+              <div style={{ padding: 8, textAlign: "center", fontSize: 12, color: "#b7ad93", background: "#222e27" }}>
+                No milestone busts yet. Your 1st, 10th, 25th, 50th and 100th are recorded here.
+              </div>
+            )}
+            {stats.milestones.map((m) => (
+              <div
+                key={m.number}
+                style={{ display: "grid", gridTemplateColumns: "18% 1fr 30%", padding: "6px 8px", background: "#222e27", borderTop: "1px solid #2b3630" }}
+              >
+                <span>{m.number.toLocaleString("en-GB")}</span>
+                <span style={{ textAlign: "center" }}>
+                  <Link href={`/profile/${encodeURIComponent(m.freed)}`} style={{ color: "#f7efdb", textDecoration: "none" }}>
+                    {m.freed}
+                  </Link>
+                </span>
+                <span style={{ textAlign: "right" }}>{m.date}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
