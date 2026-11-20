@@ -1625,3 +1625,319 @@ export default function GameShell({
               onCash={setMoney}
             />
           )}
+
+          {section === "Blackjack" && (
+            <CasinoSection game="Blackjack" cash={money} onCash={setMoney} />
+          )}
+
+          {section === "Roulette" && (
+            <CasinoSection game="Roulette" cash={money} onCash={setMoney} />
+          )}
+
+          {section === "War" && (
+            <CasinoSection game="War" cash={money} onCash={setMoney} />
+          )}
+
+          {section === "Auto Theft" && (
+            <AutoTheftSection
+              rankLevel={rankLevel}
+              energy={energy}
+              staminaLevel={staminaLevel}
+              theftLeft={status.theftLeft}
+              onActed={status.refresh}
+              jailLeft={status.jailLeft}
+              currentCity={currentCity}
+              onCash={setMoney}
+              onResult={(r) => {
+                setEnergy(r.energy);
+                setMoney(r.money);
+                setExperience(r.experience);
+                setRank(r.rank);
+                setRankLevel(r.rankLevel);
+              }}
+            />
+          )}
+
+          {section === "Bootlegging" && <BootleggingSection onCash={setMoney} />}
+
+          {section === "Organised Crime" && <OrganisedCrimeSection />}
+
+          {section === "Whack" && <WhackSection onCash={setMoney} />}
+
+          {section === "Hitlist" && <HitlistSection onCash={setMoney} />}
+
+          {section === "Rackets" && (
+            <p className="flavour">
+              Own and protect criminal rackets for passive income.
+            </p>
+          )}
+
+          {section === "Marketplace" && (
+            <GoldMarketplace onCash={setMoney} onGold={setGold} />
+          )}
+
+          {section === "Railway" && (
+            <TravelSection onArrive={(city) => setCurrentCity(city)} />
+          )}
+
+          {section === "Garage" && <GarageSection />}
+
+          {section === "Bullet Factory" && (
+            <BulletFactorySection
+              onCash={setMoney}
+              onBullets={setBullets}
+            />
+          )}
+
+          {section === "Escrow" && <EscrowSection onCash={setMoney} onGold={setGold} />}
+
+          {section === "Jail" && (
+            <JailSection onChanged={status.refresh} />
+          )}
+
+          {section === "Hospital" && <HospitalSection onCash={setMoney} />}
+
+          {section === "Graveyard" && <GraveyardSection />}
+
+          {section === "Gymnasium" && (
+            <GymnasiumSection
+              onEnergy={setEnergy}
+              onLevels={onTrainingLevels}
+            />
+          )}
+
+          {section === "Search" && <SearchSection onCash={setMoney} />}
+
+          {section === "Updates" && (
+            <p className="flavour">
+              Development updates will be posted here.
+            </p>
+          )}
+
+          {section === "Cities" && (
+            <CitiesSection />
+          )}
+
+          {section === "Find Player" && <FindPlayerSection />}
+
+          {section === "Mailbox" && (
+            <MailboxSection
+              onOpenOc={() => navigate("Organised Crime")}
+              onReply={openLetter}
+              refreshKey={latestMailId}
+              onChanged={() => {
+                status.refresh();
+                checkBalanceRef.current();
+              }}
+            />
+          )}
+
+          {section === "Send Letter" && (
+            <SendLetterSection key={letterTo} initialTo={letterTo} />
+          )}
+
+          {section === "Saved Mail" && (
+            <p className="flavour">
+              Your saved messages.
+            </p>
+          )}
+
+          {section === "Classifieds" && (
+            <ForumBoard
+              key="CLASSIFIEDS"
+              category="CLASSIFIEDS"
+              title="Classifieds"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
+          )}
+
+          {section === "Off Topic" && (
+            <ForumBoard
+              key="OFF_TOPIC"
+              category="OFF_TOPIC"
+              title="Off Topic"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
+          )}
+
+          {section === "Crew" && (
+            <p className="flavour">
+              Your crew and criminal associates.
+            </p>
+          )}
+
+          {section === "Gold" && (
+            <p className="flavour">
+              Premium currency. Not yet active.
+            </p>
+          )}
+
+          {section === "Store" && <StoreSection onCash={setMoney} />}
+
+          {section === "Pawn Shop" && (
+            <p className="flavour">
+              Buy and sell items at the pawn shop.
+            </p>
+          )}
+
+          {section === "Stock Market" && (
+            <p className="flavour">
+              Investments and the stock market.
+            </p>
+          )}
+
+          {section === "Brothel" && (
+            <p className="flavour">
+              Visit the city&apos;s establishments.
+            </p>
+          )}
+
+          {section === "Lottery" && <LotterySection onCash={setMoney} />}
+
+          {section === "Rumrunners Live" && (
+            <p className="flavour">
+              Live news from the underworld.
+            </p>
+          )}
+
+          {section === "Wiki" && (
+            <p className="flavour">
+              The Rumrunners game guide.
+            </p>
+          )}
+
+          {section === "Terms of Service" && (
+            <p className="flavour">
+              Game rules and terms of service.
+            </p>
+          )}
+
+          {section === "Help Desk" && (
+            <p className="flavour">
+              Help and support for players.
+            </p>
+          )}
+
+          {section === "Suggestion Box" && (
+            <p className="flavour">
+              Send suggestions for future improvements.
+            </p>
+          )}
+
+          {section === "Full Site" && (
+            <p className="flavour">
+              You are viewing the full Rumrunners game.
+            </p>
+          )}
+
+          {section === "Profile" && (
+            <p className="flavour">
+              Your player profile.
+            </p>
+          )}
+
+          {section === "Forums" && (
+            <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", display: "grid", gap: 6 }}>
+              <div style={{ ...titleBarStyle, fontSize: 16, padding: "6px 8px" }}>Forums</div>
+              {[
+                { name: "Game", note: "Talk about the game, news and updates." },
+                { name: "Classifieds", note: "Buy, sell and trade with other players." },
+                { name: "Off Topic", note: "The public house. Anything beyond the game." }
+              ].map((f) => (
+                <button
+                  key={f.name}
+                  type="button"
+                  className="nav-item"
+                  onClick={() => navigate(f.name)}
+                  style={{ width: "100%" }}
+                >
+                  <strong style={{ display: "block", fontSize: 14 }}>{f.name}</strong>
+                  <span style={{ fontSize: 11, color: "#b7ad93", fontFamily: "inherit" }}>{f.note}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {section === "Game" && (
+            <ForumBoard
+              key="OFFICIAL"
+              category="OFFICIAL"
+              title="Game"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
+          )}
+
+          {section !== "Home" &&
+            section !== "Crimes" &&
+            section !== "Local Bank" &&
+            notice && (
+              <p className="notice">{notice}</p>
+            )}
+          </>
+          )}
+          </>
+          )}
+        </main>
+
+        {/* MENU */}
+        <aside
+          className="sidebar"
+        >
+          {selectedGroup === "" ? (
+            <>
+              <p className="side-heading">MENU</p>
+
+              <div className="category-grid">
+                {menuGroups.map((group) => (
+                  <button
+                    key={group.title}
+                    className="nav-category"
+                    onClick={() => setSelectedGroup(group.title)}
+                  >
+                    {group.title}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="category-content">
+              <button
+                className="category-back"
+                onClick={() => setSelectedGroup("")}
+              >
+                « {selectedGroup}
+              </button>
+
+              <div className="nav-buttons">
+                {menuGroups
+                  .find((g) => g.title === selectedGroup)
+                  ?.items.map((item) => (
+                    <button
+                      key={item}
+                      className={
+                        item === "Logout"
+                          ? "nav-item logout-menu-item"
+                          : section === item
+                            ? "nav-item active"
+                            : "nav-item"
+                      }
+                      onClick={() => navigate(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      <footer className="footer">
+        RUMRUNNERS · A CITY WITH ITS OWN RULES
+      </footer>
+    </div>
+  );
+}
