@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type ReactNode
 } from "react";
+import GameStatistics from "@/components/GameStatistics";
 import { rankForLevel } from "@/lib/ranks";
 import BootleggingSection from "@/components/Bootlegging";
 import AutoTheftSection from "@/components/AutoTheft";
@@ -818,6 +819,7 @@ export default function GameShell({
       (n, g) => Math.max(n, g.biggestPayout),
       0
     );
+
     const sortedCrimes = [...crimeByType].sort((a, b) =>
       a.crimeType.localeCompare(b.crimeType)
     );
@@ -1555,8 +1557,8 @@ export default function GameShell({
           ) : (
           <>
           {BANNER_PAGES.has(section) && <Banner slot={`banners/${slugify(section)}`} />}
-          {(section === "Home" || section === "Statistics") &&
-            renderStatistics()}
+          {section === "Home" && renderStatistics()}
+          {section === "Statistics" && <GameStatistics />}
 
           {section === "Crimes" && (
             <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
@@ -1617,6 +1619,7 @@ export default function GameShell({
                   ? `Tier ${activeTier + 1} · unlocked`
                   : `Tier ${activeTier + 1} unlocks at ${rankForLevel(crimeTiers[activeTier][0].minRankLevel)}`}
               </div>
+
               <div style={{ display: "grid", gap: 4 }}>
                 {crimeTiers[activeTier].map((baseCrime) => {
                   const crime = crimeForCity(baseCrime, currentCity);
