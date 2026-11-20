@@ -142,8 +142,8 @@ export default function GymnasiumSection({
                       pointerEvents: "none"
                     }}
                   >
-                    <span style={{ fontSize: 15 }}>Level</span>
-                    <span style={{ fontSize: 34, lineHeight: 1 }}>{s.level}</span>
+                    <span style={{ fontSize: 12 }}>Level</span>
+                    <span style={{ fontSize: 26, lineHeight: 1 }}>{s.level}</span>
                   </div>
                 </div>
 
