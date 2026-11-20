@@ -27,7 +27,7 @@ const bar: CSSProperties = {
   padding: "6px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 16,
+  fontSize: 15,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderTop: "1px solid #b0904a",
