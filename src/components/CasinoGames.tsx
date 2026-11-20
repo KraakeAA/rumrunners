@@ -216,13 +216,13 @@ export default function CasinoGames({
           style={{
             padding: 7,
             textAlign: "center",
-            background: "#34291e",
-            borderBottom: "1px solid #705638",
+            background: "#2a382f",
+            borderBottom: "1px solid #6b5d3a",
             fontSize: 14,
-            color: "#e2cda9",
+            color: "#f1e8d3",
           }}
         >
-          <span style={{ color: "#bd8b4d" }}>◉</span> Keno Draw
+          {ownerLabel}
         </div>
 
         {result && (
@@ -231,11 +231,12 @@ export default function CasinoGames({
               margin: "10px 10px 5px",
               padding: 14,
               borderRadius: 4,
-              background: "#403b38",
+              background: "#17201c",
+              border: "1px solid #6b5d3a",
               textAlign: "center",
               fontSize: 14,
               lineHeight: 1.5,
-              color: "#e6e1dc",
+              color: "#f1e8d3",
               fontWeight: 700,
             }}
           >
@@ -250,24 +251,7 @@ export default function CasinoGames({
           </div>
         )}
 
-        {!result && (
-          <div
-            style={{
-              margin: "9px 10px 5px",
-              padding: 8,
-              background: "#302820",
-              border: "1px solid #705638",
-              borderRadius: 3,
-              textAlign: "center",
-              fontSize: 12,
-              color: "#d4c09e",
-            }}
-          >
-            Choose 10 numbers · {selected.length}/10 selected
-          </div>
-        )}
-
-        <div
+                <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
@@ -493,12 +477,12 @@ export default function CasinoGames({
             style={{
               margin: "0 10px 10px",
               padding: 8,
-              background: "#302820",
-              border: "1px solid #705638",
+              background: "#17201c",
+              border: "1px solid #6b5d3a",
               borderRadius: 3,
               textAlign: "center",
               fontSize: 11,
-              color: "#cbb99a",
+              color: "#d4cab2",
               lineHeight: 1.8,
             }}
           >
@@ -602,7 +586,7 @@ export default function CasinoGames({
     >
       <div
         style={{
-          width: "min(100%, 360px)",
+          width: "min(100%, 250px)",
           overflow: "hidden",
           border: "2px solid #b0904a",
           borderRadius: 2,
@@ -615,7 +599,7 @@ export default function CasinoGames({
         {/* Antique gold machine header */}
         <div
           style={{
-            minHeight: 42,
+            minHeight: 32,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -653,7 +637,7 @@ export default function CasinoGames({
               <div
                 key={`${index}-${symbol}`}
                 style={{
-                  height: "clamp(76px, 22vw, 105px)",
+                  height: "clamp(52px, 16vw, 68px)",
                   minWidth: 0,
                   background: "#fffaf0",
                   display: "flex",
@@ -685,7 +669,7 @@ export default function CasinoGames({
         <div
           aria-live="polite"
           style={{
-            minHeight: 39,
+            minHeight: 30,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -713,13 +697,13 @@ export default function CasinoGames({
         {/* Compact bronze and gold control cabinet */}
         <div
           style={{
-            minHeight: 225,
-            padding: "24px 12px 20px",
+            minHeight: 0,
+            padding: "12px 10px 12px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "flex-start",
-            gap: 10,
+            gap: 8,
             boxSizing: "border-box",
             background:
               "linear-gradient(145deg, #70583b 0%, #5b452d 25%, #493520 55%, #352516 80%, #291b10 100%)",
@@ -738,7 +722,7 @@ export default function CasinoGames({
           >
             <span
               style={{
-                fontSize: 37,
+                fontSize: 26,
                 lineHeight: 1,
                 fontWeight: 300,
                 color: "#f0d7a5",
@@ -758,15 +742,15 @@ export default function CasinoGames({
               disabled={busy}
               aria-label="Slot machine bet amount"
               style={{
-                width: 112,
+                width: 96,
                 maxWidth: "55%",
-                height: 49,
+                height: 40,
                 padding: "5px 8px",
                 border: "2px solid #c4a675",
                 borderRadius: 7,
                 background: "#f7f4ed",
                 color: "#17120c",
-                fontSize: 24,
+                fontSize: 18,
                 textAlign: "center",
                 boxSizing: "border-box",
               }}
@@ -778,15 +762,15 @@ export default function CasinoGames({
             onClick={play}
             disabled={busy}
             style={{
-              minWidth: 155,
-              minHeight: 39,
+              minWidth: 130,
+              minHeight: 34,
               padding: "5px 18px",
               borderRadius: 24,
               border: "2px solid #c5b18c",
               background:
                 "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
               color: "#17130e",
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: 500,
               boxShadow: "0 2px 3px #100d09",
               cursor: busy ? "wait" : "pointer",
