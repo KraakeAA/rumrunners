@@ -162,8 +162,8 @@ export default function GoldMarketplace({
             <div key={l.id} style={l.mine ? mineBox : box}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "Georgia, serif", fontSize: 15, color: "#f7efdb" }}>
-                    <strong style={{ fontSize: 18 }}>{l.remaining.toLocaleString("en-GB")}</strong> gold coins
+                  <div style={{ fontFamily: "Georgia, serif", fontSize: 13, color: "#f7efdb" }}>
+                    <strong style={{ fontSize: 15 }}>{l.remaining.toLocaleString("en-GB")}</strong> gold coins
                   </div>
                   <div style={{ fontSize: 11, color: "#b7ad93" }}>
                     {l.batchSize === 1
