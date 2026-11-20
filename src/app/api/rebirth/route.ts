@@ -115,6 +115,7 @@ export async function POST(req: Request) {
       await tx.car.deleteMany({ where: { ownerId: me.id } });
       await tx.crimeLog.deleteMany({ where: { playerId: me.id } });
       await tx.casinoLog.deleteMany({ where: { playerId: me.id } });
+      await tx.bustMilestone.deleteMany({ where: { playerId: me.id } });
       await tx.lotteryTicket.deleteMany({ where: { playerId: me.id } });
       await tx.blackjackHand.deleteMany({ where: { playerId: me.id } });
       await tx.organisedCrime.deleteMany({ where: { leaderId: me.id } });
@@ -178,6 +179,11 @@ export async function POST(req: Request) {
           jailReason: null,
           jailSecurity: 1,
           selfBustUsed: false,
+          bustWins: 0,
+          bustFails: 0,
+          bustStreak: 0,
+          bustBest: 0,
+          bustWorst: 0,
           garageSlots: 5,
           cargo: Prisma.DbNull,
           cargoFrom: Prisma.DbNull,
