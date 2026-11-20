@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { HOUSE_MAX_BET } from "@/lib/venues";
+import { HOUSE_MAX_BET, houseMaxBet, isHouseOnly } from "@/lib/venues";
 import { expireEscrowIfStale } from "@/lib/escrow";
 
 type Tx = Prisma.TransactionClient;
@@ -18,9 +18,17 @@ async function openTable(tx: Tx, userId: string, game: string, bet: number) {
   if (player.jailUntil && player.jailUntil.getTime() > Date.now()) throw new Error("JAILED");
 
   const city = player.currentCity || "London";
-  await tx.casino.createMany({ data: [{ city, game, maxBet: HOUSE_MAX_BET }], skipDuplicates: true });
-  const casino = await tx.casino.findUnique({ where: { city_game: { city, game } } });
-  if (!casino) throw new Error("CASINO_NOT_FOUND");
+  await tx.casino.createMany({ data: [{ city, game, maxBet: houseMaxBet(game) }], skipDuplicates: true });
+  const found = await tx.casino.findUnique({ where: { city_game: { city, game } } });
+  if (!found) throw new Error("CASINO_NOT_FOUND");
+
+  // War is always the house: no owner, no escrow, a fixed limit.
+  if (isHouseOnly(game)) {
+    if (bet > houseMaxBet(game)) throw new Error("OVER_MAX_BET:" + houseMaxBet(game));
+    return { player, casino: { ...found, ownerId: null, escrowId: null }, city };
+  }
+
+  const casino = found;
   if (casino.ownerId === player.id) throw new Error("OWN_CASINO");
 
   // A casino held by the Escrow agent is shut. If its trade has run out of time it is released first.
@@ -132,6 +140,8 @@ export function wagerError(error: unknown, game: string) {
       { status: 400 }
     );
   }
+  if (message === "HOUSE_ONLY")
+    return NextResponse.json({ error: "This table is always run by the house." }, { status: 400 });
   if (message === "PLAYER_NOT_FOUND")
     return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
