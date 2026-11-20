@@ -1,4 +1,5 @@
 import { agilityBonus, levelOf } from "@/lib/training";
+import { lockPlayer } from "@/lib/lock";
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const me = await tx.player.findUnique({ where: { userId } });
       if (!me) throw new Error("PLAYER_NOT_FOUND");
 
