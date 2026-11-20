@@ -5,7 +5,7 @@ export type GameStats = {
   takenAt: string;
   players: { total: number; alive: number };
   money: { cash: number; bank: number; crewBanks: number; total: number; gold: number; previousTotal: number | null };
-  crimes: { total: number; succeeded: number; failed: number; cashEarned: number; byType: { crimeType: string; total: number; succeeded: number }[] };
+  crimes: { total: number; succeeded: number; failed: number; cashEarned: number };
   autoTheft: { stolen: number; failed: number; carsNow: number };
   organisedCrime: { jobs: number; earned: number };
   kills: number;
@@ -38,7 +38,7 @@ export async function getGameStats(): Promise<GameStats> {
     }),
     prisma.crew.aggregate({ _sum: { bank: true } }),
     prisma.crimeLog.groupBy({
-      by: ["crimeType", "success"],
+      by: ["success"],
       _count: { _all: true },
       _sum: { cashChange: true }
     }),
@@ -46,21 +46,15 @@ export async function getGameStats(): Promise<GameStats> {
     prisma.car.count()
   ]);
 
-  const byTypeMap = new Map<string, { total: number; succeeded: number }>();
-  let crimeTotal = 0;
-  let crimeWon = 0;
-  let cashEarned = 0;
+  let crimeTotal = retired?.crimesTotal ?? 0;
+  let crimeWon = retired?.crimesWon ?? 0;
+  let cashEarned = retired?.crimeCash ?? 0;
   for (const g of crimeGroups) {
-    const n = g._count._all;
-    const e = byTypeMap.get(g.crimeType) ?? { total: 0, succeeded: 0 };
-    e.total += n;
-    crimeTotal += n;
+    crimeTotal += g._count._all;
     if (g.success) {
-      e.succeeded += n;
-      crimeWon += n;
+      crimeWon += g._count._all;
       cashEarned += Math.max(0, g._sum.cashChange ?? 0);
     }
-    byTypeMap.set(g.crimeType, e);
   }
 
   const cash = sums._sum.money ?? 0;
@@ -82,10 +76,7 @@ export async function getGameStats(): Promise<GameStats> {
       total: crimeTotal,
       succeeded: crimeWon,
       failed: crimeTotal - crimeWon,
-      cashEarned,
-      byType: Array.from(byTypeMap, ([crimeType, v]) => ({ crimeType, ...v })).sort((a, b) =>
-        a.crimeType.localeCompare(b.crimeType)
-      )
+      cashEarned
     },
     autoTheft: {
       stolen: (sums._sum.theftWins ?? 0) + (retired?.theftWins ?? 0),
