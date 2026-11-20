@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lockPlayer } from "@/lib/lock";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { denyIfDead } from "@/lib/alive";
@@ -161,6 +162,7 @@ export async function POST(req: Request) {
     const id = String(body.id ?? "");
 
     const message = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
       const me = await tx.player.findUnique({ where: { userId } });
       if (!me) throw new Refuse("Player not found.");
 
@@ -172,6 +174,7 @@ export async function POST(req: Request) {
         if (!other) throw new Refuse("Nobody by that name.");
         if (other.id === me.id) throw new Refuse("You can't trade with yourself.");
         if (other.health <= 0) throw new Refuse("That player is dead.");
+
         const already = await tx.escrow.findFirst({
           where: {
             status: { in: ["invited", "active"] },
