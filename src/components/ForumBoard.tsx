@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 
-export type ForumCategory = "OFFICIAL" | "CLASSIFIEDS" | "OFF_TOPIC";
+export type ForumCategory = "OFFICIAL" | "CLASSIFIEDS" | "OFF_TOPIC" | "SUGGESTIONS";
 
 type Post = {
   id: string;
