@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import SiteMenuBar from "@/components/SiteMenuBar";
 
 type OnlinePlayer = {
   username: string;
@@ -58,6 +59,7 @@ export default function UsersOnlinePage() {
         fontFamily: '"DejaVu Sans", Verdana, Arial, sans-serif',
       }}
     >
+      <SiteMenuBar />
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div
           style={{
