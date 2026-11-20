@@ -48,9 +48,11 @@ const bar: CSSProperties = {
   alignItems: "center"
 };
 
+const SLOT_H = 52;
+
 const slotBox = (filled: boolean, picked: boolean): CSSProperties => ({
   width: "100%",
-  minHeight: 40,
+  height: SLOT_H,
   boxSizing: "border-box",
   padding: 2,
   display: "flex",
@@ -58,18 +60,30 @@ const slotBox = (filled: boolean, picked: boolean): CSSProperties => ({
   alignItems: "center",
   justifyContent: "center",
   textAlign: "center",
-  gap: 2,
-  border: picked ? "2px solid #e4c04d" : "1px solid #6b5d3a",
-  borderRadius: 3,
-  background: filled ? "linear-gradient(180deg, #2f3a33, #1b231e)" : "#121815",
-  color: filled ? "#f1e8d3" : "#6f6a58",
-  fontSize: 9,
-  lineHeight: 1.1,
+  gap: 1,
+  overflow: "hidden",
+  border: picked ? "1px solid #e4c04d" : "1px solid #4a463c",
+  borderRadius: 4,
+  background: filled ? "linear-gradient(180deg, #34322c, #1d1c19)" : "linear-gradient(180deg, #232320, #151513)",
+  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.7)",
+  color: filled ? "#f1e8d3" : "#77746a",
+  fontSize: 8,
+  lineHeight: 1.15,
   textTransform: filled ? "none" : "uppercase",
-  letterSpacing: filled ? 0 : 0.5,
+  letterSpacing: filled ? 0 : 0.6,
   cursor: "pointer",
   fontFamily: "inherit"
 });
+
+const slotName: CSSProperties = {
+  fontSize: 9,
+  lineHeight: 1.1,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+  wordBreak: "break-word"
+};
 
 const smallBtn: CSSProperties = {
   padding: "6px 14px",
@@ -94,7 +108,7 @@ function Figure({ worn }: { worn: Record<string, string | undefined> }) {
   const side = worn.sidearm;
 
   return (
-    <svg viewBox="0 0 100 150" width="100%" style={{ maxHeight: 130 }} aria-hidden="true">
+    <svg viewBox="0 0 100 150" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ maxHeight: 190 }} aria-hidden="true">
       {/* Behind the figure: the door and the car */}
       {home && (
         <g>
@@ -313,7 +327,7 @@ export default function CharacterPanel({
           maxWidth: 340,
           boxSizing: "border-box",
           border: "1px solid #6b5d3a",
-          background: "#161d19",
+          background: "#1b1b19",
           color: "#f1e8d3",
           fontSize: 12
         }}
@@ -328,10 +342,10 @@ export default function CharacterPanel({
             borderTop: "1px solid #6b5d3a",
             borderBottom: "1px solid #6b5d3a",
             fontFamily: "inherit",
-            fontSize: 14
+            fontSize: 15
           }}
         >
-          <strong style={{ letterSpacing: 1.5 }}>CHARACTER</strong>
+          <strong style={{ letterSpacing: 2 }}>CHARACTER</strong>
           <button
             type="button"
             aria-label="Close"
@@ -351,145 +365,171 @@ export default function CharacterPanel({
 
         {data && (
           <>
-            {/* SLOTS AROUND THE FIGURE */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "58px 1fr 58px",
-                gap: 4,
-                padding: 6,
-                alignItems: "start"
-              }}
-            >
-              <div style={{ display: "grid", gap: 4 }}>
-                {slotCol("left").map((s) => (
-                  <button
-                    key={s.key}
-                    type="button"
-                    onClick={() => tapSlot(s)}
-                    style={slotBox(!!s.item, !!s.item && s.item.type === picked)}
-                  >
-                    {s.item ? (
-                      <>
-                        <strong style={{ fontSize: 10 }}>{s.item.name}</strong>
-                        <span style={{ color: "#9be39f" }}>+{s.item.value}%</span>
-                      </>
-                    ) : (
-                      s.label
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ textAlign: "center", minWidth: 0 }}>
-                <div style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 13, overflowWrap: "anywhere" }}>
-                  {data.name}
+            {/* STAGE: SLOTS AROUND THE FIGURE */}
+            <div style={{ background: "linear-gradient(180deg, #232321, #141412)", borderBottom: "1px solid #3a372f" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "56px 1fr 56px",
+                  gap: 6,
+                  padding: "8px 8px 6px"
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4 }}>
+                  {slotCol("left").map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      title={s.item?.name ?? s.label}
+                      onClick={() => tapSlot(s)}
+                      style={slotBox(!!s.item, !!s.item && s.item.type === picked)}
+                    >
+                      {s.item ? (
+                        <>
+                          <strong style={slotName}>{s.item.name}</strong>
+                          <span style={{ color: "#9be39f", fontSize: 9 }}>+{s.item.value}%</span>
+                        </>
+                      ) : (
+                        s.label
+                      )}
+                    </button>
+                  ))}
                 </div>
-                <Figure worn={Object.fromEntries(data.slots.map((sl) => [sl.key, sl.item?.type]))} />
-                <div style={{ fontSize: 12, color: "#b7ad93" }}>{data.rank}</div>
-                <div
-                  aria-label={`Health ${data.health}%`}
-                  style={{ margin: "4px auto 0", height: 10, width: "90%", background: "#2a1a17", border: "1px solid #55452e" }}
-                >
+
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0, minHeight: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, letterSpacing: 0.3, overflowWrap: "anywhere", textAlign: "center" }}>
+                    {data.name}
+                  </div>
+                  <div style={{ flex: 1, minHeight: 0, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Figure worn={Object.fromEntries(data.slots.map((sl) => [sl.key, sl.item?.type]))} />
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 3 }}>{data.rank}</div>
                   <div
+                    aria-label={`Health ${data.health}%`}
                     style={{
-                      height: "100%",
-                      width: `${Math.max(0, Math.min(100, data.health))}%`,
-                      background: data.health > 50 ? "#4caf50" : data.health > 25 ? "#d9a441" : "#c0392b"
+                      position: "relative",
+                      width: "100%",
+                      height: 13,
+                      background: "#1a1210",
+                      border: "1px solid #55503f",
+                      borderRadius: 7,
+                      overflow: "hidden"
                     }}
-                  />
-                </div>
-                <div style={{ fontSize: 11, color: "#b7ad93" }}>{data.health}% health</div>
-              </div>
-
-              <div style={{ display: "grid", gap: 4 }}>
-                {slotCol("right").map((s) => (
-                  <button
-                    key={s.key}
-                    type="button"
-                    onClick={() => tapSlot(s)}
-                    style={slotBox(!!s.item, !!s.item && s.item.type === picked)}
                   >
-                    {s.item ? (
-                      <>
-                        <strong style={{ fontSize: 10 }}>{s.item.name}</strong>
-                        <span style={{ color: "#e4c04d" }}>Attack {s.item.value}</span>
-                      </>
-                    ) : (
-                      s.label
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${Math.max(0, Math.min(100, data.health))}%`,
+                        background:
+                          data.health > 50
+                            ? "linear-gradient(180deg, #6fd34a, #2f8a22)"
+                            : data.health > 25
+                              ? "linear-gradient(180deg, #e0b24a, #8a6416)"
+                              : "linear-gradient(180deg, #d64a3a, #7a1c12)"
+                      }}
+                    />
+                    <span style={{ position: "absolute", inset: 0, textAlign: "right", paddingRight: 6, fontSize: 9, lineHeight: "11px", fontWeight: 700, color: "#fff", textShadow: "0 1px 1px #000" }}>
+                      {data.health}%
+                    </span>
+                  </div>
+                </div>
 
-            {/* CASH, GOLD AND BULLETS */}
-            <div style={{ padding: "4px 10px", background: "#121815", borderTop: "1px solid #2a3a30", display: "grid", gap: 4 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  aria-hidden="true"
-                  style={{ width: 22, height: 12, borderRadius: 2, border: "1px solid #3f8a4d", background: "linear-gradient(135deg, #4f9a5a, #2a5c34)", flexShrink: 0 }}
-                />
-                <span style={{ fontSize: 13 }}>{gbp(data.money)}</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {slotCol("right").map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      title={s.item?.name ?? s.label}
+                      onClick={() => tapSlot(s)}
+                      style={slotBox(!!s.item, !!s.item && s.item.type === picked)}
+                    >
+                      {s.item ? (
+                        <>
+                          <strong style={slotName}>{s.item.name}</strong>
+                          <span style={{ color: "#e4c04d", fontSize: 9 }}>Attack {s.item.value}</span>
+                        </>
+                      ) : (
+                        s.label
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  aria-hidden="true"
-                  style={{ width: 16, height: 16, marginLeft: 3, borderRadius: "50%", border: "1px solid #7a5a0c", background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)", flexShrink: 0 }}
-                />
-                <span style={{ fontSize: 13 }}>{data.gold.toLocaleString("en-GB")}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <svg viewBox="0 0 24 12" width="22" height="12" aria-hidden="true" style={{ flexShrink: 0 }}>
-                  <rect x="1" y="2" width="16" height="3.5" rx="1.5" fill="#b08040" />
-                  <rect x="15" y="2" width="6" height="3.5" rx="1.5" fill="#d9a441" />
-                  <rect x="3" y="7" width="16" height="3.5" rx="1.5" fill="#b08040" />
-                  <rect x="17" y="7" width="6" height="3.5" rx="1.5" fill="#d9a441" />
-                </svg>
-                <span style={{ fontSize: 13 }}>{data.bullets.toLocaleString("en-GB")}</span>
+
+              {/* CASH, GOLD AND BULLETS */}
+              <div style={{ padding: "2px 12px 8px", display: "grid", gap: 3 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, height: 18 }}>
+                  <span
+                    aria-hidden="true"
+                    style={{ width: 22, height: 11, borderRadius: 2, border: "1px solid #3f8a4d", background: "linear-gradient(135deg, #4f9a5a, #2a5c34)", flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: 13 }}>{gbp(data.money)}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, height: 18 }}>
+                  <span
+                    aria-hidden="true"
+                    style={{ width: 14, height: 14, marginLeft: 4, borderRadius: "50%", border: "1px solid #7a5a0c", background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)", flexShrink: 0, boxSizing: "border-box" }}
+                  />
+                  <span style={{ fontSize: 13, marginLeft: 4 }}>{data.gold.toLocaleString("en-GB")}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, height: 18 }}>
+                  <svg viewBox="0 0 24 12" width="22" height="11" aria-hidden="true" style={{ flexShrink: 0 }}>
+                    <rect x="1" y="2" width="16" height="3.5" rx="1.5" fill="#b08040" />
+                    <rect x="15" y="2" width="6" height="3.5" rx="1.5" fill="#d9a441" />
+                    <rect x="3" y="7" width="16" height="3.5" rx="1.5" fill="#b08040" />
+                    <rect x="17" y="7" width="6" height="3.5" rx="1.5" fill="#d9a441" />
+                  </svg>
+                  <span style={{ fontSize: 13 }}>{data.bullets.toLocaleString("en-GB")}</span>
+                </div>
               </div>
             </div>
 
             {/* ATTRIBUTES, FIREPOWER AND DEFENCE */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 6,
-                padding: 6,
-                background: "#1b211d",
-                borderTop: "1px solid #2a3a30",
-                borderBottom: "1px solid #2a3a30"
-              }}
-            >
-              <div style={{ border: "1px solid #3a3a34", background: "#141916", padding: "4px 8px", lineHeight: 1.45, fontSize: 12 }}>
-                <div><span>{data.strengthLevel}</span> <span style={{ color: "#e4a03a" }}>Strength</span></div>
-                <div><span>{data.staminaLevel}</span> <span style={{ color: "#e4a03a" }}>Stamina</span></div>
-                <div><span>{data.agilityLevel}</span> <span style={{ color: "#e4a03a" }}>Agility</span></div>
+            <div style={{ display: "flex", gap: 6, padding: 8, background: "#262624", borderBottom: "1px solid #3a372f" }}>
+              <div
+                aria-hidden="true"
+                style={{
+                  writingMode: "vertical-rl",
+                  transform: "rotate(180deg)",
+                  fontSize: 9,
+                  letterSpacing: 2,
+                  color: "#a8a59a",
+                  textAlign: "center",
+                  flexShrink: 0
+                }}
+              >
+                ATTRIBUTES
               </div>
+              <div style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ border: "1px solid #3d3b34", background: "#151513", borderRadius: 3, padding: "6px 10px", lineHeight: 1.5, fontSize: 12 }}>
+                  <div><span style={{ display: "inline-block", width: 18 }}>{data.strengthLevel}</span><span style={{ color: "#f0a030" }}>Strength</span></div>
+                  <div><span style={{ display: "inline-block", width: 18 }}>{data.staminaLevel}</span><span style={{ color: "#f0a030" }}>Stamina</span></div>
+                  <div><span style={{ display: "inline-block", width: 18 }}>{data.agilityLevel}</span><span style={{ color: "#f0a030" }}>Agility</span></div>
+                </div>
 
-              <div style={{ textAlign: "center" }}>
-                <div style={{ display: "flex", justifyContent: "space-around" }}>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "#e4c04d" }}>{data.firepower}</div>
-                    <div style={{ fontSize: 12, color: "#d4cab2" }}>Firepower</div>
+                <div style={{ textAlign: "center", minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-around" }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.1, color: "#f0c040" }}>{data.firepower}</div>
+                      <div style={{ fontSize: 11, color: "#d4d0c4" }}>Firepower</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.1, color: "#70c0f0" }}>{data.protection}%</div>
+                      <div style={{ fontSize: 11, color: "#d4d0c4" }}>Defence</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "#8ec9e8" }}>{data.protection}%</div>
-                    <div style={{ fontSize: 12, color: "#d4cab2" }}>Defence</div>
+                  <div style={{ position: "relative", height: 13, marginTop: 7, background: "#2a1210", border: "1px solid #55503f", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: `${Math.max(0, Math.min(100, data.health))}%`, height: "100%", background: "linear-gradient(180deg, #e04030, #801810)" }} />
+                    <span style={{ position: "absolute", inset: 0, fontSize: 9, lineHeight: "12px", fontWeight: 700, color: "#fff", textShadow: "0 1px 1px #000" }}>
+                      {data.health} / 100
+                    </span>
                   </div>
-                </div>
-                <div style={{ position: "relative", height: 14, marginTop: 8, background: "#2a1210", border: "1px solid #55452e", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.max(0, Math.min(100, data.health))}%`, height: "100%", background: "linear-gradient(180deg, #d63a2e, #7a1810)" }} />
-                  <span style={{ position: "absolute", inset: 0, fontSize: 10, lineHeight: "13px", fontWeight: 700, color: "#fff", textShadow: "0 1px 2px #000" }}>
-                    {data.health} / 100
-                  </span>
-                </div>
-                <div style={{ position: "relative", height: 14, marginTop: 5, background: "#141916", border: "1px solid #3a3a34", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.max(0, Math.min(100, data.protection))}%`, height: "100%", background: "linear-gradient(180deg, #4c8ac0, #234a70)" }} />
-                  <span style={{ position: "absolute", inset: 0, fontSize: 10, lineHeight: "13px", fontWeight: 700, color: "#fff", textShadow: "0 1px 2px #000" }}>
-                    {data.protection} / 100
-                  </span>
+                  <div style={{ position: "relative", height: 13, marginTop: 4, background: "#151513", border: "1px solid #3d3b34", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: `${Math.max(0, Math.min(100, data.protection))}%`, height: "100%", background: "linear-gradient(180deg, #4c8ac0, #234a70)" }} />
+                    <span style={{ position: "absolute", inset: 0, fontSize: 9, lineHeight: "12px", fontWeight: 700, color: "#fff", textShadow: "0 1px 1px #000" }}>
+                      {data.protection} / 100
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -497,7 +537,7 @@ export default function CharacterPanel({
             {/* SELECTED ITEM */}
             <div style={{ padding: 8 }}>
               {kitItem ? (
-                <div style={{ border: "1px solid #6b5d3a", background: "#1f2a25", padding: 8 }}>
+                <div style={{ border: "1px solid #4a463c", background: "#232321", padding: 8 }}>
                   <strong style={{ fontFamily: "Georgia, serif" }}>{kitItem.name}</strong>
                   {kitItem.detail && <span style={{ color: "#b7ad93" }}> · {kitItem.detail}</span>}
                   <p style={{ margin: "4px 0", color: "#b7ad93", fontSize: 12 }}>{kitItem.note}</p>
@@ -527,7 +567,7 @@ export default function CharacterPanel({
 
             {/* WHAT YOU OWN */}
             <div style={{ padding: "0 8px 10px" }}>
-              <div style={{ ...bar, fontSize: 13 }}>
+              <div style={{ ...bar, fontSize: 12, padding: "4px 8px" }}>
                 <span>Your kit</span>
                 <span style={{ fontSize: 11 }}>{data.kit.length}</span>
               </div>
@@ -546,10 +586,10 @@ export default function CharacterPanel({
                         display: "flex",
                         justifyContent: "space-between",
                         gap: 8,
-                        padding: "7px 8px",
+                        padding: "5px 8px",
                         textAlign: "left",
-                        border: picked === k.type ? "2px solid #e4c04d" : "1px solid #6b5d3a",
-                        background: "#1f2a25",
+                        border: picked === k.type ? "1px solid #e4c04d" : "1px solid #4a463c",
+                        background: "#232321",
                         color: "#f1e8d3",
                         fontSize: 12,
                         cursor: "pointer",
