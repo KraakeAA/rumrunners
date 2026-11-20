@@ -1,4 +1,5 @@
 import { isHiddenStaff } from "@/lib/staff";
+import { lockPlayerId } from "@/lib/lock";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
     let message = "";
 
     await prisma.$transaction(async (tx) => {
+      await lockPlayerId(tx, first.id);
       const me = await tx.player.findUnique({ where: { id: first.id } });
       if (!me) throw new Refuse("Player not found.");
       if (me.health <= 0) throw new Refuse("You are dead.");
