@@ -9,6 +9,7 @@ type OnlinePlayer = {
   rank: string;
   rankLevel: number;
   updatedAt: string;
+  isAdmin?: boolean;
 };
 
 export default function UsersOnlinePage() {
@@ -107,9 +108,10 @@ export default function UsersOnlinePage() {
                     )}
                     <Link
                       href={`/profile/${encodeURIComponent(player.username)}`}
-                      title={`${player.rank} (${player.rankLevel})`}
+                      title={player.isAdmin ? "Admin" : `${player.rank} (${player.rankLevel})`}
                       style={{
-                        color: "#f1e8d3",
+                        color: player.isAdmin ? "#00ff00" : "#f1e8d3",
+                        fontWeight: player.isAdmin ? 700 : 400,
                         textDecoration: "none",
                       }}
                     >
