@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { Banner } from "@/components/GameImage";
 
 type Bounty = {
   id: string;
@@ -172,7 +173,10 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
         </div>
       </div>
 
-      <div style={{ ...bar, marginTop: 14 }}>Add Target</div>
+      <div style={{ marginTop: 14 }}>
+        <Banner slot="banners/hitlist" />
+      </div>
+      <div style={{ ...bar, marginTop: 0 }}>Add Target</div>
       <div style={{ ...cell, color: "#d4cab2", padding: "8px 10px" }}>
         <strong>Fees</strong>
         <div>Add target: 5% of amount{data ? ` (minimum bounty ${gbp(data.minimum)})` : ""}</div>
