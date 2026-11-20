@@ -367,6 +367,61 @@ const menuGroups = [
   }
 ];
 
+// The header sky follows UK time: night, dawn, day, dusk, and back round.
+// Each point is [minute of the day, top, middle, bottom, how lit the windows are].
+const SKY_POINTS: [number, string, string, string, number][] = [
+  [0, "#070a14", "#0e1424", "#1a2236", 1],
+  [300, "#070a14", "#0e1424", "#1a2236", 1],
+  [390, "#2a2440", "#8a5a5a", "#e0a070", 0.4],
+  [510, "#44546a", "#6c7c8c", "#a9b3b7", 0],
+  [960, "#44546a", "#6c7c8c", "#a9b3b7", 0],
+  [1080, "#1a1620", "#4a2f30", "#9a6240", 0.6],
+  [1200, "#0b0f1c", "#141a2c", "#222a3e", 1],
+  [1440, "#070a14", "#0e1424", "#1a2236", 1]
+];
+
+function mixHex(a: string, b: string, t: number) {
+  const n = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const c = (i: number) => Math.round(n(a, i) + (n(b, i) - n(a, i)) * t);
+  return `rgb(${c(0)}, ${c(1)}, ${c(2)})`;
+}
+
+function skyFor(clockText: string) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(clockText);
+  const mins = m ? Number(m[1]) * 60 + Number(m[2]) : 1080;
+  let i = 0;
+  while (i < SKY_POINTS.length - 2 && mins >= SKY_POINTS[i + 1][0]) i++;
+  const [t0, a1, a2, a3, l0] = SKY_POINTS[i];
+  const [t1, b1, b2, b3, l1] = SKY_POINTS[i + 1];
+  const t = t1 > t0 ? Math.min(1, Math.max(0, (mins - t0) / (t1 - t0))) : 0;
+  return {
+    background: `linear-gradient(180deg, ${mixHex(a1, b1, t)} 0%, ${mixHex(a2, b2, t)} 55%, ${mixHex(a3, b3, t)} 100%)`,
+    lights: l0 + (l1 - l0) * t
+  };
+}
+
+// A dense, thin-building skyline made once: the outline, plus a few windows.
+const SKYLINE = (() => {
+  let seed = 7;
+  const rnd = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+  let x = 0;
+  let d = "M0 26";
+  const windows: [number, number][] = [];
+  while (x < 400) {
+    const w = 3 + Math.floor(rnd() * 5);
+    const h = 6 + Math.floor(rnd() * 15);
+    const top = 26 - h;
+    d += ` V${top} H${Math.min(400, x + w)}`;
+    if (w >= 4 && rnd() < 0.45) windows.push([x + 1, top + 2 + Math.floor(rnd() * 3)]);
+    x += w;
+  }
+  d += " V26 Z";
+  return { d, windows };
+})();
+
 export default function GameShell({
   player,
   isAdmin = false,
@@ -979,9 +1034,10 @@ export default function GameShell({
     crimeTiers.reduce((n, t, i) => (t[0].minRankLevel <= rankLevel ? i : n), 0)
   );
   const activeTier = crimeTier === -1 ? topOpenTier : Math.min(crimeTier, crimeTiers.length - 1);
+  const sky = skyFor(ukClock);
 
   return (
-    <div className="game">
+    <div className="game" style={{ background: "#0b0f0d" }}>
       {/* TOP BAR */}
       <header
         className="topbar"
@@ -990,31 +1046,31 @@ export default function GameShell({
           overflow: "hidden",
           minHeight: 0,
           height: "auto",
-          padding: "6px 8px 10px",
+          padding: "6px 6px 14px",
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 8,
+          gap: 6,
           flexWrap: "nowrap",
-          background: "linear-gradient(180deg, #1a1620 0%, #3a2a2e 55%, #7a5a48 100%)",
-          borderBottom: "1px solid #a08340"
+          background: sky.background,
+          borderBottom: 0
         }}
       >
-        {/* City skyline behind the bar */}
+        {/* City skyline behind the bar, the same colour as the page below it */}
         <svg
           aria-hidden="true"
-          viewBox="0 0 400 40"
+          viewBox="0 0 400 26"
           preserveAspectRatio="none"
-          style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: 38, pointerEvents: "none" }}
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: 26, pointerEvents: "none" }}
         >
-          <path
-            d="M0 40 V26 H10 V18 H18 V26 H26 V12 H34 V8 H40 V12 H46 V22 H56 V14 H64 V24 H74 V16 H80 V6 H84 V16 H92 V26 H104 V20 H112 V10 H120 V20 H130 V28 H142 V18 H150 V24 H160 V14 H168 V10 H174 V14 H182 V26 H194 V20 H204 V12 H212 V22 H222 V28 H234 V16 H242 V8 H246 V16 H254 V24 H266 V18 H274 V26 H286 V14 H294 V20 H304 V10 H312 V18 H322 V26 H334 V20 H342 V12 H350 V22 H360 V16 H368 V26 H380 V18 H390 V24 H400 V40 Z"
-            fill="#0b0f0d"
-            opacity="0.85"
-          />
+          <path d={SKYLINE.d} fill="#0b0f0d" />
+          {SKYLINE.windows.map(([wx, wy]) => (
+            <rect key={`${wx}-${wy}`} x={wx} y={wy} width="1.6" height="1.8" fill="#f2c96a" opacity={sky.lights * 0.85} />
+          ))}
         </svg>
-        {/* CHARACTER TILE AND CASH, GOLD AND ENERGY — TOP LEFT */}
-        <div style={{ position: "relative", display: "flex", alignItems: "stretch", gap: 8, minWidth: 0, flex: 1 }}>
+
+        {/* CHARACTER, CASH, GOLD AND ENERGY — TOP LEFT */}
+        <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 5, minWidth: 0, flex: 1 }}>
           <button
             type="button"
             aria-label="Character"
@@ -1022,18 +1078,18 @@ export default function GameShell({
             onClick={() => setCharacterOpen(true)}
             style={{
               position: "relative",
-              width: 54,
-              height: 62,
+              width: 50,
+              height: 58,
               flexShrink: 0,
               padding: 0,
               overflow: "hidden",
-              border: "1px solid #a08340",
-              borderRadius: 3,
+              border: "1px solid #7d7a70",
+              borderRadius: 2,
               background: "linear-gradient(180deg, #393126, #211c16)",
               cursor: "pointer"
             }}
           >
-            <svg viewBox="0 0 40 44" width="34" height="38" aria-hidden="true" style={{ display: "block", margin: "4px auto 0" }}>
+            <svg viewBox="0 0 40 44" width="32" height="36" aria-hidden="true" style={{ display: "block", margin: "3px auto 0" }}>
               <ellipse cx="20" cy="8" rx="12" ry="2.5" fill="#cbb98a" />
               <rect x="13" y="1" width="14" height="8" rx="2" fill="#e8d7b6" />
               <circle cx="20" cy="16" r="6" fill="#c9b48a" />
@@ -1046,9 +1102,8 @@ export default function GameShell({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 15,
-                background: "#1a1410",
-                borderTop: "1px solid #55452e"
+                height: 13,
+                background: "#1a1410"
               }}
             >
               <span
@@ -1067,8 +1122,8 @@ export default function GameShell({
                   position: "relative",
                   display: "block",
                   textAlign: "center",
-                  fontSize: 10,
-                  lineHeight: "14px",
+                  fontSize: 9,
+                  lineHeight: "13px",
                   fontWeight: 700,
                   color: "#fff",
                   textShadow: "0 1px 1px #000"
@@ -1079,76 +1134,71 @@ export default function GameShell({
             </span>
           </button>
 
-          <div
-            aria-label="Player money"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 3,
-              minWidth: 0,
-              maxWidth: 200,
-              flex: 1,
-              padding: "4px 7px",
-              background: "rgba(0, 0, 0, 0.6)",
-              border: "1px solid #3d3a34",
-              color: "#f1e8d3"
-            }}
-          >
-            <span
-              aria-label={`Cash £${money.toLocaleString("en-GB")}`}
-              style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 190 }}>
+            <div
+              aria-label="Player money"
+              style={{
+                display: "grid",
+                gap: 2,
+                padding: "4px 8px",
+                background: "rgba(0, 0, 0, 0.55)",
+                borderRadius: 2,
+                color: "#f1e8d3"
+              }}
             >
               <span
-                aria-hidden="true"
-                style={{
-                  width: 20,
-                  height: 12,
-                  borderRadius: 2,
-                  border: "1px solid #3f8a4d",
-                  background: "linear-gradient(135deg, #4f9a5a, #2a5c34)",
-                  flexShrink: 0
-                }}
-              />
-              <strong
-                style={{
-                  fontFamily: "Georgia, serif",
-                  fontSize: 16,
-                  color: "#9be39f",
-                  textShadow: "0 1px 2px #000",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
-                }}
+                aria-label={`Cash £${money.toLocaleString("en-GB")}`}
+                style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }}
               >
-                £{money.toLocaleString("en-GB")}
-              </strong>
-            </span>
-
-            <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontSize: 12 }}>
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 13,
-                  height: 13,
-                  borderRadius: "50%",
-                  background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
-                  border: "1px solid #7a5a0c",
-                  flexShrink: 0
-                }}
-              />
-              <strong style={{ color: "#e4c04d" }}>{gold.toLocaleString("en-GB")}</strong>
-              <span style={{ color: "#8f8a76", overflow: "hidden", textOverflow: "ellipsis" }}>
-                · Bank £{bank.toLocaleString("en-GB")}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 18,
+                    height: 10,
+                    borderRadius: 2,
+                    border: "1px solid #3f8a4d",
+                    background: "linear-gradient(135deg, #4f9a5a, #2a5c34)",
+                    flexShrink: 0
+                  }}
+                />
+                <strong
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "#f7efdb",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis"
+                  }}
+                >
+                  £{money.toLocaleString("en-GB")}
+                </strong>
               </span>
-            </span>
+
+              <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontSize: 13 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
+                    border: "1px solid #7a5a0c",
+                    flexShrink: 0,
+                    marginLeft: 3
+                  }}
+                />
+                <strong style={{ fontWeight: 600, color: "#f7efdb" }}>{gold.toLocaleString("en-GB")}</strong>
+              </span>
+            </div>
 
             <div
               aria-label={`Energy ${energy} of ${status.maxEnergy}`}
               title={status.nextEnergyIn > 0 ? "Energy: +10 every 40 seconds" : "Energy is full"}
               style={{
                 position: "relative",
-                height: 18,
-                background: "#101612",
+                height: 16,
+                marginTop: 4,
+                background: "rgba(0, 0, 0, 0.55)",
                 border: "1px solid #6b5d3a",
                 borderRadius: 3,
                 overflow: "hidden"
@@ -1161,7 +1211,7 @@ export default function GameShell({
                   top: 0,
                   bottom: 0,
                   width: `${Math.max(0, Math.min(100, (energy / Math.max(1, status.maxEnergy)) * 100))}%`,
-                  background: "linear-gradient(180deg, #b8962f, #6e5714)",
+                  background: "linear-gradient(180deg, #c9a43a, #7a6016)",
                   transition: "width 0.4s"
                 }}
               />
@@ -1169,27 +1219,27 @@ export default function GameShell({
                 style={{
                   position: "relative",
                   textAlign: "center",
-                  fontSize: 12,
-                  lineHeight: "16px",
+                  fontSize: 11,
+                  lineHeight: "14px",
                   fontWeight: 700,
                   color: "#fff",
                   textShadow: "0 1px 2px #000"
                 }}
               >
-                ⚡ {energy} / {status.maxEnergy}
+                {energy} / {status.maxEnergy}
               </div>
             </div>
           </div>
         </div>
 
-        {/* MESSAGE, JAIL AND MENU — TOP RIGHT */}
+        {/* MESSAGES, JAIL AND MENU — TOP RIGHT */}
         <nav
           aria-label="Game shortcuts"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",
-            gap: 7,
+            gap: 4,
             flexShrink: 0,
             marginLeft: "auto",
             position: "relative"
@@ -1202,16 +1252,16 @@ export default function GameShell({
             onClick={() => navigate("Mailbox")}
             style={{
               position: "relative",
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               display: "grid",
               placeItems: "center",
               padding: 0,
-              border: "1px solid #a08340",
-              borderRadius: 3,
-              background: "linear-gradient(180deg, #4a4338, #1c1813)",
+              border: 0,
+              background: "transparent",
               color: "#e8d7b6",
-              fontSize: 22,
+              fontSize: 26,
+              textShadow: "0 1px 3px #000",
               cursor: "pointer"
             }}
           >
@@ -1221,21 +1271,23 @@ export default function GameShell({
                 aria-hidden="true"
                 style={{
                   position: "absolute",
-                  top: -5,
-                  right: -5,
-                  minWidth: 15,
-                  height: 15,
+                  top: -2,
+                  right: -2,
+                  minWidth: 17,
+                  height: 17,
                   padding: "0 3px",
-                  borderRadius: 8,
+                  boxSizing: "border-box",
+                  borderRadius: 9,
                   background: "#c0392b",
                   color: "#fff",
-                  fontSize: 10,
-                  lineHeight: "15px",
+                  fontSize: 11,
+                  lineHeight: "17px",
                   fontWeight: 700,
-                  textAlign: "center"
+                  textAlign: "center",
+                  textShadow: "none"
                 }}
               >
-                {(liveUnread ?? status.unreadMail) > 9 ? "9+" : (liveUnread ?? status.unreadMail)}
+                {(liveUnread ?? status.unreadMail) > 99 ? "99+" : (liveUnread ?? status.unreadMail)}
               </span>
             )}
           </button>
@@ -1246,16 +1298,16 @@ export default function GameShell({
             title="Jail"
             onClick={() => navigate("Jail")}
             style={{
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               display: "grid",
               placeItems: "center",
               padding: 0,
-              border: "1px solid #a08340",
-              borderRadius: 3,
-              background: "linear-gradient(180deg, #4a4338, #1c1813)",
+              border: 0,
+              background: "transparent",
               color: "#e8d7b6",
-              fontSize: 22,
+              fontSize: 24,
+              textShadow: "0 1px 3px #000",
               cursor: "pointer"
             }}
           >
@@ -1269,16 +1321,14 @@ export default function GameShell({
             aria-pressed={menuOpen}
             onClick={toggleMenu}
             style={{
-              minWidth: 54,
-              height: 44,
+              minWidth: 50,
+              height: 40,
               padding: "0 8px",
-              marginLeft: 1,
-              border: "1px solid #c3a870",
-              borderRadius: 3,
-              background: "linear-gradient(180deg, #5a4a32, #2a2117)",
+              border: "1px solid #b9b6ad",
+              borderRadius: 2,
+              background: "rgba(0, 0, 0, 0.6)",
               color: "#f7efdb",
               fontSize: 14,
-              fontWeight: 600,
               cursor: "pointer"
             }}
           >
@@ -1306,8 +1356,8 @@ export default function GameShell({
             flexWrap: "nowrap",
             gap: 8,
             padding: "4px 10px",
-            background: "#161d19",
-            borderBottom: "1px solid #55452e"
+            background: "transparent",
+            borderBottom: 0
           }}
         >
           <div
