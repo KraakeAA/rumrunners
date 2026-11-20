@@ -374,7 +374,8 @@ export default function GameShell({
   recentCrimes = [],
   stats = EMPTY_STATS,
   training,
-  composeTo = ""
+  composeTo = "",
+  startSection = ""
 }: {
   player: Player;
   isAdmin?: boolean;
@@ -383,8 +384,15 @@ export default function GameShell({
   stats?: PlayerStats;
   training?: { strength: number; stamina: number; agility: number };
   composeTo?: string;
+  startSection?: string;
 }) {
-  const [section, setSection] = useState(composeTo ? "Send Letter" : "Home");
+  const [section, setSection] = useState(
+    composeTo
+      ? "Send Letter"
+      : menuGroups.some((g) => g.items.includes(startSection))
+        ? startSection
+        : "Home"
+  );
   const [letterTo, setLetterTo] = useState(composeTo);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -978,20 +986,35 @@ export default function GameShell({
       <header
         className="topbar"
         style={{
+          position: "relative",
+          overflow: "hidden",
           minHeight: 0,
           height: "auto",
-          padding: "6px 10px",
+          padding: "6px 8px 10px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 10,
+          gap: 8,
           flexWrap: "nowrap",
-          background: "rgba(11, 15, 13, 0.35)",
-          borderBottom: "1px solid rgba(160, 131, 64, 0.35)"
+          background: "linear-gradient(180deg, #1a1620 0%, #3a2a2e 55%, #7a5a48 100%)",
+          borderBottom: "1px solid #a08340"
         }}
       >
+        {/* City skyline behind the bar */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 400 40"
+          preserveAspectRatio="none"
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: 38, pointerEvents: "none" }}
+        >
+          <path
+            d="M0 40 V26 H10 V18 H18 V26 H26 V12 H34 V8 H40 V12 H46 V22 H56 V14 H64 V24 H74 V16 H80 V6 H84 V16 H92 V26 H104 V20 H112 V10 H120 V20 H130 V28 H142 V18 H150 V24 H160 V14 H168 V10 H174 V14 H182 V26 H194 V20 H204 V12 H212 V22 H222 V28 H234 V16 H242 V8 H246 V16 H254 V24 H266 V18 H274 V26 H286 V14 H294 V20 H304 V10 H312 V18 H322 V26 H334 V20 H342 V12 H350 V22 H360 V16 H368 V26 H380 V18 H390 V24 H400 V40 Z"
+            fill="#0b0f0d"
+            opacity="0.85"
+          />
+        </svg>
         {/* CHARACTER TILE AND CASH, GOLD AND ENERGY — TOP LEFT */}
-        <div style={{ display: "flex", alignItems: "stretch", gap: 8, minWidth: 0, flex: 1 }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "stretch", gap: 8, minWidth: 0, flex: 1 }}>
           <button
             type="button"
             aria-label="Character"
@@ -1064,8 +1087,11 @@ export default function GameShell({
               justifyContent: "space-between",
               gap: 3,
               minWidth: 0,
-              maxWidth: 190,
+              maxWidth: 200,
               flex: 1,
+              padding: "4px 7px",
+              background: "rgba(0, 0, 0, 0.6)",
+              border: "1px solid #3d3a34",
               color: "#f1e8d3"
             }}
           >
@@ -1165,7 +1191,8 @@ export default function GameShell({
             justifyContent: "flex-end",
             gap: 7,
             flexShrink: 0,
-            marginLeft: "auto"
+            marginLeft: "auto",
+            position: "relative"
           }}
         >
           <button
@@ -1175,16 +1202,16 @@ export default function GameShell({
             onClick={() => navigate("Mailbox")}
             style={{
               position: "relative",
-              width: 32,
-              height: 32,
+              width: 44,
+              height: 44,
               display: "grid",
               placeItems: "center",
               padding: 0,
               border: "1px solid #a08340",
               borderRadius: 3,
-              background: "linear-gradient(180deg, #393126, #211c16)",
+              background: "linear-gradient(180deg, #4a4338, #1c1813)",
               color: "#e8d7b6",
-              fontSize: 17,
+              fontSize: 22,
               cursor: "pointer"
             }}
           >
@@ -1219,16 +1246,16 @@ export default function GameShell({
             title="Jail"
             onClick={() => navigate("Jail")}
             style={{
-              width: 32,
-              height: 32,
+              width: 44,
+              height: 44,
               display: "grid",
               placeItems: "center",
               padding: 0,
               border: "1px solid #a08340",
               borderRadius: 3,
-              background: "linear-gradient(180deg, #393126, #211c16)",
+              background: "linear-gradient(180deg, #4a4338, #1c1813)",
               color: "#e8d7b6",
-              fontSize: 17,
+              fontSize: 22,
               cursor: "pointer"
             }}
           >
@@ -1242,15 +1269,15 @@ export default function GameShell({
             aria-pressed={menuOpen}
             onClick={toggleMenu}
             style={{
-              minWidth: 58,
-              height: 32,
-              padding: "0 10px",
+              minWidth: 54,
+              height: 44,
+              padding: "0 8px",
               marginLeft: 1,
-              border: "1px solid #a88b5b",
+              border: "1px solid #c3a870",
               borderRadius: 3,
-              background: "linear-gradient(180deg, #4a3b28, #292117)",
+              background: "linear-gradient(180deg, #5a4a32, #2a2117)",
               color: "#f7efdb",
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               cursor: "pointer"
             }}
@@ -1261,6 +1288,10 @@ export default function GameShell({
       </header>
 
       {characterOpen && <CharacterPanel onClose={() => setCharacterOpen(false)} />}
+
+      {/* Shown over whatever page you are on, so a failed job that sends you to
+          jail still tells you what happened, and never turns up late. */}
+      {outcome && <CrimePopup outcome={outcome} onClose={() => setOutcome(null)} />}
 
       {/* LOCATION AND TIME — ONLY WHILE THE MENU IS OPEN */}
       {menuOpen && (
@@ -1492,8 +1523,6 @@ export default function GameShell({
                 </p>
               )}
 
-              {outcome && <CrimePopup outcome={outcome} onClose={() => setOutcome(null)} />}
-
               {notice && <p className="notice">{notice}</p>}
 
               <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
@@ -1596,319 +1625,3 @@ export default function GameShell({
               onCash={setMoney}
             />
           )}
-
-          {section === "Blackjack" && (
-            <CasinoSection game="Blackjack" cash={money} onCash={setMoney} />
-          )}
-
-          {section === "Roulette" && (
-            <CasinoSection game="Roulette" cash={money} onCash={setMoney} />
-          )}
-
-          {section === "War" && (
-            <CasinoSection game="War" cash={money} onCash={setMoney} />
-          )}
-
-          {section === "Auto Theft" && (
-            <AutoTheftSection
-              rankLevel={rankLevel}
-              energy={energy}
-              staminaLevel={staminaLevel}
-              theftLeft={status.theftLeft}
-              onActed={status.refresh}
-              jailLeft={status.jailLeft}
-              currentCity={currentCity}
-              onCash={setMoney}
-              onResult={(r) => {
-                setEnergy(r.energy);
-                setMoney(r.money);
-                setExperience(r.experience);
-                setRank(r.rank);
-                setRankLevel(r.rankLevel);
-              }}
-            />
-          )}
-
-          {section === "Bootlegging" && <BootleggingSection onCash={setMoney} />}
-
-          {section === "Organised Crime" && <OrganisedCrimeSection />}
-
-          {section === "Whack" && <WhackSection onCash={setMoney} />}
-
-          {section === "Hitlist" && <HitlistSection onCash={setMoney} />}
-
-          {section === "Rackets" && (
-            <p className="flavour">
-              Own and protect criminal rackets for passive income.
-            </p>
-          )}
-
-          {section === "Marketplace" && (
-            <GoldMarketplace onCash={setMoney} onGold={setGold} />
-          )}
-
-          {section === "Railway" && (
-            <TravelSection onArrive={(city) => setCurrentCity(city)} />
-          )}
-
-          {section === "Garage" && <GarageSection />}
-
-          {section === "Bullet Factory" && (
-            <BulletFactorySection
-              onCash={setMoney}
-              onBullets={setBullets}
-            />
-          )}
-
-          {section === "Escrow" && <EscrowSection onCash={setMoney} onGold={setGold} />}
-
-          {section === "Jail" && (
-            <JailSection onChanged={status.refresh} />
-          )}
-
-          {section === "Hospital" && <HospitalSection onCash={setMoney} />}
-
-          {section === "Graveyard" && <GraveyardSection />}
-
-          {section === "Gymnasium" && (
-            <GymnasiumSection
-              onEnergy={setEnergy}
-              onLevels={onTrainingLevels}
-            />
-          )}
-
-          {section === "Search" && <SearchSection onCash={setMoney} />}
-
-          {section === "Updates" && (
-            <p className="flavour">
-              Development updates will be posted here.
-            </p>
-          )}
-
-          {section === "Cities" && (
-            <CitiesSection />
-          )}
-
-          {section === "Find Player" && <FindPlayerSection />}
-
-          {section === "Mailbox" && (
-            <MailboxSection
-              onOpenOc={() => navigate("Organised Crime")}
-              onReply={openLetter}
-              refreshKey={latestMailId}
-              onChanged={() => {
-                status.refresh();
-                checkBalanceRef.current();
-              }}
-            />
-          )}
-
-          {section === "Send Letter" && (
-            <SendLetterSection key={letterTo} initialTo={letterTo} />
-          )}
-
-          {section === "Saved Mail" && (
-            <p className="flavour">
-              Your saved messages.
-            </p>
-          )}
-
-          {section === "Classifieds" && (
-            <ForumBoard
-              key="CLASSIFIEDS"
-              category="CLASSIFIEDS"
-              title="Classifieds"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
-
-          {section === "Off Topic" && (
-            <ForumBoard
-              key="OFF_TOPIC"
-              category="OFF_TOPIC"
-              title="Off Topic"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
-
-          {section === "Crew" && (
-            <p className="flavour">
-              Your crew and criminal associates.
-            </p>
-          )}
-
-          {section === "Gold" && (
-            <p className="flavour">
-              Premium currency. Not yet active.
-            </p>
-          )}
-
-          {section === "Store" && <StoreSection onCash={setMoney} />}
-
-          {section === "Pawn Shop" && (
-            <p className="flavour">
-              Buy and sell items at the pawn shop.
-            </p>
-          )}
-
-          {section === "Stock Market" && (
-            <p className="flavour">
-              Investments and the stock market.
-            </p>
-          )}
-
-          {section === "Brothel" && (
-            <p className="flavour">
-              Visit the city&apos;s establishments.
-            </p>
-          )}
-
-          {section === "Lottery" && <LotterySection onCash={setMoney} />}
-
-          {section === "Rumrunners Live" && (
-            <p className="flavour">
-              Live news from the underworld.
-            </p>
-          )}
-
-          {section === "Wiki" && (
-            <p className="flavour">
-              The Rumrunners game guide.
-            </p>
-          )}
-
-          {section === "Terms of Service" && (
-            <p className="flavour">
-              Game rules and terms of service.
-            </p>
-          )}
-
-          {section === "Help Desk" && (
-            <p className="flavour">
-              Help and support for players.
-            </p>
-          )}
-
-          {section === "Suggestion Box" && (
-            <p className="flavour">
-              Send suggestions for future improvements.
-            </p>
-          )}
-
-          {section === "Full Site" && (
-            <p className="flavour">
-              You are viewing the full Rumrunners game.
-            </p>
-          )}
-
-          {section === "Profile" && (
-            <p className="flavour">
-              Your player profile.
-            </p>
-          )}
-
-          {section === "Forums" && (
-            <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", display: "grid", gap: 6 }}>
-              <div style={{ ...titleBarStyle, fontSize: 16, padding: "6px 8px" }}>Forums</div>
-              {[
-                { name: "Game", note: "Talk about the game, news and updates." },
-                { name: "Classifieds", note: "Buy, sell and trade with other players." },
-                { name: "Off Topic", note: "The public house. Anything beyond the game." }
-              ].map((f) => (
-                <button
-                  key={f.name}
-                  type="button"
-                  className="nav-item"
-                  onClick={() => navigate(f.name)}
-                  style={{ width: "100%" }}
-                >
-                  <strong style={{ display: "block", fontSize: 14 }}>{f.name}</strong>
-                  <span style={{ fontSize: 11, color: "#b7ad93", fontFamily: "inherit" }}>{f.note}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {section === "Game" && (
-            <ForumBoard
-              key="OFFICIAL"
-              category="OFFICIAL"
-              title="Game"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
-
-          {section !== "Home" &&
-            section !== "Crimes" &&
-            section !== "Local Bank" &&
-            notice && (
-              <p className="notice">{notice}</p>
-            )}
-          </>
-          )}
-          </>
-          )}
-        </main>
-
-        {/* MENU */}
-        <aside
-          className="sidebar"
-        >
-          {selectedGroup === "" ? (
-            <>
-              <p className="side-heading">MENU</p>
-
-              <div className="category-grid">
-                {menuGroups.map((group) => (
-                  <button
-                    key={group.title}
-                    className="nav-category"
-                    onClick={() => setSelectedGroup(group.title)}
-                  >
-                    {group.title}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="category-content">
-              <button
-                className="category-back"
-                onClick={() => setSelectedGroup("")}
-              >
-                « {selectedGroup}
-              </button>
-
-              <div className="nav-buttons">
-                {menuGroups
-                  .find((g) => g.title === selectedGroup)
-                  ?.items.map((item) => (
-                    <button
-                      key={item}
-                      className={
-                        item === "Logout"
-                          ? "nav-item logout-menu-item"
-                          : section === item
-                            ? "nav-item active"
-                            : "nav-item"
-                      }
-                      onClick={() => navigate(item)}
-                    >
-                      {item}
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-        </aside>
-      </div>
-
-      <footer className="footer">
-        RUMRUNNERS · A CITY WITH ITS OWN RULES
-      </footer>
-    </div>
-  );
-}
