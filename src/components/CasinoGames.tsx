@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -461,12 +460,18 @@ export default function CasinoGames({
 
         <div
           style={{
+            width: "fit-content",
+            maxWidth: "calc(100% - 20px)",
+            margin: "8px auto",
+            padding: "5px 14px",
+            boxSizing: "border-box",
             textAlign: "center",
-            padding: "5px 8px 12px",
             fontSize: 12,
-            lineHeight: 1.8,
-            color: "#c9bfa6",
-            background: "#1f2a25",
+            lineHeight: 1.6,
+            color: "#e3f0e0",
+            background: "rgba(36, 92, 54, 0.38)",
+            border: "1px solid rgba(111, 207, 111, 0.4)",
+            borderRadius: 4,
           }}
         >
           <div>
@@ -832,13 +837,18 @@ export default function CasinoGames({
       {/* Machine ownership and betting limit */}
       <div
         style={{
-          width: "min(100%, 360px)",
-          padding: "17px 5px 0",
+          width: "fit-content",
+          maxWidth: "calc(100% - 20px)",
+          margin: "8px auto",
+          padding: "5px 14px",
           boxSizing: "border-box",
           textAlign: "center",
-          fontSize: 13,
-          lineHeight: 1.7,
-          color: "#f1e8d3",
+          fontSize: 12,
+          lineHeight: 1.6,
+          color: "#e3f0e0",
+          background: "rgba(36, 92, 54, 0.38)",
+          border: "1px solid rgba(111, 207, 111, 0.4)",
+          borderRadius: 4,
         }}
       >
         <div>
