@@ -69,6 +69,8 @@ async function view(playerId: string) {
     gold: player.gold,
     bullets: player.bullets,
     strengthLevel: strength,
+    staminaLevel: levelOf(player.staminaPts),
+    agilityLevel: levelOf(player.agilityPts),
     firepower: stats.firepower,
     protection: stats.protection,
     slots: SLOTS.map((s) => {
