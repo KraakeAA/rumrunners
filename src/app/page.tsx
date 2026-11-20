@@ -8,6 +8,7 @@ import { regenHealth } from "@/lib/whack";
 import { settleInterest } from "@/lib/interest";
 import { levelsOf } from "@/lib/training";
 import { expireEscrowsFor } from "@/lib/escrow";
+import { staffLevel } from "@/lib/staff";
 
 export default async function Home({
   searchParams
@@ -58,7 +59,7 @@ export default async function Home({
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { isAdmin: true }
+      select: { isAdmin: true, staffRole: true }
     }),
     prisma.crimeLog.findMany({
       where: {
@@ -188,6 +189,7 @@ export default async function Home({
       composeTo={composeTo.slice(0, 40)}
       startSection={startSection.slice(0, 40)}
       isAdmin={account?.isAdmin ?? false}
+      staffLevel={staffLevel(account)}
       playerId={player.id}
       training={levelsOf(player)}
       player={{
