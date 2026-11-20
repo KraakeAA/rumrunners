@@ -24,6 +24,10 @@ import LotterySection from "@/components/Lottery";
 import FindPlayerSection from "@/components/FindPlayer";
 import CharacterPanel from "@/components/CharacterPanel";
 import WhackSection from "@/components/WhackSection";
+import SearchSection from "@/components/SearchSection";
+import { crimeForCity } from "@/lib/city-crimes";
+import CrimePopup from "@/components/CrimePopup";
+import { Banner, JobCard, slugify, takeMeter } from "@/components/GameImage";
 import HospitalSection from "@/components/HospitalSection";
 import HitlistSection from "@/components/HitlistSection";
 import GoldMarketplace from "@/components/GoldMarketplace";
@@ -35,6 +39,7 @@ import BankSection from "@/components/BankSection";
 import { wealthStatus } from "@/lib/wealth";
 import {
   CRIMES,
+  crimeCooldownSeconds,
   MAX_STREAK,
   streakFromLogs,
   xpForLevel
@@ -66,6 +71,7 @@ type CrimeLog = {
 
 type CrimeResult = {
   crimeName: string;
+  displayName?: string;
   label: string;
   tier: string;
   sceneTitle: string;
@@ -302,6 +308,16 @@ function StatTable({
 }
 
 // Anything that acts on the game world is shut while you are in jail.
+// Pages that get a wide picture across the top. The picture file is
+// public/images/banners/<page-name>.jpg, for example banners/local-bank.jpg
+const BANNER_PAGES = new Set([
+  "Local Bank",
+  "Bootlegging", "Organised Crime", "Whack", "Rackets",
+  "Marketplace", "Railway", "Garage", "Bullet Factory", "Escrow", "Jail",
+  "Hospital", "Graveyard", "Cities", "Store", "Lottery", "Gold",
+  "Pawn Shop", "Stock Market", "Brothel", "Crew", "Find Player"
+]);
+
 const JAIL_BLOCKED = new Set([
   "Crimes", "Auto Theft", "Bootlegging", "Whack", "Hitlist", "Organised Crime",
   "Rackets", "Search", "Gymnasium", "Railway", "Bullet Factory", "Store",
@@ -389,6 +405,36 @@ export default function GameShell({
     (l: { strength: number; stamina: number; agility: number }) => setStaminaLevel(l.stamina),
     []
   );
+  // Other people's actions change your cash (a gambler at your casino, a gold
+  // sale), so check the balance every few seconds while the page is showing.
+  useEffect(() => {
+    let alive = true;
+    let inFlight = false;
+    async function check() {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
+      try {
+        const r = await fetch("/api/balance", { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const d = await r.json();
+        if (typeof d.money === "number") setMoney(d.money);
+        if (typeof d.bank === "number") setBank(d.bank);
+        if (typeof d.gold === "number") setGold(d.gold);
+        if (typeof d.bullets === "number") setBullets(d.bullets);
+      } catch {
+        /* try again next time */
+      } finally {
+        inFlight = false;
+      }
+    }
+    const t = window.setInterval(check, 4000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      alive = false;
+      window.clearInterval(t);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, []);
   const [rank, setRank] = useState(player.rank);
   const [rankLevel, setRankLevel] = useState(player.rankLevel);
   const [experience, setExperience] = useState(player.experience);
@@ -565,6 +611,7 @@ export default function GameShell({
 
       setOutcome({
         crimeName: data.crimeName,
+        displayName: data.displayName ?? data.crimeName,
         label: data.label ?? (data.success ? "Job done" : "Job failed"),
         tier: data.tier ?? (data.success ? "clean" : "got_away"),
         sceneTitle: data.sceneTitle ?? data.crimeName,
@@ -589,7 +636,6 @@ export default function GameShell({
       setBusy(false);
     }
   }
-
   async function bankAction(action: "deposit" | "withdraw") {
     const amount = Number(bankAmount);
 
@@ -929,210 +975,174 @@ export default function GameShell({
           justifyContent: "space-between",
           gap: 10,
           flexWrap: "nowrap",
-          background: "#0b0f0d",
-          borderBottom: "1px solid #2a3a30"
+          background: "rgba(11, 15, 13, 0.35)",
+          borderBottom: "1px solid rgba(160, 131, 64, 0.35)"
         }}
       >
-        {/* CHARACTER BUTTON AND CASH, BANK AND GOLD — TOP LEFT */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-        <button
-          type="button"
-          aria-label="Character"
-          title="Character"
-          onClick={() => setCharacterOpen(true)}
-          style={{
-            width: 44,
-            height: 54,
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-            padding: 0,
-            border: "1px solid #a08340",
-            borderRadius: 3,
-            background: "linear-gradient(180deg, #393126, #211c16)",
-            color: "#e8d7b6",
-            fontSize: 9,
-            cursor: "pointer"
-          }}
-        >
-          <svg viewBox="0 0 40 44" width="26" height="28" aria-hidden="true">
-            <ellipse cx="20" cy="8" rx="12" ry="2.5" fill="#cbb98a" />
-            <rect x="13" y="1" width="14" height="8" rx="2" fill="#e8d7b6" />
-            <circle cx="20" cy="16" r="6" fill="#c9b48a" />
-            <path d="M6 42 Q8 26 20 24 Q32 26 34 42 Z" fill="#8a7a58" />
-          </svg>
-          Character
-        </button>
-        <div
-          aria-label="Player money"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            minWidth: 0,
-            color: "#f1e8d3",
-            fontSize: 12,
-            lineHeight: 1.2
-          }}
-        >
-          <span
-            aria-label={`Cash £${money.toLocaleString("en-GB")}`}
+        {/* CHARACTER TILE AND CASH, GOLD AND ENERGY — TOP LEFT */}
+        <div style={{ display: "flex", alignItems: "stretch", gap: 8, minWidth: 0, flex: 1 }}>
+          <button
+            type="button"
+            aria-label="Character"
+            title="Character"
+            onClick={() => setCharacterOpen(true)}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              whiteSpace: "nowrap"
+              position: "relative",
+              width: 54,
+              height: 62,
+              flexShrink: 0,
+              padding: 0,
+              overflow: "hidden",
+              border: "1px solid #a08340",
+              borderRadius: 3,
+              background: "linear-gradient(180deg, #393126, #211c16)",
+              cursor: "pointer"
             }}
           >
+            <svg viewBox="0 0 40 44" width="34" height="38" aria-hidden="true" style={{ display: "block", margin: "4px auto 0" }}>
+              <ellipse cx="20" cy="8" rx="12" ry="2.5" fill="#cbb98a" />
+              <rect x="13" y="1" width="14" height="8" rx="2" fill="#e8d7b6" />
+              <circle cx="20" cy="16" r="6" fill="#c9b48a" />
+              <path d="M6 42 Q8 26 20 24 Q32 26 34 42 Z" fill="#8a7a58" />
+            </svg>
             <span
-              aria-hidden="true"
+              aria-label={`Health ${player.health}%`}
               style={{
-                display: "inline-block",
-                width: 20,
-                height: 12,
-                borderRadius: 2,
-                border: "1px solid #3f8a4d",
-                background: "linear-gradient(135deg, #4f9a5a, #2a5c34)",
-                boxShadow: "inset 0 0 0 2px rgba(200, 245, 205, 0.25)",
-                flexShrink: 0
-              }}
-            />
-            <strong
-              style={{
-                fontFamily: "Georgia, serif",
-                fontSize: 17,
-                fontWeight: 700,
-                letterSpacing: 0.3,
-                color: "#9be39f",
-                textShadow: "0 1px 2px #000"
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 15,
+                background: "#1a1410",
+                borderTop: "1px solid #55452e"
               }}
             >
-              £{money.toLocaleString("en-GB")}
-            </strong>
-          </span>
-
-          <span
-            style={{
-              color: "#b7ad93",
-              whiteSpace: "nowrap"
-            }}
-          >
-            Bank £{bank.toLocaleString("en-GB")}
-          </span>
+              <span
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: `${Math.max(0, Math.min(100, player.health))}%`,
+                  background:
+                    player.health > 50 ? "#3f9a46" : player.health > 25 ? "#c9923a" : "#b3342a"
+                }}
+              />
+              <span
+                style={{
+                  position: "relative",
+                  display: "block",
+                  textAlign: "center",
+                  fontSize: 10,
+                  lineHeight: "14px",
+                  fontWeight: 700,
+                  color: "#fff",
+                  textShadow: "0 1px 1px #000"
+                }}
+              >
+                {player.health}%
+              </span>
+            </span>
+          </button>
 
           <div
+            aria-label="Player money"
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 10,
-              whiteSpace: "nowrap"
+              flexDirection: "column",
+              justifyContent: "space-between",
+              gap: 3,
+              minWidth: 0,
+              maxWidth: 190,
+              flex: 1,
+              color: "#f1e8d3"
             }}
           >
             <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                color: "#e4c04d"
-              }}
+              aria-label={`Cash £${money.toLocaleString("en-GB")}`}
+              style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
             >
               <span
                 aria-hidden="true"
                 style={{
-                  display: "inline-block",
-                  width: 12,
+                  width: 20,
                   height: 12,
-                  borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
-                  border: "1px solid #7a5a0c",
-                  boxShadow: "inset 0 0 0 2px rgba(255, 240, 160, 0.35)",
+                  borderRadius: 2,
+                  border: "1px solid #3f8a4d",
+                  background: "linear-gradient(135deg, #4f9a5a, #2a5c34)",
                   flexShrink: 0
                 }}
               />
-              Gold {gold.toLocaleString("en-GB")}
+              <strong
+                style={{
+                  fontFamily: "Georgia, serif",
+                  fontSize: 16,
+                  color: "#9be39f",
+                  textShadow: "0 1px 2px #000",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}
+              >
+                £{money.toLocaleString("en-GB")}
+              </strong>
             </span>
 
-            <span
-              aria-label={`Health ${player.health}%`}
-              title={`Health ${player.health}%`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 11,
-                color: "#b7ad93"
-              }}
-            >
+            <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontSize: 12 }}>
               <span
                 aria-hidden="true"
                 style={{
-                  display: "inline-block",
-                  width: 34,
-                  height: 7,
-                  background: "#2a1a17",
-                  border: "1px solid #55452e"
+                  width: 13,
+                  height: 13,
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
+                  border: "1px solid #7a5a0c",
+                  flexShrink: 0
                 }}
-              >
-                <span
-                  style={{
-                    display: "block",
-                    height: "100%",
-                    width: `${Math.max(0, Math.min(100, player.health))}%`,
-                    background:
-                      player.health > 50
-                        ? "#4caf50"
-                        : player.health > 25
-                          ? "#d9a441"
-                          : "#c0392b"
-                  }}
-                />
+              />
+              <strong style={{ color: "#e4c04d" }}>{gold.toLocaleString("en-GB")}</strong>
+              <span style={{ color: "#8f8a76", overflow: "hidden", textOverflow: "ellipsis" }}>
+                · Bank £{bank.toLocaleString("en-GB")}
               </span>
-              {player.health}%
             </span>
-          </div>
 
-          <div
-            aria-label={`Energy ${energy} of ${status.maxEnergy}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              whiteSpace: "nowrap",
-              fontSize: 11,
-              color: "#e4c04d"
-            }}
-          >
-            <span>⚡ {energy}/{status.maxEnergy}</span>
-            <span
-              aria-hidden="true"
+            <div
+              aria-label={`Energy ${energy} of ${status.maxEnergy}`}
+              title={status.nextEnergyIn > 0 ? "Energy: +10 every 40 seconds" : "Energy is full"}
               style={{
-                display: "inline-block",
-                width: 74,
-                height: 8,
+                position: "relative",
+                height: 18,
                 background: "#101612",
-                border: "1px solid #6b5d3a"
+                border: "1px solid #6b5d3a",
+                borderRadius: 3,
+                overflow: "hidden"
               }}
             >
-              <span
+              <div
                 style={{
-                  display: "block",
-                  height: "100%",
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
                   width: `${Math.max(0, Math.min(100, (energy / Math.max(1, status.maxEnergy)) * 100))}%`,
-                  background: "linear-gradient(180deg, #e0c35a, #a8872a)",
+                  background: "linear-gradient(180deg, #b8962f, #6e5714)",
                   transition: "width 0.4s"
                 }}
               />
-            </span>
-            <span style={{ color: "#b7ad93" }}>
-              {status.nextEnergyIn > 0 ? "+10 / 40s" : "Full"}
-            </span>
+              <div
+                style={{
+                  position: "relative",
+                  textAlign: "center",
+                  fontSize: 12,
+                  lineHeight: "16px",
+                  fontWeight: 700,
+                  color: "#fff",
+                  textShadow: "0 1px 2px #000"
+                }}
+              >
+                ⚡ {energy} / {status.maxEnergy}
+              </div>
+            </div>
           </div>
-        </div>
-
         </div>
 
         {/* MESSAGE, JAIL AND MENU — TOP RIGHT */}
@@ -1442,6 +1452,7 @@ export default function GameShell({
             <JailSection onChanged={status.refresh} />
           ) : (
           <>
+          {BANNER_PAGES.has(section) && <Banner slot={`banners/${slugify(section)}`} />}
           {(section === "Home" || section === "Statistics") &&
             renderStatistics()}
 
@@ -1485,148 +1496,27 @@ export default function GameShell({
                 </p>
               )}
 
-              {outcome && (
-                <div
-                  style={{
-                    margin: "8px 0",
-                    border: `1px solid ${TIER_COLOURS[outcome.tier] ?? "#a08340"}`,
-                    background: "#17201c"
-                  }}
-                >
-                  <div
-                    style={{
-                      ...titleBarStyle,
-                      fontSize: 15,
-                      padding: "5px 8px",
-                      color: TIER_COLOURS[outcome.tier] ?? "#f7efdb"
-                    }}
-                  >
-                    {outcome.label}
-                  </div>
-
-                  {outcome.leveledUp && (
-                    <div
-                      style={{
-                        padding: "6px 10px",
-                        textAlign: "center",
-                        fontFamily: "Georgia, serif",
-                        fontSize: 15,
-                        color: "#1b1405",
-                        background: "linear-gradient(180deg, #f0d878, #c9a23a)",
-                        borderBottom: "1px solid #7a5a0c"
-                      }}
-                    >
-                      ★ Promoted to {outcome.rank}! ★
-                      <div style={{ fontFamily: "inherit", fontSize: 11, marginTop: 1 }}>
-                        Check the Crimes list. New jobs may have opened up.
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ padding: "6px 10px", fontSize: 13 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#b7ad93",
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5
-                      }}
-                    >
-                      {outcome.crimeName} · {outcome.sceneTitle}
-                    </div>
-
-                    {outcome.setup && (
-                      <p
-                        style={{
-                          margin: "4px 0",
-                          fontStyle: "italic",
-                          color: "#d4cab2",
-                          lineHeight: 1.4
-                        }}
-                      >
-                        {outcome.setup}
-                      </p>
-                    )}
-
-                    <p style={{ margin: "4px 0", color: "#f1e8d3", lineHeight: 1.4 }}>
-                      {outcome.result}
-                    </p>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "2px 14px",
-                        marginTop: 6,
-                        fontWeight: 600
-                      }}
-                    >
-                      {(outcome.success || outcome.cashChange !== 0) && (
-                      <span
-                        style={{
-                          color:
-                            outcome.cashChange > 0
-                              ? "#7fe08f"
-                              : outcome.cashChange < 0
-                                ? "#e08f7f"
-                                : "#f1e8d3"
-                        }}
-                      >
-                        {outcome.cashChange < 0
-                          ? `Fined -${gbp(Math.abs(outcome.cashChange))}`
-                          : `+${gbp(outcome.cashChange)}`}
-                      </span>
-                      )}
-                      <span>+{outcome.xpGained} XP</span>
-                      {outcome.jailSeconds > 0 && (
-                        <span style={{ color: "#e08f7f" }}>
-                          Jailed {outcome.jailSeconds >= 60 ? `${Math.ceil(outcome.jailSeconds / 60)} min` : `${outcome.jailSeconds} sec`}
-                        </span>
-                      )}
-                      {outcome.success && outcome.streakBonus > 0 && (
-                        <span style={{ color: "#7fe08f" }}>
-                          Streak +{Math.round(outcome.streakBonus * 100)}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+              {outcome && <CrimePopup outcome={outcome} onClose={() => setOutcome(null)} />}
 
               {notice && <p className="notice">{notice}</p>}
 
               <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
-                {availableCrimes.map((crime) => {
+                {availableCrimes.map((baseCrime) => {
+                  const crime = crimeForCity(baseCrime, currentCity);
+                  const avgCash = (crime.minCash + crime.maxCash) / 2;
+                  const takeLevel = avgCash < 100 ? 1 : avgCash < 400 ? 2 : avgCash < 1500 ? 3 : avgCash < 5000 ? 4 : 5;
                   if (crime.minRankLevel > rankLevel) {
                     return (
-                      <div
+                      <JobCard
                         key={crime.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: "5px 8px",
-                          border: "1px solid #3a3a30",
-                          background: "#161b18",
-                          opacity: 0.6
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#8a8470" }}>
-                            {crime.name}
-                          </div>
-                          <div style={{ fontSize: 11, color: "#8a8470" }}>
-                            Unlocks at {rankForLevel(crime.minRankLevel)}
-                          </div>
-                        </div>
-                        <button
-                          className="button"
-                          style={{ flexShrink: 0, width: 70, padding: "5px 0", fontSize: 12, opacity: 0.55 }}
-                          disabled
-                        >
-                          Locked
-                        </button>
-                      </div>
+                        slot={`crimes/${crime.id}`}
+                        title={crime.name}
+                        description={crime.description}
+                        meters={[]}
+                        locked
+                        lockedText={`Unlocks at ${rankForLevel(crime.minRankLevel)}`}
+                        buttonLabel="Locked"
+                      />
                     );
                   }
 
@@ -1636,69 +1526,26 @@ export default function GameShell({
                   const disabled = busy || wait > 0 || needsEnergy || status.jailLeft > 0;
 
                   return (
-                    <div
+                    <JobCard
                       key={crime.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "5px 8px",
-                        border: "1px solid #6b5d3a",
-                        background: "#1f2a25",
-                        opacity: wait > 0 ? 0.75 : 1
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#f7efdb" }}>
-                          {crime.name}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: "#b7ad93",
-                            lineHeight: 1.25,
-                            overflow: "hidden",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical"
-                          }}
-                        >
-                          {crime.description}
-                        </div>
-                      </div>
-
-                      <span
-                        title="Energy cost"
-                        style={{
-                          flexShrink: 0,
-                          fontSize: 12,
-                          color: needsEnergy ? "#e08f7f" : "#e4c04d"
-                        }}
-                      >
-                        ⚡{crimeEnergy}
-                      </span>
-
-                      <button
-                        className="button"
-                        style={{
-                          flexShrink: 0,
-                          width: 70,
-                          padding: "5px 0",
-                          fontSize: 12,
-                          opacity: disabled ? 0.55 : 1
-                        }}
-                        disabled={disabled}
-                        onClick={() => commitCrime(crime.id)}
-                      >
-                        {status.jailLeft > 0
-                          ? "Jailed"
-                          : wait > 0
-                          ? clock(wait)
-                          : needsEnergy
-                            ? "Tired"
-                            : "Attempt"}
-                      </button>
-                    </div>
+                      slot={`crimes/${crime.id}`}
+                      title={crime.name}
+                      description={crime.description}
+                      meters={[
+                        takeMeter(takeLevel)
+                      ]}
+                      seconds={crimeCooldownSeconds(crime.energyCost)}
+                      hideTime
+                      energy={crimeEnergy}
+                      tired={needsEnergy}
+                      waiting={wait > 0}
+                      waitLeft={wait}
+                      disabled={disabled}
+                      buttonLabel={
+                        status.jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : needsEnergy ? "Tired" : "Commit!"
+                      }
+                      onClick={() => commitCrime(crime.id)}
+                    />
                   );
                 })}
               </div>
@@ -1805,11 +1652,7 @@ export default function GameShell({
             />
           )}
 
-          {section === "Search" && (
-            <p className="flavour">
-              Search the city for opportunities.
-            </p>
-          )}
+          {section === "Search" && <SearchSection onCash={setMoney} />}
 
           {section === "Updates" && (
             <p className="flavour">
