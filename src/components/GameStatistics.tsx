@@ -11,7 +11,6 @@ type Stats = {
     succeeded: number;
     failed: number;
     cashEarned: number;
-    byType: { crimeType: string; total: number; succeeded: number }[];
   };
   autoTheft: { stolen: number; failed: number; carsNow: number };
   organisedCrime: { jobs: number; earned: number };
@@ -108,9 +107,6 @@ export default function GameStatistics() {
       <Row label="Failed" value={n(s.crimes.failed)} />
       <Row label="Success rate" value={pct(s.crimes.succeeded, s.crimes.total)} />
       <Row label="Cash earned from crimes" value={gbp(s.crimes.cashEarned)} />
-      {s.crimes.byType.map((c) => (
-        <Row key={c.crimeType} label={c.crimeType} value={`${n(c.total)} (${pct(c.succeeded, c.total)})`} />
-      ))}
 
       <div style={{ ...bar, marginTop: 8 }}>Auto theft</div>
       <Row label="Cars stolen" value={n(s.autoTheft.stolen)} />
