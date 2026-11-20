@@ -291,3 +291,297 @@ model CasinoLog {
 
   @@index([playerId, createdAt])
 }
+
+model ForumTopic {
+  id        String   @id @default(cuid())
+  category  String
+  title     String
+  body      String   @db.Text
+  pinned    Boolean  @default(false)
+  locked    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+
+  author Player       @relation("ForumTopicAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  posts  ForumPost[]
+
+  @@index([category, pinned, createdAt])
+}
+
+model ForumPost {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  authorId  String
+  topicId   String
+
+  author Player     @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  topic  ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, createdAt])
+}
+
+// A four-player organised crime: one leader and three role slots.
+model OrganisedCrime {
+  id        String   @id @default(cuid())
+  leaderId  String   @unique
+  city      String
+  status    String   @default("forming")
+  createdAt DateTime @default(now())
+
+  leader Player   @relation(fields: [leaderId], references: [id], onDelete: Cascade)
+  slots  OcSlot[]
+}
+
+// One of the three positions. state: empty, invited, selecting or ready.
+// While invited, playerId is the person who has been asked.
+model OcSlot {
+  id       String  @id @default(cuid())
+  ocId     String
+  role     String
+  state    String  @default("empty")
+  playerId String?
+  percent  Int?
+  choice   String?
+  carId    String?
+
+  oc     OrganisedCrime @relation(fields: [ocId], references: [id], onDelete: Cascade)
+  player Player?        @relation("OcMember", fields: [playerId], references: [id], onDelete: SetNull)
+
+  @@unique([ocId, role])
+  @@index([playerId])
+}
+
+// A letter in a player's mailbox.
+model Message {
+  id        String    @id @default(cuid())
+  toId      String
+  fromName  String
+  subject   String
+  body      String    @db.Text
+  ocId      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  to Player @relation("MailTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([toId, createdAt])
+}
+
+// A blackjack hand in progress. The bet is held here until the hand ends.
+model BlackjackHand {
+  id        String   @id @default(cuid())
+  playerId  String   @unique
+  city      String
+  bet       Int
+  deck      Json
+  player    Json
+  dealer    Json
+  createdAt DateTime @default(now())
+
+  owner Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+// One ticket in the weekly lottery. drawAt is the Wednesday draw it is entered in.
+model LotteryTicket {
+  id        String   @id @default(cuid())
+  playerId  String
+  drawAt    DateTime
+  createdAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([drawAt])
+  @@index([playerId, drawAt])
+}
+
+// The result of a weekly lottery draw. One row per draw, so it only runs once.
+model LotteryDraw {
+  id         String   @id @default(cuid())
+  drawAt     DateTime @unique
+  tickets    Int
+  pot        Int
+  prize      Int
+  winnerName String?
+  drawnAt    DateTime @default(now())
+}
+
+// A name that has died. Names are kept so they stay reserved and can be revived.
+model PastLife {
+  id        String    @id @default(cuid())
+  userId    String
+  username  String    @unique
+  rank      String
+  rankLevel Int       @default(1)
+  diedAt    DateTime  @default(now())
+  killedBy  String?
+  revivedAt DateTime?
+
+  @@index([userId])
+}
+
+// A detective hired to find another player. When found there is a window to shoot them.
+// status: searching, found, done, lost, expired.
+model Hunt {
+  id          String    @id @default(cuid())
+  hunterId    String
+  targetId    String
+  targetName  String
+  tier        String
+  cost        Int
+  createdAt   DateTime  @default(now())
+  foundAt     DateTime
+  status      String    @default("searching")
+  foundCity   String?
+  windowEndsAt DateTime?
+  shots       Int       @default(0)
+
+  @@index([hunterId, createdAt])
+  @@index([targetId])
+}
+
+// A price on a player's head. status: active, paid (claimed by whoever killed him), bought_off.
+model Bounty {
+  id         String    @id @default(cuid())
+  targetId   String
+  targetName String
+  placerId   String
+  placerName String
+  amount     Int
+  reason     String    @default("")
+  anonymous  Boolean   @default(false)
+  status     String    @default("active")
+  claimedBy  String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([status, amount])
+  @@index([targetId, status])
+}
+
+// Money sent from one player's bank account to another's. The fee is destroyed.
+// kind: "player" for a direct transfer (later "marketplace" for Marketplace and Escrow sales).
+model Transfer {
+  id         String   @id @default(cuid())
+  fromId     String
+  fromName   String
+  toId       String
+  toName     String
+  amount     Int
+  fee        Int
+  received   Int
+  reference  String   @default("")
+  kind       String   @default("player")
+  createdAt  DateTime @default(now())
+
+  @@index([fromId, createdAt])
+  @@index([toId, createdAt])
+}
+
+// Gold put up for sale on the Marketplace. The gold is taken from the seller when listed and held here.
+// remaining = gold still unsold. Buyers take whole batches (batchSize 1 = sold individually,
+// batchSize = the full amount = sold all together). status: active, sold, removed.
+model GoldListing {
+  id         String   @id @default(cuid())
+  sellerId   String
+  sellerName String
+  amount     Int
+  remaining  Int
+  batchSize  Int      @default(1)
+  price      Int
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+
+  seller Player @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([status, price])
+  @@index([sellerId, status])
+}
+
+// One purchase of gold from a listing. The latest price is the "recent value".
+model GoldSale {
+  id        String   @id @default(cuid())
+  listingId String
+  sellerId  String
+  buyerId   String
+  quantity  Int
+  price     Int
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// A trade between two players, held by the Escrow agent. status: invited, active, completed, cancelled.
+// a is the player who sent the invitation, b the one invited. Items are held until both sides agree.
+model Escrow {
+  id          String    @id @default(cuid())
+  aId         String
+  aName       String
+  bId         String
+  bName       String
+  status      String    @default("invited")
+  aLocked     Boolean   @default(false)
+  bLocked     Boolean   @default(false)
+  aAgreed     Boolean   @default(false)
+  bAgreed     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  // The trade is cancelled automatically if it isn't finished by then (30 minutes).
+  expiresAt   DateTime?
+
+  items EscrowItem[]
+
+  @@index([aId, status])
+  @@index([bId, status])
+}
+
+// One thing a player has put into an escrow: cash, gold or a car.
+model EscrowItem {
+  id        String   @id @default(cuid())
+  escrowId  String
+  ownerId   String
+  kind      String
+  amount    Int      @default(0)
+  carId     String?
+  casinoId  String?
+  // What to call the item on screen: the car and its plate, or the casino and its city.
+  carName   String   @default("")
+  createdAt DateTime @default(now())
+
+  escrow Escrow @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+
+  @@index([escrowId])
+}
+
+// A help ticket. status: open (waiting for staff), answered (staff replied), closed.
+model Ticket {
+  id        String   @id @default(cuid())
+  playerId  String
+  category  String
+  subject   String
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  player   Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  messages TicketMessage[]
+
+  @@index([status, updatedAt])
+  @@index([playerId])
+}
+
+// One message in a ticket, from the player or from staff.
+model TicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  authorName String
+  isStaff    Boolean  @default(false)
+  body       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
