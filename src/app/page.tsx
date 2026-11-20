@@ -12,10 +12,11 @@ import { expireEscrowsFor } from "@/lib/escrow";
 export default async function Home({
   searchParams
 }: {
-  searchParams?: Promise<{ to?: string | string[] }>;
+  searchParams?: Promise<{ to?: string | string[]; go?: string | string[] }>;
 }) {
   const query = (await searchParams) ?? {};
   const composeTo = (Array.isArray(query.to) ? query.to[0] : query.to) ?? "";
+  const startSection = (Array.isArray(query.go) ? query.go[0] : query.go) ?? "";
 
   const userId = await getSessionUserId();
 
@@ -185,6 +186,7 @@ export default async function Home({
   return (
     <GameShell
       composeTo={composeTo.slice(0, 40)}
+      startSection={startSection.slice(0, 40)}
       isAdmin={account?.isAdmin ?? false}
       playerId={player.id}
       training={levelsOf(player)}
