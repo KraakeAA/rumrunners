@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -63,7 +62,8 @@ export async function GET() {
         username: true,
         rank: true,
         rankLevel: true,
-        updatedAt: true
+        updatedAt: true,
+        user: { select: { isAdmin: true } }
       },
       orderBy: {
         updatedAt: "desc"
@@ -71,7 +71,13 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      players,
+      players: players.map((p) => ({
+        username: p.username,
+        rank: p.rank,
+        rankLevel: p.rankLevel,
+        updatedAt: p.updatedAt,
+        isAdmin: p.user.isAdmin
+      })),
       count: players.length
     });
   } catch (error) {
