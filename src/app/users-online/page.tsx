@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import SiteMenuBar from "@/components/SiteMenuBar";
 
@@ -10,6 +10,26 @@ type OnlinePlayer = {
   rankLevel: number;
   updatedAt: string;
   isAdmin?: boolean;
+};
+
+const bar: CSSProperties = {
+  padding: "6px 8px",
+  textAlign: "center",
+  fontFamily: "Georgia, serif",
+  fontSize: 15,
+  color: "#f7efdb",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  borderTop: "1px solid #b0904a",
+  borderBottom: "1px solid #b0904a",
+  textShadow: "0 1px 2px #000"
+};
+const box: CSSProperties = {
+  border: "1px solid #6b5d3a",
+  borderTop: 0,
+  background: "#1f2a25",
+  padding: "8px 10px",
+  fontSize: 13,
+  lineHeight: 1.5
 };
 
 export default function UsersOnlinePage() {
@@ -56,92 +76,54 @@ export default function UsersOnlinePage() {
         minHeight: "100vh",
         background: "#0b0f0d",
         color: "#f1e8d3",
-        padding: "8px",
+        padding: 6,
+        boxSizing: "border-box",
+        overflowX: "hidden",
         fontFamily: '"DejaVu Sans", Verdana, Arial, sans-serif',
+        fontSize: 13
       }}
     >
-      <SiteMenuBar />
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div
-          style={{
-            border: "2px solid #6b5d3a",
-            background: "#1f2a25",
-          }}
-        >
-          <div
-            style={{
-              padding: "10px 8px",
-              textAlign: "center",
-              fontSize: 20,
-              fontFamily: "Georgia, serif",
-              color: "#f7efdb",
-              background: "linear-gradient(180deg, #8a7038 0%, #4d3d1c 100%)",
-              borderBottom: "2px solid #b0904a",
-              textShadow: "0 1px 2px #000",
-            }}
-          >
-            Total Users Online in the Last 2 Minutes
-          </div>
+      <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
+        <SiteMenuBar />
 
-          <div
-            style={{
-              padding: "8px 8px 14px",
-              fontSize: 17,
-              lineHeight: 1.55,
-              minHeight: 120,
-            }}
-          >
-            {loading ? (
-              <p style={{ margin: 0 }}>Loading players...</p>
-            ) : error ? (
-              <p style={{ margin: 0, color: "#f09a8c" }}>{error}</p>
-            ) : players.length === 0 ? (
-              <p style={{ margin: 0, textAlign: "center", color: "#b7ad93" }}>
-                Nobody is currently online.
-              </p>
-            ) : (
-              <div>
-                {players.map((player, index) => (
-                  <Fragment key={player.username}>
-                    {index > 0 && (
-                      <span style={{ color: "#8a8470" }}> - </span>
-                    )}
-                    <Link
-                      href={`/profile/${encodeURIComponent(player.username)}`}
-                      title={player.isAdmin ? "Admin" : `${player.rank} (${player.rankLevel})`}
-                      style={{
-                        color: player.isAdmin ? "#00ff00" : "#f1e8d3",
-                        fontWeight: player.isAdmin ? 700 : 400,
-                        textDecoration: "none",
-                      }}
-                    >
-                      {player.username}
-                    </Link>
-                  </Fragment>
-                ))}
-              </div>
-            )}
-          </div>
+        <div style={bar}>Users Online · Last 2 Minutes</div>
 
-          <div
-            style={{
-              padding: "16px 8px 14px",
-              textAlign: "center",
-              fontSize: 17,
-            }}
-          >
-            <strong>Total:</strong> {players.length}
-          </div>
+        <div style={{ ...box, minHeight: 60 }}>
+          {loading ? (
+            <p style={{ margin: 0 }}>Loading players...</p>
+          ) : error ? (
+            <p style={{ margin: 0, color: "#f09a8c" }}>{error}</p>
+          ) : players.length === 0 ? (
+            <p style={{ margin: 0, textAlign: "center", color: "#b7ad93" }}>
+              Nobody is currently online.
+            </p>
+          ) : (
+            <div style={{ overflowWrap: "anywhere" }}>
+              {players.map((player, index) => (
+                <Fragment key={player.username}>
+                  {index > 0 && <span style={{ color: "#8a8470" }}> - </span>}
+                  <Link
+                    href={`/profile/${encodeURIComponent(player.username)}`}
+                    title={player.isAdmin ? "Admin" : `${player.rank} (${player.rankLevel})`}
+                    style={{
+                      color: player.isAdmin ? "#00ff00" : "#f1e8d3",
+                      fontWeight: player.isAdmin ? 700 : 400,
+                      textDecoration: "none"
+                    }}
+                  >
+                    {player.username}
+                  </Link>
+                </Fragment>
+              ))}
+            </div>
+          )}
         </div>
 
-        <p
-          style={{
-            color: "#8a8470",
-            fontSize: 11,
-            textAlign: "center",
-            margin: "12px 0 0",
-          }}
-        >
+        <div style={{ ...box, textAlign: "center", padding: "5px 10px" }}>
+          <strong>Total:</strong> {players.length}
+        </div>
+
+        <p style={{ color: "#8a8470", fontSize: 11, textAlign: "center", margin: "8px 0 0" }}>
           The list refreshes automatically every 30 seconds.
         </p>
       </div>
