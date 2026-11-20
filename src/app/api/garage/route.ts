@@ -11,6 +11,8 @@ import {
   effectiveMinutes,
   makePlate,
   repairCost,
+  SHIP_CITIES,
+  shipCost,
 } from "@/lib/era";
 
 export async function GET() {
@@ -58,6 +60,7 @@ export async function GET() {
           baseMinutes: m.minutes,
           minutes: effectiveMinutes(m, c.damage),
           repairCost: repairCost(c.damage, m.tier),
+          shipCost: shipCost(m.price),
           heat: currentHeat(c.heat, c.heatAt, now),
         },
       ];
@@ -92,7 +95,9 @@ export async function POST(req: Request) {
   const action = String(body?.action ?? "");
   const carId = String(body?.carId ?? "");
 
-  if ((action !== "plate" && action !== "repair") || !carId) {
+  const destination = String(body?.destination ?? "");
+
+  if ((action !== "plate" && action !== "repair" && action !== "ship") || !carId) {
     return NextResponse.json({ error: "Choose a car and a job." }, { status: 400 });
   }
 
@@ -125,6 +130,22 @@ export async function POST(req: Request) {
         return { plate, message: `Your ${model.name} now carries the plate ${plate}.` };
       }
 
+      if (action === "ship") {
+        if (!SHIP_CITIES.includes(destination)) throw new Error("BAD_CITY");
+        if (destination === car.city) throw new Error("ALREADY_THERE");
+        const fee = shipCost(model.price);
+        const paid = await tx.player.updateMany({
+          where: { id: player.id, money: { gte: fee } },
+          data: { money: { decrement: fee } },
+        });
+        if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
+        // The plate is left alone: it still shows the city the car was stolen in.
+        await tx.car.update({ where: { id: car.id }, data: { city: destination } });
+        return {
+          message: `Your ${model.name} [${car.plate}] has been shipped to ${destination} for £${fee.toLocaleString("en-GB")}.`,
+        };
+      }
+
       if (car.damage <= 0) throw new Error("NOT_DAMAGED");
       const cost = repairCost(car.damage, model.tier);
       const paid = await tx.player.updateMany({
@@ -149,6 +170,8 @@ export async function POST(req: Request) {
       NO_CAR: ["You do not own that car.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
       NOT_DAMAGED: ["That car is not damaged.", 400],
+      BAD_CITY: ["Choose a city to ship it to.", 400],
+      ALREADY_THERE: ["That car is already in that city.", 400],
       PLAYER_NOT_FOUND: ["Player not found.", 404],
     };
     if (map[m]) {
