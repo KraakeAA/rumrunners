@@ -585,3 +585,28 @@ model TicketMessage {
 
   @@index([ticketId, createdAt])
 }
+
+
+// Totals from lives that have ended (rebirth zeroes a player's own counters), so the
+// game-wide statistics keep counting them. One row, id "retired".
+model StatRetired {
+  id          String @id
+  theftWins   Int    @default(0)
+  theftFails  Int    @default(0)
+  ocsLed      Int    @default(0)
+  ocEarned    Int    @default(0)
+  kills       Int    @default(0)
+  boozeSold   Int    @default(0)
+  crimesTotal Int    @default(0)
+  crimesWon   Int    @default(0)
+  crimeCash   Int    @default(0)
+}
+
+// The game-wide statistics page, worked out once an hour and kept so it survives restarts.
+model StatSnapshot {
+  id      String   @id @default(cuid())
+  takenAt DateTime @default(now())
+  data    Json
+
+  @@index([takenAt])
+}
