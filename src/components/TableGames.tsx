@@ -279,7 +279,21 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
   return (
     <section style={wrap}>
       <div style={head}>{game}</div>
-      <div style={{ padding: "6px 10px", textAlign: "center", fontSize: 12, color: "#d4c09e", background: "#34291e" }}>
+      <div
+        style={{
+          width: "fit-content",
+          maxWidth: "calc(100% - 20px)",
+          margin: "8px auto",
+          padding: "5px 14px",
+          boxSizing: "border-box",
+          textAlign: "center",
+          fontSize: 12,
+          color: "#e3f0e0",
+          background: "rgba(36, 92, 54, 0.38)",
+          border: "1px solid rgba(111, 207, 111, 0.4)",
+          borderRadius: 4
+        }}
+      >
         Run by {ownerName || "Rumrunners"} · max bet {gbp(limit)}
       </div>
 
