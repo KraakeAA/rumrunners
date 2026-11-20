@@ -91,16 +91,28 @@ body {
     #1b2822;
 }
 
-.nav-category:hover,
+/* Pressed look only while a finger is down. Hover is for mice only: on a phone
+   it stays stuck on the last thing tapped. */
 .nav-category:active,
-.nav-item:hover,
-.nav-item.active,
-.category-back:hover {
+.nav-item:active,
+.category-back:active {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.2)),
     #35503f;
   border-color: #d2b27a;
   color: #fff;
+}
+
+@media (hover: hover) {
+  .nav-category:hover,
+  .nav-item:hover,
+  .category-back:hover {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.2)),
+      #35503f;
+    border-color: #d2b27a;
+    color: #fff;
+  }
 }
 
 .nav-item.logout-menu-item { color: #f09a8c; }
