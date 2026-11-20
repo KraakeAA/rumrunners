@@ -1,3 +1,4 @@
+
 import { randomInt } from "crypto";
 
 export const KENO_PAYOUTS: Record<number, number> = {
@@ -36,72 +37,63 @@ export function drawKeno(selected: number[]) {
   return { drawn, matches, multiplier };
 }
 
-const REEL_SYMBOLS = [
-  { symbol: "🍒", weight: 30 },
-  { symbol: "🍊", weight: 25 },
-  { symbol: "BAR", weight: 18 },
-  { symbol: "7", weight: 12 },
-] as const;
+// Slots work like a real machine: the result is picked first from the table below, then three
+// reels are laid out to show it. That keeps the prizes big and the machine fair to its owner.
+// Chances are out of 1,000,000. Together the prizes pay back 90% of what is staked, so an
+// owner earns about 10% over time. The big prizes are deliberately hard to hit: 777 is
+// 1 spin in 10,000 and BAR BAR BAR 1 in 5,000.
+//   777 500x (100) · BAR BAR BAR 100x (200) · three oranges 50x (2,500) · three cherries 20x (5,000)
+//   two 7s 10x (8,000) · a single 7 5x (40,000) · two cherries 2x, anywhere (162,500)
+const SLOT_TABLE: { upTo: number; multiplier: number; combination: string; make: () => string[] }[] = [];
+{
+  const others = ["🍒", "🍊", "BAR"];
+  const pickOf = (list: string[]) => list[randomInt(list.length)];
+  const shuffle = (list: string[]) => {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = randomInt(i + 1);
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  };
+  let total = 0;
+  const add = (chance: number, multiplier: number, combination: string, make: () => string[]) => {
+    total += chance;
+    SLOT_TABLE.push({ upTo: total, multiplier, combination, make });
+  };
+  add(100, 500, "777", () => ["7", "7", "7"]);
+  add(200, 100, "BAR BAR BAR", () => ["BAR", "BAR", "BAR"]);
+  add(2_500, 50, "Orange Orange Orange", () => ["🍊", "🍊", "🍊"]);
+  add(5_000, 20, "Cherry Cherry Cherry", () => ["🍒", "🍒", "🍒"]);
+  add(8_000, 10, "77", () => shuffle(["7", "7", pickOf(others)]));
+  add(40_000, 5, "A 7", () => shuffle(["7", pickOf(others), pickOf(others)]));
+  add(162_500, 2, "Two cherries", () => shuffle(["🍒", "🍒", pickOf(["🍊", "BAR"])]));
+}
 
-function reelSymbol() {
-  const total = REEL_SYMBOLS.reduce(
-    (sum, item) => sum + item.weight,
-    0
-  );
-
-  let roll = randomInt(total);
-
-  for (const item of REEL_SYMBOLS) {
-    if (roll < item.weight) return item.symbol;
-    roll -= item.weight;
+// A losing spin: no 7, no three of a kind and at most one cherry.
+function losingReels(): string[] {
+  const shapes = [
+    ["🍒", "🍊", "BAR"],
+    ["🍊", "🍊", "BAR"],
+    ["🍊", "BAR", "BAR"],
+    ["🍒", "🍊", "🍊"],
+    ["🍒", "BAR", "BAR"]
+  ];
+  const reels = [...shapes[randomInt(shapes.length)]];
+  for (let i = reels.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [reels[i], reels[j]] = [reels[j], reels[i]];
   }
-
-  return "🍒";
+  return reels;
 }
 
 export function spinSlots() {
-  const reels = [
-    reelSymbol(),
-    reelSymbol(),
-    reelSymbol(),
-  ];
+  const roll = randomInt(1_000_000);
+  const hit = SLOT_TABLE.find((row) => roll < row.upTo);
 
-  const counts = reels.reduce<Record<string, number>>(
-    (acc, symbol) => {
-      acc[symbol] = (acc[symbol] ?? 0) + 1;
-      return acc;
-    },
-    {}
-  );
-
-  // One spin, one payout: highest qualifying award only.
-  let multiplier = 0;
-  let combination = "No win";
-
-  if (counts["7"] === 3) {
-    multiplier = 500;
-    combination = "777";
-  } else if (counts["BAR"] === 3) {
-    multiplier = 100;
-    combination = "BAR BAR BAR";
-  } else if (counts["🍊"] === 3) {
-    multiplier = 50;
-    combination = "Orange Orange Orange";
-  } else if (counts["🍒"] === 3) {
-    multiplier = 20;
-    combination = "Cherry Cherry Cherry";
-  } else if (counts["7"] === 2) {
-    multiplier = 10;
-    combination = "77";
-  } else if (counts["7"] >= 1) {
-    multiplier = 5;
-    combination = "A 7";
-  } else if (counts["🍒"] >= 2) {
-    multiplier = 2;
-    combination = "Two cherries";
+  if (!hit) {
+    return { reels: losingReels(), multiplier: 0, combination: "No win" };
   }
-
-  return { reels, multiplier, combination };
+  return { reels: hit.make(), multiplier: hit.multiplier, combination: hit.combination };
 }
 
 /* ------------------------------- Roulette ------------------------------- */
