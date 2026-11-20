@@ -408,17 +408,17 @@ const SKYLINE = (() => {
     return seed / 233280;
   };
   let x = 0;
-  let d = "M0 26";
+  let d = "M0 20";
   const windows: [number, number][] = [];
   while (x < 400) {
-    const w = 3 + Math.floor(rnd() * 5);
-    const h = 6 + Math.floor(rnd() * 15);
-    const top = 26 - h;
+    const w = 2 + Math.floor(rnd() * 4);
+    const h = 4 + Math.floor(rnd() * 11);
+    const top = 20 - h;
     d += ` V${top} H${Math.min(400, x + w)}`;
-    if (w >= 4 && rnd() < 0.45) windows.push([x + 1, top + 2 + Math.floor(rnd() * 3)]);
+    if (w >= 3 && rnd() < 0.4) windows.push([x + 1, top + 2 + Math.floor(rnd() * 2)]);
     x += w;
   }
-  d += " V26 Z";
+  d += " V20 Z";
   return { d, windows };
 })();
 
@@ -1046,7 +1046,7 @@ export default function GameShell({
           overflow: "hidden",
           minHeight: 0,
           height: "auto",
-          padding: "6px 6px 14px",
+          padding: "4px 4px 8px",
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
@@ -1059,13 +1059,13 @@ export default function GameShell({
         {/* City skyline behind the bar, the same colour as the page below it */}
         <svg
           aria-hidden="true"
-          viewBox="0 0 400 26"
+          viewBox="0 0 400 20"
           preserveAspectRatio="none"
-          style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: 26, pointerEvents: "none" }}
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: 20, pointerEvents: "none" }}
         >
           <path d={SKYLINE.d} fill="#0b0f0d" />
           {SKYLINE.windows.map(([wx, wy]) => (
-            <rect key={`${wx}-${wy}`} x={wx} y={wy} width="1.6" height="1.8" fill="#f2c96a" opacity={sky.lights * 0.85} />
+            <rect key={`${wx}-${wy}`} x={wx} y={wy} width="1.2" height="1.4" fill="#f2c96a" opacity={sky.lights * 0.85} />
           ))}
         </svg>
 
@@ -1078,8 +1078,8 @@ export default function GameShell({
             onClick={() => setCharacterOpen(true)}
             style={{
               position: "relative",
-              width: 50,
-              height: 58,
+              width: 38,
+              height: 44,
               flexShrink: 0,
               padding: 0,
               overflow: "hidden",
@@ -1089,7 +1089,7 @@ export default function GameShell({
               cursor: "pointer"
             }}
           >
-            <svg viewBox="0 0 40 44" width="32" height="36" aria-hidden="true" style={{ display: "block", margin: "3px auto 0" }}>
+            <svg viewBox="0 0 40 44" width="24" height="27" aria-hidden="true" style={{ display: "block", margin: "2px auto 0" }}>
               <ellipse cx="20" cy="8" rx="12" ry="2.5" fill="#cbb98a" />
               <rect x="13" y="1" width="14" height="8" rx="2" fill="#e8d7b6" />
               <circle cx="20" cy="16" r="6" fill="#c9b48a" />
@@ -1102,7 +1102,7 @@ export default function GameShell({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 13,
+                height: 10,
                 background: "#1a1410"
               }}
             >
@@ -1122,8 +1122,8 @@ export default function GameShell({
                   position: "relative",
                   display: "block",
                   textAlign: "center",
-                  fontSize: 9,
-                  lineHeight: "13px",
+                  fontSize: 8,
+                  lineHeight: "10px",
                   fontWeight: 700,
                   color: "#fff",
                   textShadow: "0 1px 1px #000"
@@ -1134,13 +1134,13 @@ export default function GameShell({
             </span>
           </button>
 
-          <div style={{ minWidth: 0, flex: 1, maxWidth: 190 }}>
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 150 }}>
             <div
               aria-label="Player money"
               style={{
                 display: "grid",
-                gap: 2,
-                padding: "4px 8px",
+                gap: 1,
+                padding: "2px 6px",
                 background: "rgba(0, 0, 0, 0.55)",
                 borderRadius: 2,
                 color: "#f1e8d3"
@@ -1153,8 +1153,8 @@ export default function GameShell({
                 <span
                   aria-hidden="true"
                   style={{
-                    width: 18,
-                    height: 10,
+                    width: 14,
+                    height: 8,
                     borderRadius: 2,
                     border: "1px solid #3f8a4d",
                     background: "linear-gradient(135deg, #4f9a5a, #2a5c34)",
@@ -1163,8 +1163,8 @@ export default function GameShell({
                 />
                 <strong
                   style={{
-                    fontSize: 14,
-                    fontWeight: 600,
+                    fontSize: 12,
+                    fontWeight: 400,
                     color: "#f7efdb",
                     overflow: "hidden",
                     textOverflow: "ellipsis"
@@ -1174,20 +1174,20 @@ export default function GameShell({
                 </strong>
               </span>
 
-              <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontSize: 13 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontSize: 12 }}>
                 <span
                   aria-hidden="true"
                   style={{
-                    width: 12,
-                    height: 12,
+                    width: 10,
+                    height: 10,
                     borderRadius: "50%",
                     background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
                     border: "1px solid #7a5a0c",
                     flexShrink: 0,
-                    marginLeft: 3
+                    marginLeft: 2
                   }}
                 />
-                <strong style={{ fontWeight: 600, color: "#f7efdb" }}>{gold.toLocaleString("en-GB")}</strong>
+                <strong style={{ fontWeight: 400, color: "#f7efdb" }}>{gold.toLocaleString("en-GB")}</strong>
               </span>
             </div>
 
@@ -1196,8 +1196,8 @@ export default function GameShell({
               title={status.nextEnergyIn > 0 ? "Energy: +10 every 40 seconds" : "Energy is full"}
               style={{
                 position: "relative",
-                height: 16,
-                marginTop: 4,
+                height: 13,
+                marginTop: 3,
                 background: "rgba(0, 0, 0, 0.55)",
                 border: "1px solid #6b5d3a",
                 borderRadius: 3,
@@ -1219,9 +1219,9 @@ export default function GameShell({
                 style={{
                   position: "relative",
                   textAlign: "center",
-                  fontSize: 11,
-                  lineHeight: "14px",
-                  fontWeight: 700,
+                  fontSize: 10,
+                  lineHeight: "11px",
+                  fontWeight: 600,
                   color: "#fff",
                   textShadow: "0 1px 2px #000"
                 }}
@@ -1239,7 +1239,7 @@ export default function GameShell({
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",
-            gap: 4,
+            gap: 2,
             flexShrink: 0,
             marginLeft: "auto",
             position: "relative"
@@ -1252,15 +1252,15 @@ export default function GameShell({
             onClick={() => navigate("Mailbox")}
             style={{
               position: "relative",
-              width: 40,
-              height: 40,
+              width: 34,
+              height: 38,
               display: "grid",
               placeItems: "center",
               padding: 0,
               border: 0,
               background: "transparent",
               color: "#e8d7b6",
-              fontSize: 26,
+              fontSize: 22,
               textShadow: "0 1px 3px #000",
               cursor: "pointer"
             }}
@@ -1273,15 +1273,15 @@ export default function GameShell({
                   position: "absolute",
                   top: -2,
                   right: -2,
-                  minWidth: 17,
-                  height: 17,
+                  minWidth: 15,
+                  height: 15,
                   padding: "0 3px",
                   boxSizing: "border-box",
                   borderRadius: 9,
                   background: "#c0392b",
                   color: "#fff",
-                  fontSize: 11,
-                  lineHeight: "17px",
+                  fontSize: 9,
+                  lineHeight: "15px",
                   fontWeight: 700,
                   textAlign: "center",
                   textShadow: "none"
@@ -1298,15 +1298,15 @@ export default function GameShell({
             title="Jail"
             onClick={() => navigate("Jail")}
             style={{
-              width: 40,
-              height: 40,
+              width: 34,
+              height: 38,
               display: "grid",
               placeItems: "center",
               padding: 0,
               border: 0,
               background: "transparent",
               color: "#e8d7b6",
-              fontSize: 24,
+              fontSize: 20,
               textShadow: "0 1px 3px #000",
               cursor: "pointer"
             }}
@@ -1321,14 +1321,14 @@ export default function GameShell({
             aria-pressed={menuOpen}
             onClick={toggleMenu}
             style={{
-              minWidth: 50,
-              height: 40,
-              padding: "0 8px",
+              minWidth: 42,
+              height: 38,
+              padding: "0 6px",
               border: "1px solid #b9b6ad",
               borderRadius: 2,
               background: "rgba(0, 0, 0, 0.6)",
               color: "#f7efdb",
-              fontSize: 14,
+              fontSize: 12,
               cursor: "pointer"
             }}
           >
