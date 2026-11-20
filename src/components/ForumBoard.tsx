@@ -610,11 +610,16 @@ export default function ForumBoard({
       )}
 
       <div style={{ ...bar, marginTop: showNew || selected ? 6 : 0 }}>
-        {title} (
-        <button type="button" onClick={() => setShowNew((v) => !v)} style={{ ...linkButton, color: "#f7efdb" }}>
-          {showNew ? "Cancel" : "Add topic"}
-        </button>
-        )
+        {title}
+        {(category !== "OFFICIAL" || staff >= 1) && (
+          <>
+            {" "}(
+            <button type="button" onClick={() => setShowNew((v) => !v)} style={{ ...linkButton, color: "#f7efdb" }}>
+              {showNew ? "Cancel" : "Add topic"}
+            </button>
+            )
+          </>
+        )}
         <button
           type="button"
           aria-label="Refresh"
