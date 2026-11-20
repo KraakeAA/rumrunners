@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -37,6 +36,17 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "Email or password is incorrect." },
       { status: 401 }
+    );
+  }
+
+  if (user.banned) {
+    return NextResponse.json(
+      {
+        error: user.banReason
+          ? `This account has been banned: ${user.banReason}`
+          : "This account has been banned."
+      },
+      { status: 403 }
     );
   }
 
