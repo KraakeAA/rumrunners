@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { CITY_STORIES, RAIL_MINUTES } from "@/lib/era";
+import { CITY_STORIES, RAIL_MINUTES, SHIP_CITIES } from "@/lib/era";
 
 type GarageCar = {
   id: string;
@@ -21,6 +21,7 @@ type GarageCar = {
   plate: string;
   damage: number;
   repairCost: number;
+  shipCost: number;
   baseMinutes: number;
 };
 
@@ -282,9 +283,31 @@ export function TravelSection({
 const sub: CSSProperties = { fontSize: 12, color: "#c9bfa6" };
 /* ------------------------------- Garage ------------------------------- */
 
-export function GarageSection() {
+export function GarageSection({ onCash }: { onCash?: (money: number) => void }) {
   const [data, setData] = useState<GarageData | null>(null);
   const [msg, setMsg] = useState("");
+  const [shipTo, setShipTo] = useState<Record<string, string>>({});
+  const [shipping, setShipping] = useState(false);
+
+  async function ship(carId: string) {
+    const destination = shipTo[carId];
+    if (!destination || shipping) return;
+    setShipping(true);
+    setMsg("");
+    try {
+      const { ok, body } = await postJson("/api/garage", { action: "ship", carId, destination });
+      setMsg(body.error || body.message || "");
+      if (ok) {
+        if (typeof body.money === "number") onCash?.(body.money);
+        setShipTo({ ...shipTo, [carId]: "" });
+        load();
+      }
+    } catch {
+      setMsg("Unable to connect. Please try again.");
+    } finally {
+      setShipping(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -323,16 +346,50 @@ export function GarageSection() {
             <strong>{c.name}</strong> <span style={sub}>({c.year})</span>
             <div style={{ fontWeight: 700, letterSpacing: 1 }}>Plate: {c.plate}</div>
             <div style={sub}>
-              Stolen in {c.originCity} · melts down for{" "}
+              Stolen in {c.originCity} · now in {c.city} · melts down for{" "}
               {c.scrap.toLocaleString("en-GB")} bullets
             </div>
             <HeatBar heat={c.heat} />
             <DamageBar damage={c.damage} />
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+              <select
+                value={shipTo[c.id] ?? ""}
+                onChange={(e) => setShipTo({ ...shipTo, [c.id]: e.target.value })}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: "5px 6px",
+                  border: "1px solid #a08340",
+                  borderRadius: 0,
+                  background: "#0e1411",
+                  color: "#f7efdb",
+                  fontSize: 16
+                }}
+              >
+                <option value="">Ship to…</option>
+                {SHIP_CITIES.filter((s) => s !== c.city).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="button"
+                disabled={!shipTo[c.id] || shipping}
+                onClick={() => ship(c.id)}
+                style={{ padding: "6px 10px", fontSize: 12, flexShrink: 0, opacity: !shipTo[c.id] || shipping ? 0.55 : 1 }}
+              >
+                Ship (£{c.shipCost.toLocaleString("en-GB")})
+              </button>
+            </div>
           </div>
         ))}
+        {msg && <div style={{ padding: "6px 8px", color: "#ddc18d" }}>{msg}</div>}
         <div style={{ padding: 8, fontSize: 12, color: "#c9bfa6" }}>
-          Cars are not driven. Melt them down for bullets at the Bullet Factory, or use them on
-          Organised Crime jobs. Need more room? Buy a bigger garage in the Store.
+          Cars are not driven. Ship them to another city by rail freight (the plate stays the same),
+          melt them down for bullets at the Bullet Factory, or use them on Organised Crime jobs.
+          Need more room? Buy a bigger garage in the Store.
         </div>
       </div>
     </div>
