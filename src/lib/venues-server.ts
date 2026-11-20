@@ -6,7 +6,10 @@ import {
   CITIES,
   FACTORY,
   HOUSE_MAX_BET,
+  HOUSE_ONLY_GAMES,
   casinoDef,
+  houseMaxBet,
+  isHouseOnly,
   wealthLabel,
   type CasinoView,
   type FactoryView,
@@ -18,9 +21,14 @@ type Tx = Prisma.TransactionClient;
 // Makes sure every city has a row for each casino game and a bullet factory.
 export async function ensureVenues() {
   const casinoRows = CITIES.flatMap((city) =>
-    CASINO_GAMES.map((g) => ({ city, game: g.key, maxBet: HOUSE_MAX_BET }))
+    CASINO_GAMES.map((g) => ({ city, game: g.key, maxBet: houseMaxBet(g.key) }))
   );
   await prisma.casino.createMany({ data: casinoRows, skipDuplicates: true });
+  // War is never player-owned: release any that were bought before this rule.
+  await prisma.casino.updateMany({
+    where: { game: { in: HOUSE_ONLY_GAMES }, ownerId: { not: null }, escrowId: null },
+    data: { ownerId: null }
+  });
   await prisma.bulletFactory.createMany({
     data: CITIES.map((city) => ({ city, pricePerBullet: FACTORY.defaultPrice })),
     skipDuplicates: true
@@ -99,16 +107,17 @@ export async function loadVenueData(playerId: string): Promise<VenueData | null>
     .sort((a, b) => cityOrder(a.city) - cityOrder(b.city) || gameOrder(a.game) - gameOrder(b.game))
     .map((c) => {
       const def = casinoDef(c.game);
-      const mine = c.ownerId === playerId;
+      const houseOnly = isHouseOnly(c.game);
+      const mine = !houseOnly && c.ownerId === playerId;
       return {
         id: c.id,
         city: c.city,
         game: c.game,
         label: def.label,
-        ownerId: c.ownerId,
-        ownerName: c.owner?.username ?? null,
-        ownerWealth: c.owner ? wealthLabel(c.owner.money) : null,
-        maxBet: c.ownerId ? c.maxBet : HOUSE_MAX_BET,
+        ownerId: houseOnly ? null : c.ownerId,
+        ownerName: houseOnly ? null : c.owner?.username ?? null,
+        ownerWealth: !houseOnly && c.owner ? wealthLabel(c.owner.money) : null,
+        maxBet: houseOnly ? houseMaxBet(c.game) : c.ownerId ? c.maxBet : HOUSE_MAX_BET,
         price: def.price,
         topMultiplier: def.topMultiplier,
         isMine: mine,
