@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 export type ForumCategory = "OFFICIAL" | "CLASSIFIEDS" | "OFF_TOPIC" | "SUGGESTIONS";
 
@@ -27,17 +27,22 @@ type Topic = {
 };
 
 const PER_PAGE = 15;
+const POSTS_PER_PAGE = 20;
+
+// Text sizes, copied from the Bootleggers forum. Change a number here and it
+// changes everywhere on the forums.
+const SIZE = { bar: 14, row: 11, name: 12, body: 12, small: 10, input: 16 };
 
 const bar: CSSProperties = {
   position: "relative",
-  padding: "6px 8px",
+  padding: "5px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 15,
+  fontSize: SIZE.bar,
+  lineHeight: 1.25,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
-  borderTop: "1px solid #b0904a",
-  borderBottom: "1px solid #b0904a",
+  border: "1px solid #b0904a",
   textShadow: "0 1px 2px #000"
 };
 
@@ -45,7 +50,7 @@ const panel: CSSProperties = {
   border: "1px solid #6b5d3a",
   borderTop: 0,
   background: "#1f2a25",
-  padding: 8
+  padding: 6
 };
 
 const field: CSSProperties = {
@@ -57,8 +62,35 @@ const field: CSSProperties = {
   borderRadius: 0,
   background: "#0e1411",
   color: "#f7efdb",
-  fontSize: 16,
+  fontSize: SIZE.input,
   fontFamily: "inherit"
+};
+
+// The big white reply box, rounded like Bootleggers.
+const whiteBox: CSSProperties = {
+  display: "block",
+  width: "100%",
+  boxSizing: "border-box",
+  minHeight: 100,
+  padding: "8px 10px",
+  border: 0,
+  borderRadius: 8,
+  background: "#fff",
+  color: "#111",
+  fontSize: SIZE.input,
+  fontFamily: "inherit",
+  resize: "vertical"
+};
+
+const blueButton: CSSProperties = {
+  padding: "3px 18px",
+  border: "2px solid #4aa3ff",
+  borderRadius: 14,
+  background: "#0a6cf0",
+  color: "#fff",
+  fontSize: 13,
+  fontFamily: "inherit",
+  cursor: "pointer"
 };
 
 const linkButton: CSSProperties = {
@@ -72,15 +104,61 @@ const linkButton: CSSProperties = {
   cursor: "pointer"
 };
 
-const stamp = (value: string) =>
-  new Date(value).toLocaleString("en-GB", {
+const EMOTICONS = ["😀", "🙁", "😮", "😛", "😕", "🤓", "😁", "🙂", "😎", "😆", "👍", "👎"];
+
+const nth = (n: number) => {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${["th", "st", "nd", "rd"][n % 10 > 3 ? 0 : n % 10]}`;
+};
+
+// "Nov 20th, 2026 10:41:51 AM", UK time.
+const stamp = (value: string) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/London",
-    day: "numeric",
     month: "short",
+    day: "numeric",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  }).formatToParts(new Date(value));
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${g("month")} ${nth(Number(g("day")))}, ${g("year")} ${g("hour")}:${g("minute")}:${g("second")} ${g("dayPeriod")}`;
+};
+
+// Turns "[Name wrote]\n...text...\n\n" (what the (Q) button adds) into speech bubbles.
+function renderBody(text: string) {
+  const out: ReactNode[] = [];
+  const re = /\[([^\]\n]{1,40}) wrote\]\n([\s\S]*?)(?:\n\n|$)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(<span key={k++}>{text.slice(last, m.index)}</span>);
+    out.push(
+      <div key={k++} style={{ margin: "2px 0 10px" }}>
+        <div
+          style={{
+            padding: "7px 11px",
+            borderRadius: 14,
+            background: "linear-gradient(180deg, #f2f2f2, #c9c9c9)",
+            color: "#1d1d1d",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word"
+          }}
+        >
+          {m[2]}
+        </div>
+        <div style={{ textAlign: "right", fontSize: SIZE.row, color: "#cfc6ad", padding: "2px 10px 0" }}>{m[1]} said</div>
+      </div>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(<span key={k++}>{text.slice(last)}</span>);
+  return out;
+}
 
 export default function ForumBoard({
   category,
@@ -105,6 +183,7 @@ export default function ForumBoard({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [reply, setReply] = useState("");
+  const [postPage, setPostPage] = useState(0);
 
   const loadTopics = useCallback(async () => {
     setLoading(true);
@@ -132,6 +211,7 @@ export default function ForumBoard({
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || "Could not open that topic.");
       setSelected(d.topic);
+      setPostPage(0);
       setReply("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not open that topic.");
@@ -241,49 +321,58 @@ export default function ForumBoard({
   const pageNo = Math.min(page, pages - 1);
   const rows = shown.slice(pageNo * PER_PAGE, pageNo * PER_PAGE + PER_PAGE);
 
-  const postCard = (key: string, author: string, text: string, when: string, original = false) => (
-    <div key={key} style={{ border: "1px solid #6b5d3a", background: "#1f2a25", marginBottom: 6 }}>
+  const postCard = (key: string, n: number, author: string, text: string, when: string) => (
+    <div key={key} style={{ border: "1px solid #6b5d3a", background: "#1f2a25", marginBottom: 8 }}>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           gap: 8,
-          padding: "4px 8px",
-          fontSize: 13,
-          background: original ? "linear-gradient(180deg, #5c4a22, #3a2f16)" : "#26332c",
+          padding: "3px 6px",
+          fontSize: SIZE.name,
+          background: "#2a382f",
           borderBottom: "1px solid #6b5d3a"
         }}
       >
         <span>
-          <a
-            href={`/profile/${encodeURIComponent(author)}`}
-            style={{ color: "#f7efdb", fontWeight: 700, textDecoration: "none" }}
-          >
+          <a href={`/profile/${encodeURIComponent(author)}`} style={{ color: "#f7efdb", fontWeight: 700, textDecoration: "none" }}>
             {author}
-          </a>
+          </a>{" "}
+          <button
+            type="button"
+            aria-label={`Quote ${author}`}
+            title="Quote"
+            onClick={() => quote(author, text)}
+            style={{ ...linkButton, textDecoration: "none", color: "#b7ad93" }}
+          >
+            (Q)
+          </button>
         </span>
-        <button
-          type="button"
-          aria-label={`Quote ${author}`}
-          title="Quote"
-          onClick={() => quote(author, text)}
-          style={{ ...linkButton, textDecoration: "none", color: "#b7ad93" }}
-        >
-          (Q)
-        </button>
+        <span style={{ fontStyle: "italic", color: "#8f8873" }}>#{n}</span>
       </div>
-      <div style={{ padding: "8px 10px", whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: 14, lineHeight: 1.45, color: "#e4dac3" }}>
-        {text}
+      <div style={{ padding: "7px 8px", whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: SIZE.body, lineHeight: 1.35, color: "#e8dfc8" }}>
+        {renderBody(text)}
       </div>
-      <div style={{ padding: "3px 8px", textAlign: "right", fontSize: 11, color: "#8a8470", background: "#17201c" }}>
+      <div style={{ margin: "0 4px 4px", padding: "5px 8px", textAlign: "right", fontSize: SIZE.small, color: "#9a937d", background: "#17201c" }}>
         {when}
       </div>
     </div>
   );
 
+  // Newest reply first, the original post last (#1), as on Bootleggers.
+  const thread = selected
+    ? [
+        ...selected.posts.map((p, i) => ({ id: p.id, n: i + 2, author: p.author.username, text: p.body, at: p.createdAt })),
+        { id: "op", n: 1, author: selected.author.username, text: selected.body, at: selected.createdAt }
+      ].reverse()
+    : [];
+  const postPages = Math.max(1, Math.ceil(thread.length / POSTS_PER_PAGE));
+  const postPageNo = Math.min(postPage, postPages - 1);
+  const postRows = thread.slice(postPageNo * POSTS_PER_PAGE, postPageNo * POSTS_PER_PAGE + POSTS_PER_PAGE);
+
   return (
-    <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
+    <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0, fontSize: SIZE.row }}>
       {error && (
         <p className="notice" style={{ margin: "0 0 6px", color: "#f09a8c" }}>
           {error}
@@ -300,46 +389,20 @@ export default function ForumBoard({
                 setSelected(null);
                 setError("");
               }}
-              style={{ ...linkButton, position: "absolute", left: 8, top: 7, fontSize: 13, color: "#f7efdb", textDecoration: "none" }}
+              style={{ ...linkButton, position: "absolute", left: 8, top: 6, fontSize: SIZE.name, color: "#f7efdb", textDecoration: "none" }}
             >
               « Topics
             </button>
-            <span style={{ display: "block", padding: "0 56px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ display: "block", padding: "0 60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {selected.pinned ? "★ " : ""}
               {selected.title}
               {selected.locked ? " 🔒" : ""}
             </span>
           </div>
 
-          <div style={{ ...panel, paddingBottom: 2 }}>
-            {postCard("op", selected.author.username, selected.body, stamp(selected.createdAt), true)}
-            {selected.posts.map((p) => postCard(p.id, p.author.username, p.body, stamp(p.createdAt)))}
-
-            {(isAdmin || selected.authorId === playerId) && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }}>
-                {isAdmin && (
-                  <>
-                    <button className="button secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => moderate({ pinned: !selected.pinned })}>
-                      {selected.pinned ? "Unpin" : "Pin"}
-                    </button>
-                    <button className="button secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => moderate({ locked: !selected.locked })}>
-                      {selected.locked ? "Unlock" : "Lock"}
-                    </button>
-                  </>
-                )}
-                <button className="button secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={deleteTopic}>
-                  Delete topic
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div style={{ ...bar, marginTop: 6 }}>Add reply</div>
-          <div style={panel}>
+          <div style={{ ...panel, borderTop: "0" }}>
             {selected.locked ? (
-              <p style={{ margin: 0, fontSize: 13, color: "#b7ad93", textAlign: "center" }}>
-                This discussion has been locked.
-              </p>
+              <p style={{ margin: 0, fontSize: SIZE.name, color: "#b7ad93", textAlign: "center" }}>This discussion has been locked.</p>
             ) : (
               <>
                 <textarea
@@ -348,21 +411,75 @@ export default function ForumBoard({
                   maxLength={5000}
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
-                  style={{ ...field, resize: "vertical" }}
+                  style={whiteBox}
                 />
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "6px 4px 0" }}>
                   <button
-                    className="button"
-                    style={{ padding: "6px 22px", fontSize: 13, opacity: busy || !reply.trim() ? 0.55 : 1 }}
+                    type="button"
+                    style={{ ...blueButton, opacity: busy || !reply.trim() ? 0.55 : 1 }}
                     disabled={busy || !reply.trim()}
                     onClick={sendReply}
                   >
                     Add!
                   </button>
                 </div>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 4 }}>
+                  {EMOTICONS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      aria-label={`Add ${e}`}
+                      onClick={() => setReply((cur) => cur + e)}
+                      style={{ ...linkButton, textDecoration: "none", fontSize: 20, lineHeight: 1.2 }}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
               </>
             )}
           </div>
+
+          {(isAdmin || selected.authorId === playerId) && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0" }}>
+              {isAdmin && (
+                <>
+                  <button className="button secondary" style={{ padding: "4px 10px", fontSize: SIZE.name }} onClick={() => moderate({ pinned: !selected.pinned })}>
+                    {selected.pinned ? "Unpin" : "Pin"}
+                  </button>
+                  <button className="button secondary" style={{ padding: "4px 10px", fontSize: SIZE.name }} onClick={() => moderate({ locked: !selected.locked })}>
+                    {selected.locked ? "Unlock" : "Lock"}
+                  </button>
+                </>
+              )}
+              <button className="button secondary" style={{ padding: "4px 10px", fontSize: SIZE.name }} onClick={deleteTopic}>
+                Delete topic
+              </button>
+            </div>
+          )}
+
+          <div style={{ marginTop: 8 }}>
+            {postRows.map((p) => postCard(p.id, p.n, p.author, p.text, stamp(p.at)))}
+          </div>
+
+          {postPages > 1 && (
+            <div style={{ textAlign: "center", fontSize: SIZE.name, color: "#d4cab2", padding: "4px 0 8px" }}>
+              Page
+              <br />
+              <select
+                aria-label="Page"
+                value={postPageNo}
+                onChange={(e) => setPostPage(Number(e.target.value))}
+                style={{ ...field, display: "inline-block", width: "auto", padding: "2px 8px", marginTop: 3 }}
+              >
+                {Array.from({ length: postPages }, (_, i) => (
+                  <option key={i} value={i}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </>
       )}
 
@@ -373,7 +490,7 @@ export default function ForumBoard({
             <>
               <div style={bar}>New topic</div>
               <div style={panel}>
-                <label style={{ fontSize: 13, color: "#d4cab2" }}>Subject:</label>
+                <label style={{ fontSize: SIZE.name, color: "#d4cab2" }}>Subject:</label>
                 {category === "CLASSIFIEDS" && (
                   <select
                     aria-label="Listing type"
@@ -401,22 +518,22 @@ export default function ForumBoard({
                   onChange={(e) => setSubject(e.target.value)}
                   style={{ ...field, height: 34, margin: "4px 0 6px" }}
                 />
-                <label style={{ fontSize: 13, color: "#d4cab2" }}>Message:</label>
+                <label style={{ fontSize: SIZE.name, color: "#d4cab2" }}>Message:</label>
                 <textarea
                   aria-label="Message"
                   rows={6}
                   maxLength={5000}
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  style={{ ...field, margin: "4px 0 6px", resize: "vertical" }}
+                  style={{ ...whiteBox, margin: "4px 0 6px" }}
                 />
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-                  <button className="button secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => setShowNew(false)}>
+                  <button type="button" className="button secondary" style={{ padding: "3px 14px", fontSize: 13, borderRadius: 14 }} onClick={() => setShowNew(false)}>
                     Cancel
                   </button>
                   <button
-                    className="button"
-                    style={{ padding: "6px 22px", fontSize: 13, opacity: busy || subject.trim().length < 3 || body.trim().length < 3 ? 0.55 : 1 }}
+                    type="button"
+                    style={{ ...blueButton, opacity: busy || subject.trim().length < 3 || body.trim().length < 3 ? 0.55 : 1 }}
                     disabled={busy || subject.trim().length < 3 || body.trim().length < 3}
                     onClick={createTopic}
                   >
@@ -437,17 +554,17 @@ export default function ForumBoard({
               type="button"
               aria-label="Refresh"
               onClick={loadTopics}
-              style={{ ...linkButton, position: "absolute", right: 10, top: 5, fontSize: 17, color: "#f7efdb", textDecoration: "none" }}
+              style={{ ...linkButton, position: "absolute", right: 10, top: 4, fontSize: 18, color: "#f7efdb", textDecoration: "none" }}
             >
               ⟳
             </button>
           </div>
 
-          <div style={{ border: "1px solid #6b5d3a", borderTop: 0 }}>
+          <div style={{ border: "1px solid #6b5d3a", borderTop: 0, background: "#1f2a25", padding: "3px 3px 0" }}>
             {loading ? (
-              <p style={{ margin: 0, padding: 10, fontSize: 13, color: "#b7ad93", textAlign: "center" }}>Loading…</p>
+              <p style={{ margin: 0, padding: 10, fontSize: SIZE.row, color: "#b7ad93", textAlign: "center" }}>Loading…</p>
             ) : rows.length === 0 ? (
-              <p style={{ margin: 0, padding: 10, fontSize: 13, color: "#b7ad93", textAlign: "center" }}>
+              <p style={{ margin: 0, padding: 10, fontSize: SIZE.row, color: "#b7ad93", textAlign: "center" }}>
                 {search ? "Nothing matches that search." : "No topics yet. Be the first to start one."}
               </p>
             ) : (
@@ -462,12 +579,14 @@ export default function ForumBoard({
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: 8,
-                    padding: "8px 8px",
+                    padding: "5px 6px",
+                    margin: 0,
                     border: 0,
-                    borderBottom: "1px solid #2b3630",
-                    background: i % 2 === 0 ? "#1f2a25" : "#18211d",
+                    background: i % 2 === 0 ? "#2a382f" : "#222e27",
                     color: "#f1e8d3",
-                    fontSize: 14,
+                    fontSize: SIZE.row,
+                    fontFamily: "inherit",
+                    lineHeight: 1.25,
                     textAlign: "left",
                     cursor: "pointer"
                   }}
@@ -477,31 +596,34 @@ export default function ForumBoard({
                     {t.title}
                     {t.locked ? " 🔒" : ""}
                   </span>
-                  <span style={{ flexShrink: 0, color: "#b7ad93" }}>{t._count.posts}</span>
+                  <span style={{ flexShrink: 0, color: "#cfc6ad" }}>{t._count.posts}</span>
                 </button>
               ))
             )}
 
-            {pages > 1 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", fontSize: 13, background: "#1f2a25" }}>
-                <button type="button" disabled={pageNo === 0} onClick={() => setPage(pageNo - 1)} style={{ ...linkButton, textDecoration: "none", opacity: pageNo === 0 ? 0.4 : 1 }}>
-                  « Prev
-                </button>
-                <span style={{ color: "#b7ad93" }}>
-                  Page {pageNo + 1} of {pages}
-                </span>
-                <button type="button" disabled={pageNo >= pages - 1} onClick={() => setPage(pageNo + 1)} style={{ ...linkButton, textDecoration: "none", opacity: pageNo >= pages - 1 ? 0.4 : 1 }}>
-                  Next »
-                </button>
-              </div>
-            )}
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 22px 14px", fontSize: SIZE.name, minHeight: 20 }}>
+              <span>
+                {pageNo > 0 && (
+                  <button type="button" onClick={() => setPage(pageNo - 1)} style={{ ...linkButton, textDecoration: "none", color: "#f7efdb" }}>
+                    Prev
+                  </button>
+                )}
+              </span>
+              <span>
+                {pageNo < pages - 1 && (
+                  <button type="button" onClick={() => setPage(pageNo + 1)} style={{ ...linkButton, textDecoration: "none", color: "#f7efdb" }}>
+                    Next
+                  </button>
+                )}
+              </span>
+            </div>
           </div>
 
           <div style={{ ...bar, marginTop: 6 }}>Search</div>
           <div style={{ ...panel, display: "flex", gap: 6, alignItems: "center" }}>
-            <label style={{ fontSize: 13, color: "#d4cab2", flexShrink: 0 }}>Search for:</label>
             <input
               aria-label="Search topics"
+              placeholder="Search for…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -510,11 +632,11 @@ export default function ForumBoard({
                   setPage(0);
                 }
               }}
-              style={{ ...field, flex: 1, minWidth: 0, height: 32 }}
+              style={{ ...field, flex: 1, minWidth: 0, height: 32, borderRadius: 8 }}
             />
             <button
-              className="button"
-              style={{ padding: "5px 12px", fontSize: 12, flexShrink: 0 }}
+              type="button"
+              style={{ ...blueButton, padding: "3px 14px", flexShrink: 0 }}
               onClick={() => {
                 setSearch(query.trim());
                 setPage(0);
