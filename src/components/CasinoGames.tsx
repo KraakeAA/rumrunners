@@ -194,7 +194,7 @@ export default function CasinoGames({
             style={{
               color: "#f7efdb",
               fontFamily: "Georgia, serif",
-              fontSize: 19,
+              fontSize: 15,
               letterSpacing: 1,
             }}
           >
@@ -432,7 +432,7 @@ export default function CasinoGames({
               color: "#f1e8d3",
               border: "1px solid #94764c",
               borderRadius: 3,
-              fontSize: 19,
+              fontSize: 16,
               boxSizing: "border-box",
             }}
           />
@@ -626,7 +626,7 @@ export default function CasinoGames({
               "linear-gradient(180deg, #a18459 0%, #80613d 30%, #594027 68%, #382617 100%)",
             color: "#f4dfb7",
             fontFamily: "Georgia, serif",
-            fontSize: 19,
+            fontSize: 15,
             letterSpacing: 0.5,
             textShadow: "0 1px 3px #000",
           }}
