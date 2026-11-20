@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import Link from "next/link";
 import CasinoGames from "@/components/CasinoGames";
 import TableGames from "@/components/TableGames";
-import type { CasinoGameKey, CasinoView, FactoryView, VenueData } from "@/lib/venues";
+import { isHouseOnly, type CasinoGameKey, type CasinoView, type FactoryView, type VenueData } from "@/lib/venues";
 
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
@@ -122,6 +122,7 @@ export function CasinoSection({
   const { data, error, reload } = useVenues();
   const [msg, setMsg] = useState("");
   const [maxBetInput, setMaxBetInput] = useState("");
+  const [confirmDrop, setConfirmDrop] = useState(false);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState<{ text: string; good: boolean } | null>(null);
 
@@ -203,8 +204,60 @@ export function CasinoSection({
               maximum bet low enough to stay safe.
             </p>
             {msg && <p style={{ color: "#ddc18d", margin: "8px 0 0" }}>{msg}</p>}
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #6b5d3a" }}>
+              <button
+                type="button"
+                style={{ ...btn, background: "linear-gradient(180deg, #7a2a22, #4a1814)", borderColor: "#b3584c" }}
+                disabled={busy}
+                onClick={() => setConfirmDrop(true)}
+              >
+                Drop casino
+              </button>
+            </div>
           </div>
         </div>
+
+        {confirmDrop && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 100,
+              display: "grid",
+              placeItems: "center",
+              padding: 16,
+              background: "rgba(0, 0, 0, 0.7)"
+            }}
+          >
+            <div style={{ ...panel, width: "100%", maxWidth: 320, marginBottom: 0 }}>
+              <Bar>Are you sure?</Bar>
+              <div style={{ padding: 12, textAlign: "center", lineHeight: 1.5 }}>
+                <p style={{ margin: "0 0 10px" }}>
+                  Drop the {casino.city} {casino.label} casino? You will lose ownership and
+                  anyone can buy it.
+                </p>
+                <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                  <button
+                    type="button"
+                    style={{ ...btn, background: "linear-gradient(180deg, #7a2a22, #4a1814)", borderColor: "#b3584c" }}
+                    disabled={busy}
+                    onClick={async () => {
+                      await act({ action: "drop", city: casino.city, game });
+                      setConfirmDrop(false);
+                    }}
+                  >
+                    Yes
+                  </button>
+                  <button type="button" style={btn} disabled={busy} onClick={() => setConfirmDrop(false)}>
+                    No
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -238,7 +291,7 @@ export function CasinoSection({
         </div>
       )}
 
-      {!casino.ownerId && (
+      {!casino.ownerId && !isHouseOnly(casino.game) && (
         <div style={{ ...panel, padding: 8, textAlign: "center" }}>
           <div style={{ marginBottom: 6 }}>
             No one owns the {casino.city} {casino.label} casino. You can buy it for{" "}
@@ -386,27 +439,43 @@ export function CitiesSection() {
                 <div style={{ fontSize: 11, color: "#b7ad93" }}>{cityRegions[city] ?? "Britain"}</div>
               </div>
 
-              {rows.map((c) => (
-                <CityRow key={c.id} label={`${c.label} Owner`}>
-                  <OwnerLine
-                    owner={c.ownerName}
-                    figure={c.ownerId ? gbp(c.maxBet) : `Buy ${gbp(c.price)}`}
-                    figureNote={c.ownerId ? "max bet" : undefined}
-                    wealth={c.ownerWealth}
-                  />
-                </CityRow>
-              ))}
-
-              {factory && (
-                <CityRow label="Bullet Factory Owner">
-                  <OwnerLine
-                    owner={factory.ownerName}
-                    figure={factory.ownerId ? `${gbp(factory.pricePerBullet)} each` : `Buy ${gbp(factory.price)}`}
-                    figureNote={factory.ownerId ? `(${factory.stock.toLocaleString("en-GB")})` : undefined}
-                    wealth={factory.ownerWealth}
-                  />
-                </CityRow>
-              )}
+              {(() => {
+                const casinoRow = (game: string) => {
+                  const c = rows.find((r) => r.game === game);
+                  if (!c) return null;
+                  return (
+                    <CityRow key={c.id} label={`${c.label} Owner`}>
+                      <OwnerLine
+                        owner={c.ownerName}
+                        figure={c.ownerId ? gbp(c.maxBet) : `Buy ${gbp(c.price)}`}
+                        figureNote={c.ownerId ? "max bet" : undefined}
+                        wealth={c.ownerWealth}
+                      />
+                    </CityRow>
+                  );
+                };
+                return (
+                  <>
+                    {casinoRow("Slots")}
+                    {casinoRow("Roulette")}
+                    {factory && (
+                      <CityRow label="Bullet Factory Owner">
+                        <OwnerLine
+                          owner={factory.ownerName}
+                          figure={factory.ownerId ? `${gbp(factory.pricePerBullet)} each` : `Buy ${gbp(factory.price)}`}
+                          figureNote={factory.ownerId ? `(${factory.stock.toLocaleString("en-GB")})` : undefined}
+                          wealth={factory.ownerWealth}
+                        />
+                      </CityRow>
+                    )}
+                    <CityRow label="Racetrack Owner">
+                      <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 12 }}>Not open yet</div>
+                    </CityRow>
+                    {casinoRow("Blackjack")}
+                    {casinoRow("Keno")}
+                  </>
+                );
+              })()}
 
             </div>
           );
