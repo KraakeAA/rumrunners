@@ -10,6 +10,7 @@ import {
   HOUSE_MAX_BET,
   casinoDef,
   isHouseOnly,
+  OPENING_WINDOW_MS,
 } from "@/lib/venues";
 import { ensureVenues } from "@/lib/venues-server";
 
@@ -63,13 +64,15 @@ export async function POST(req: Request) {
           data: {
             ownerId: player.id,
             ownedSince: new Date(),
+            chips: 0,
+            openAt: new Date(Date.now() + OPENING_WINDOW_MS),
             profit: 0,
             plays: 0,
             wagered: 0,
           },
         });
         if (claimed.count !== 1) throw new Error("ALREADY_OWNED");
-        return { message: `You now own the ${city} ${casinoDef(game).label} casino.` };
+        return { message: `You now own the ${city} ${casinoDef(game).label} casino. Deposit chips within 5 minutes: nobody can play until it opens.` };
       }
 
       if (action === "setMaxBet") {
@@ -83,13 +86,42 @@ export async function POST(req: Request) {
         return { message: `Maximum bet set to £${maxBet.toLocaleString("en-GB")}.` };
       }
 
+      if (action === "deposit" || action === "withdraw") {
+        if (casino.ownerId !== player.id) throw new Error("NOT_OWNER");
+        if (casino.escrowId) throw new Error("IN_ESCROW");
+        const amount = Number(body?.amount);
+        if (!Number.isSafeInteger(amount) || amount < 1) throw new Error("BAD_AMOUNT");
+
+        if (action === "deposit") {
+          const paid = await tx.player.updateMany({
+            where: { id: player.id, money: { gte: amount } },
+            data: { money: { decrement: amount } },
+          });
+          if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
+          await tx.casino.update({ where: { id: casino.id }, data: { chips: { increment: amount } } });
+          return { message: `You deposited £${amount.toLocaleString("en-GB")} in chips.` };
+        }
+
+        const taken = await tx.casino.updateMany({
+          where: { id: casino.id, ownerId: player.id, chips: { gte: amount } },
+          data: { chips: { decrement: amount } },
+        });
+        if (taken.count !== 1) throw new Error("NOT_ENOUGH_CHIPS");
+        await tx.player.update({ where: { id: player.id }, data: { money: { increment: amount } } });
+        return { message: `You withdrew £${amount.toLocaleString("en-GB")} in chips back to your cash.` };
+      }
+
       if (action === "drop") {
         if (casino.ownerId !== player.id) throw new Error("NOT_OWNER");
         if (casino.escrowId) throw new Error("IN_ESCROW");
-        await tx.casino.updateMany({
+        const released = await tx.casino.updateMany({
           where: { id: casino.id, ownerId: player.id },
-          data: { ownerId: null, ownedSince: null, maxBet: HOUSE_MAX_BET, profit: 0, plays: 0, wagered: 0 }
+          data: { ownerId: null, ownedSince: null, openAt: null, chips: 0, maxBet: HOUSE_MAX_BET, profit: 0, plays: 0, wagered: 0 }
         });
+        // The chips go back to the owner as cash.
+        if (released.count === 1 && casino.chips > 0) {
+          await tx.player.update({ where: { id: player.id }, data: { money: { increment: casino.chips } } });
+        }
         return { message: `You have dropped the ${city} ${casinoDef(game).label} casino. It is back on the market.` };
       }
 
@@ -110,6 +142,8 @@ export async function POST(req: Request) {
         `Enter a maximum bet between £1 and £${ABSOLUTE_MAX_BET.toLocaleString("en-GB")}.`,
         400,
       ],
+      BAD_AMOUNT: ["Enter a whole number of chips, at least 1.", 400],
+      NOT_ENOUGH_CHIPS: ["The casino doesn't hold that many chips.", 400],
       BAD_ACTION: ["Unknown action.", 400],
       PLAYER_NOT_FOUND: ["Player not found.", 404],
       CASINO_NOT_FOUND: ["Casino not found.", 404],
