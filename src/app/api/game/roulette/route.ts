@@ -1,6 +1,6 @@
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
-import { spinRoulette } from "@/lib/casino";
+import { spinRoulette, spinRouletteTable, type RouletteStake } from "@/lib/casino";
 import { runWager } from "@/lib/casino-action";
 
 export async function POST(req: Request) {
@@ -8,9 +8,25 @@ export async function POST(req: Request) {
   if (__dead) return __dead;
 
   const body = await req.json().catch(() => null);
-  const bet = Number(body?.bet);
 
   try {
+    // The table: several chips on different spots, one spin settles them all.
+    if (Array.isArray(body?.bets)) {
+      const stakes: RouletteStake[] = body.bets.map((b: { type?: unknown; number?: unknown; amount?: unknown }) => ({
+        type: String(b?.type ?? ""),
+        number: b?.number === undefined || b?.number === null ? undefined : Number(b.number),
+        amount: Number(b?.amount)
+      }));
+      const spin = spinRouletteTable(stakes);
+      // runWager pays floor(stake x multiplier); the small offset guards against rounding.
+      const multiplier = (spin.totalPayout + 0.001) / spin.totalBet;
+      const { totalBet, totalPayout, ...outcome } = spin;
+      void totalPayout;
+      return runWager("Roulette", totalBet, { ...outcome, win: spin.totalPayout > 0 }, multiplier);
+    }
+
+    // Older single-bet form.
+    const bet = Number(body?.bet);
     const outcome = spinRoulette(
       String(body?.type ?? ""),
       body?.number === undefined || body?.number === null ? undefined : Number(body.number)
