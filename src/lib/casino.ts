@@ -1,4 +1,3 @@
-
 import { randomInt } from "crypto";
 
 export const KENO_PAYOUTS: Record<number, number> = {
@@ -142,6 +141,55 @@ export function spinRoulette(type: string, number?: number) {
   }
 
   return { result, colour, betType: type, betNumber: number ?? null, win, multiplier: win ? multiplier : 0 };
+}
+
+
+// What a single roulette bet pays (stake included) for a given result, or 0 if it loses.
+export function rouletteMultiplier(type: string, number: number | undefined, result: number): number {
+  const colour = rouletteColour(result);
+  switch (type) {
+    case "number": return result === number ? 36 : 0;
+    case "red": return colour === "red" ? 2 : 0;
+    case "black": return colour === "black" ? 2 : 0;
+    case "odd": return result !== 0 && result % 2 === 1 ? 2 : 0;
+    case "even": return result !== 0 && result % 2 === 0 ? 2 : 0;
+    case "low": return result >= 1 && result <= 18 ? 2 : 0;
+    case "high": return result >= 19 && result <= 36 ? 2 : 0;
+    case "dozen1": return result >= 1 && result <= 12 ? 3 : 0;
+    case "dozen2": return result >= 13 && result <= 24 ? 3 : 0;
+    case "dozen3": return result >= 25 && result <= 36 ? 3 : 0;
+    case "col1": return result !== 0 && result % 3 === 1 ? 3 : 0;
+    case "col2": return result !== 0 && result % 3 === 2 ? 3 : 0;
+    case "col3": return result !== 0 && result % 3 === 0 ? 3 : 0;
+    default: return 0;
+  }
+}
+
+export type RouletteStake = { type: string; number?: number; amount: number };
+
+// One spin of the wheel, settling every bet placed on the table.
+export function spinRouletteTable(stakes: RouletteStake[]) {
+  if (!Array.isArray(stakes) || stakes.length === 0 || stakes.length > 60) {
+    throw new Error("Place a bet on the table first.");
+  }
+  for (const b of stakes) {
+    if (!ROULETTE_BETS.includes(b.type as RouletteBet)) throw new Error("Choose a bet on the table.");
+    if (b.type === "number" && (!Number.isInteger(b.number) || (b.number as number) < 0 || (b.number as number) > 36)) {
+      throw new Error("Pick a number from 0 to 36.");
+    }
+    if (!Number.isSafeInteger(b.amount) || b.amount < 1) throw new Error("Every chip needs a whole-pound amount.");
+  }
+
+  const result = randomInt(37);
+  const colour = rouletteColour(result);
+  const bets = stakes.map((b) => {
+    const payout = b.amount * rouletteMultiplier(b.type, b.number, result);
+    return { type: b.type, number: b.type === "number" ? b.number ?? null : null, amount: b.amount, win: payout > 0, payout };
+  });
+  const totalBet = bets.reduce((sum, b) => sum + b.amount, 0);
+  const totalPayout = bets.reduce((sum, b) => sum + b.payout, 0);
+
+  return { result, colour, bets, totalBet, totalPayout };
 }
 
 /* --------------------------------- Cards -------------------------------- */
