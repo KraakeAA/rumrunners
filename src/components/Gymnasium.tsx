@@ -22,18 +22,34 @@ type Data = {
   guns: { name: string; strength: number; unlocked: boolean }[];
 };
 
+const GOLD = "#c69a48";
+const IVORY = "#e8dcc0";
+
 const bar: CSSProperties = {
-  padding: "6px 8px",
+  padding: "7px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
   fontSize: 16,
-  color: "#f7efdb",
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
-  borderTop: "1px solid #b0904a",
-  borderBottom: "1px solid #b0904a",
+  letterSpacing: 0.5,
+  color: IVORY,
+  background: "linear-gradient(180deg, #6e1220, #590d18)",
+  borderTop: `1px solid ${GOLD}`,
+  borderBottom: `1px solid ${GOLD}`,
   textShadow: "0 1px 2px #000"
 };
-const box: CSSProperties = { border: "1px solid #6b5d3a", background: "#1f2a25", padding: "8px 10px", fontSize: 13 };
+const box: CSSProperties = { border: `1px solid ${GOLD}`, background: "#100d0c", padding: "8px 10px", fontSize: 13, color: IVORY };
+const trainBtn: CSSProperties = {
+  minWidth: 62,
+  padding: "6px 10px",
+  border: `1px solid ${GOLD}`,
+  borderRadius: 3,
+  background: "linear-gradient(180deg, #7a1527, #590d18)",
+  color: IVORY,
+  fontSize: 13,
+  fontWeight: 700,
+  letterSpacing: 0.5,
+  cursor: "pointer"
+};
 
 export default function GymnasiumSection({
   onEnergy,
@@ -46,7 +62,6 @@ export default function GymnasiumSection({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [good, setGood] = useState(false);
-  const [pick, setPick] = useState<{ stat: string; session: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -103,11 +118,6 @@ export default function GymnasiumSection({
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <div style={bar}>Gymnasium</div>
       <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
-        <div style={{ ...box, color: "#c9bfa6", fontSize: 12 }}>
-          Training costs energy only. Pick a session: the harder ones give more xp for the energy. Every stat
-          tops out at level {data.maxLevel}, and a new life starts again from nothing.
-        </div>
-
         {message && (
           <p className="notice" style={{ margin: "2px 0", color: good ? "#7fe08f" : "#f09a8c" }}>
             {message}
@@ -123,10 +133,10 @@ export default function GymnasiumSection({
                 : null;
           const pct = s.maxed ? 100 : Math.min(100, Math.round((s.into / Math.max(1, s.needed)) * 100));
           return (
-            <div key={s.key} style={{ border: "1px solid #6b5d3a", background: "#1f2a25" }}>
+            <div key={s.key} style={{ border: `1px solid ${GOLD}`, background: "#100d0c" }}>
               <div style={{ ...bar, fontSize: 14, padding: "4px 8px" }}>{s.label}</div>
               <div style={{ display: "flex", alignItems: "stretch" }}>
-                <div style={{ position: "relative", width: 104, flexShrink: 0, borderRight: "1px solid #3d4a41" }}>
+                <div style={{ position: "relative", width: 104, flexShrink: 0, borderRight: "1px solid #5a4a2a" }}>
                   <GameImage slot={`gym/${s.key}`} width={104} height="100%" />
                   <div
                     style={{
@@ -137,7 +147,7 @@ export default function GymnasiumSection({
                       alignItems: "center",
                       justifyContent: "center",
                       fontFamily: "Georgia, serif",
-                      color: "#f7efdb",
+                      color: IVORY,
                       textShadow: "0 2px 4px #000",
                       pointerEvents: "none"
                     }}
@@ -149,53 +159,43 @@ export default function GymnasiumSection({
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {!data.jailed && !s.maxed && (
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                      <thead>
-                        <tr style={{ background: "#2a3630", color: "#d8cfb8" }}>
-                          <th style={{ textAlign: "left", padding: "3px 6px", fontWeight: 600 }}>Exercise</th>
-                          <th style={{ width: 38, padding: "3px 2px", background: "#243b27" }}>XP</th>
-                          <th style={{ width: 38, padding: "3px 2px", background: "#3b2b27" }}>⚡</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {s.sessions.map((x) => {
-                          const on = pick?.stat === s.key && pick.session === x.key;
-                          return (
-                            <tr
-                              key={x.key}
-                              onClick={() => setPick({ stat: s.key, session: x.key })}
-                              style={{
-                                cursor: "pointer",
-                                background: on ? "#3a2f20" : "transparent",
-                                borderTop: "1px solid #34402f"
-                              }}
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", padding: "3px 6px", background: "#2a0a10", color: "#d9c9a3", fontSize: 11, fontWeight: 600 }}>
+                        <span style={{ flex: 1 }}>Exercise</span>
+                        <span style={{ width: 40, textAlign: "center" }}>XP</span>
+                        <span style={{ width: 34, textAlign: "center" }}>⚡</span>
+                        <span style={{ width: 70 }} />
+                      </div>
+                      {s.sessions.map((x) => (
+                        <div
+                          key={x.key}
+                          style={{ display: "flex", alignItems: "center", padding: "5px 6px", borderTop: "1px solid #3a2a1a", fontSize: 12 }}
+                        >
+                          <span style={{ flex: 1, minWidth: 0, color: IVORY }}>{x.name}</span>
+                          <span style={{ width: 40, textAlign: "center", color: "#9be39f" }}>+{x.xp}</span>
+                          <span style={{ width: 34, textAlign: "center", color: "#e4c04d" }}>{x.energy}</span>
+                          <span style={{ width: 70, textAlign: "right" }}>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => train(s.key, x.key)}
+                              style={{ ...trainBtn, opacity: busy ? 0.55 : 1 }}
                             >
-                              <td style={{ padding: "5px 6px", color: "#f7efdb" }}>
-                                <input
-                                  type="radio"
-                                  name="exercise"
-                                  checked={on}
-                                  onChange={() => setPick({ stat: s.key, session: x.key })}
-                                  style={{ marginRight: 6, verticalAlign: "middle" }}
-                                />
-                                {x.name}
-                              </td>
-                              <td style={{ textAlign: "center", background: "#1c2d20", color: "#9be39f" }}>+{x.xp}</td>
-                              <td style={{ textAlign: "center", background: "#2d211e", color: "#e4c04d" }}>{x.energy}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                              Train
+                            </button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  <div style={{ padding: "4px 6px", fontSize: 11, color: "#b7ad93", borderTop: "1px solid #34402f" }}>
+                  <div style={{ padding: "4px 6px", fontSize: 11, color: "#b7ad93", borderTop: "1px solid #3a2a1a" }}>
                     {s.maxed
                       ? "Fully trained."
-                      : `Required xp for next level: ${s.into.toLocaleString("en-GB")} / ${s.needed.toLocaleString("en-GB")}`}
+                      : `Next level: ${s.into.toLocaleString("en-GB")} / ${s.needed.toLocaleString("en-GB")} xp`}
                     {perk && <div style={{ color: "#9be39f" }}>{perk}</div>}
                   </div>
-                  <div style={{ margin: "0 6px 5px", height: 12, background: "#0e1411", border: "1px solid #34402f", position: "relative" }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(180deg, #3fae45, #1f6b27)" }} />
+                  <div style={{ margin: "0 6px 5px", height: 12, background: "#0a0807", border: "1px solid #5a4a2a", position: "relative" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(180deg, #d9b55c, ${GOLD})` }} />
                     <span
                       style={{
                         position: "absolute",
@@ -203,7 +203,9 @@ export default function GymnasiumSection({
                         textAlign: "center",
                         fontSize: 9,
                         lineHeight: "11px",
-                        color: "#f7efdb"
+                        fontWeight: 700,
+                        color: "#fff",
+                        textShadow: "0 1px 1px #000"
                       }}
                     >
                       {pct}%
@@ -215,20 +217,6 @@ export default function GymnasiumSection({
           );
         })}
 
-        {!data.jailed && (
-          <div style={{ textAlign: "center", margin: "2px 0" }}>
-            <button
-              type="button"
-              className="button"
-              style={{ padding: "7px 26px", fontSize: 14, opacity: busy || !pick ? 0.55 : 1 }}
-              disabled={busy || !pick}
-              onClick={() => pick && train(pick.stat, pick.session)}
-            >
-              Work out!
-            </button>
-          </div>
-        )}
-
         <div style={{ ...bar, marginTop: 6 }}>Guns and the Strength they need</div>
         <div style={box}>
           {data.guns.map((g) => (
@@ -239,7 +227,7 @@ export default function GymnasiumSection({
                 justifyContent: "space-between",
                 gap: 8,
                 padding: "3px 0",
-                color: g.unlocked ? "#f7efdb" : "#8f8a76"
+                color: g.unlocked ? IVORY : "#8f8a76"
               }}
             >
               <span>{g.name}</span>
