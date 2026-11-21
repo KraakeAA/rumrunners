@@ -135,7 +135,7 @@ export async function POST(req: Request) {
         where: { targetId: me.id, status: "active" },
         data: { status: "expired", resolvedAt: new Date() }
       });
-      await tx.casino.updateMany({ where: { ownerId: me.id }, data: { ownerId: null, ownedSince: null } });
+      await tx.casino.updateMany({ where: { ownerId: me.id }, data: { ownerId: null, ownedSince: null, openAt: null, chips: 0 } });
       await tx.bulletFactory.updateMany({ where: { ownerId: me.id }, data: { ownerId: null } });
 
       // Gold held in Marketplace listings goes back to the player; gold is the one thing that survives.
