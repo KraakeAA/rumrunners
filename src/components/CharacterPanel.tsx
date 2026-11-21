@@ -273,6 +273,9 @@ function artPaths(primary?: string, side?: string): string[] {
   ];
 }
 
+const FADE =
+  "linear-gradient(to right, transparent 0%, #000 22%, #000 78%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 6%, #000 90%, transparent 100%)";
+
 function CharacterArt({ worn }: { worn: Record<string, string | undefined> }) {
   const paths = artPaths(worn.primary, worn.sidearm);
   const key = paths[0];
@@ -294,7 +297,11 @@ function CharacterArt({ worn }: { worn: Record<string, string | undefined> }) {
         width: "auto",
         maxWidth: "100%",
         objectFit: "contain",
-        borderRadius: 3
+        // Fade the picture's edges into the panel so there is no visible box.
+        WebkitMaskImage: FADE,
+        WebkitMaskComposite: "source-in",
+        maskImage: FADE,
+        maskComposite: "intersect"
       }}
     />
   );
