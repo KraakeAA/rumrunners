@@ -63,6 +63,9 @@ export function wealthLabel(cash: number): string {
   return wealthStatus(cash, 0);
 }
 
+// How long a casino stays shut after a new owner takes it, so they can stock it.
+export const OPENING_WINDOW_MS = 5 * 60 * 1000;
+
 export type CasinoView = {
   id: string;
   city: string;
@@ -75,7 +78,10 @@ export type CasinoView = {
   price: number;
   topMultiplier: number;
   isMine: boolean;
+  // When a newly owned casino opens for play (ISO time), if it is still shut.
+  openAt: string | null;
   // Only sent to the owner:
+  chips?: number;
   profit?: number;
   plays?: number;
   wagered?: number;
