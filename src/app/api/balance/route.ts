@@ -16,15 +16,17 @@ export async function GET() {
   if (!me) return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
   // Mail rides along so the inbox badge and an open mailbox update at once.
-  const [unreadMail, latest] = await Promise.all([
+  const [unreadMail, latest, jailCount] = await Promise.all([
     prisma.message.count({ where: { toId: me.id, readAt: null } }),
     prisma.message.findFirst({
       where: { toId: me.id },
       orderBy: { createdAt: "desc" },
       select: { id: true }
-    })
+    }),
+    // Everyone currently locked up, so the jail icon can light up.
+    prisma.player.count({ where: { jailUntil: { gt: new Date() } } })
   ]);
 
   const { id: _id, user, ...cash } = me;
-  return NextResponse.json({ ...cash, staff: staffLevel(user), unreadMail, latestMailId: latest?.id ?? "" }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ...cash, staff: staffLevel(user), unreadMail, jailCount, latestMailId: latest?.id ?? "" }, { headers: { "Cache-Control": "no-store" } });
 }
