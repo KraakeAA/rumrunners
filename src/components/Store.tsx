@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import type { StoreItem } from "@/lib/store";
+import ItemIcon from "@/components/ItemIcon";
 
 type Item = StoreItem & { owned: boolean };
 
@@ -161,6 +162,7 @@ export default function StoreSection({ onCash }: { onCash: (money: number) => vo
 
         {list.map((i) => (
           <div key={i.key} style={box}>
+            <ItemIcon kind={i.kind} itemKey={i.key} size={56} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#f7efdb" }}>{i.name}</div>
               <div style={{ fontSize: 11, color: "#c9bfa6" }}>{stat(i)}</div>
