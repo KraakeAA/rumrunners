@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import RouletteGame from "@/components/RouletteGame";
 
 type Card = { r: number; s: number };
 
@@ -17,7 +18,6 @@ type Played = { takeover?: boolean; previousOwner?: string | null; payout?: numb
 
 const SUITS = ["♠", "♥", "♦", "♣"];
 const RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-const REDS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
@@ -107,20 +107,6 @@ function Row({ label, cards, total, hidden }: { label: string; cards: Card[]; to
   );
 }
 
-const ROULETTE_OPTIONS: { type: string; label: string; pays: string }[] = [
-  { type: "red", label: "Red", pays: "1:1" },
-  { type: "black", label: "Black", pays: "1:1" },
-  { type: "odd", label: "Odd", pays: "1:1" },
-  { type: "even", label: "Even", pays: "1:1" },
-  { type: "low", label: "1-18", pays: "1:1" },
-  { type: "high", label: "19-36", pays: "1:1" },
-  { type: "dozen1", label: "1st 12", pays: "2:1" },
-  { type: "dozen2", label: "2nd 12", pays: "2:1" },
-  { type: "dozen3", label: "3rd 12", pays: "2:1" },
-  { type: "col1", label: "Column 1", pays: "2:1" },
-  { type: "col2", label: "Column 2", pays: "2:1" },
-  { type: "col3", label: "Column 3", pays: "2:1" }
-];
 
 export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }: Props) {
   const limit = maxBet ?? 1_000_000;
@@ -151,11 +137,6 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
     win: boolean;
     payout: number;
   } | null>(null);
-
-  // Roulette
-  const [pick, setPick] = useState<string>("red");
-  const [straight, setStraight] = useState("");
-  const [spin, setSpin] = useState<{ result: number; win: boolean; payout: number; picked: string } | null>(null);
 
   function report(d: Played) {
     if (typeof d.money === "number") onCash(d.money);
@@ -226,26 +207,6 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
     const d = await post("/api/game/war", { bet: stake });
     if (!d) return;
     setWar(d);
-    report(d);
-  }
-
-  async function spinWheel() {
-    if (!stakeOk) return setMessage("Enter a valid whole-number stake.");
-    if (pick === "number" && (straight === "" || Number(straight) < 0 || Number(straight) > 36)) {
-      return setMessage("Pick a number from 0 to 36.");
-    }
-    setSpin(null);
-    const d = await post("/api/game/roulette", {
-      bet: stake,
-      type: pick,
-      number: pick === "number" ? Number(straight) : undefined
-    });
-    if (!d) return;
-    const picked =
-      pick === "number"
-        ? String(Number(straight))
-        : ROULETTE_OPTIONS.find((o) => o.type === pick)?.label ?? pick;
-    setSpin({ ...d, picked });
     report(d);
   }
 
@@ -374,97 +335,7 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
       )}
 
       {/* ------------------------------ Roulette ------------------------------ */}
-      {game === "Roulette" && (
-        <div style={{ padding: "4px 10px 12px" }}>
-          <p style={{ fontSize: 11, color: "#b7ad93", textAlign: "center", margin: "6px 0 0" }}>
-            European wheel, one zero. A single number pays 35 to 1.
-          </p>
-
-          {spin && (
-            <>
-              <div style={{ textAlign: "center", margin: "10px 0 0" }}>
-                <span
-                  style={{
-                    display: "inline-grid",
-                    placeItems: "center",
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    border: "3px solid #b0904a",
-                    background: spin.result === 0 ? "#1f6b3a" : REDS.has(spin.result) ? "#9c1f1f" : "#161616",
-                    color: "#f7efdb",
-                    fontFamily: "Georgia, serif",
-                    fontSize: 26
-                  }}
-                >
-                  {spin.result}
-                </span>
-              </div>
-              {resultBox(
-                `You picked ${spin.picked} ${spin.win ? "and it landed on" : "but it landed on"} ${spin.result}. You won ${gbp(
-                  spin.win ? spin.payout : 0
-                )}.`,
-                spin.win
-              )}
-            </>
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginTop: 8 }}>
-            {ROULETTE_OPTIONS.map((o) => (
-              <button
-                key={o.type}
-                type="button"
-                onClick={() => setPick(o.type)}
-                style={{
-                  padding: "6px 2px",
-                  fontSize: 12,
-                  cursor: "pointer",
-                  color: "#f7efdb",
-                  border: pick === o.type ? "2px solid #ddc18d" : "1px solid #6b5d3a",
-                  background: o.type === "red" ? "#6e1f1f" : o.type === "black" ? "#161616" : "#2a342f"
-                }}
-              >
-                {o.label}
-                <div style={{ fontSize: 10, color: "#c9bfa6" }}>{o.pays}</div>
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setPick("number")}
-              style={{
-                gridColumn: "1 / span 3",
-                padding: "6px 2px",
-                fontSize: 12,
-                cursor: "pointer",
-                color: "#f7efdb",
-                border: pick === "number" ? "2px solid #ddc18d" : "1px solid #6b5d3a",
-                background: "#2a342f"
-              }}
-            >
-              Single number (35:1)
-            </button>
-          </div>
-
-          {pick === "number" && (
-            <div style={{ textAlign: "center", marginTop: 6 }}>
-              <input
-                style={input}
-                inputMode="numeric"
-                placeholder="0-36"
-                value={straight}
-                onChange={(e) => setStraight(e.target.value.replace(/\D/g, "").slice(0, 2))}
-              />
-            </div>
-          )}
-
-          {stakeRow}
-          <div style={{ textAlign: "center" }}>
-            <button type="button" style={{ ...btn, opacity: busy ? 0.55 : 1 }} disabled={busy} onClick={spinWheel}>
-              Spin
-            </button>
-          </div>
-        </div>
-      )}
+      {game === "Roulette" && <RouletteGame limit={limit} onCash={onCash} onPlayed={onPlayed} />}
     </section>
   );
 }
