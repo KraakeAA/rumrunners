@@ -116,13 +116,15 @@ export async function loadVenueData(playerId: string): Promise<VenueData | null>
         label: def.label,
         ownerId: houseOnly ? null : c.ownerId,
         ownerName: houseOnly ? null : c.owner?.username ?? null,
-        ownerWealth: !houseOnly && c.owner ? wealthLabel(c.owner.money) : null,
+        // A casino's wealth is its chips, not the owner's cash.
+        ownerWealth: !houseOnly && c.owner ? wealthLabel(c.chips) : null,
+        openAt: c.openAt && c.openAt.getTime() > Date.now() ? c.openAt.toISOString() : null,
         maxBet: houseOnly ? houseMaxBet(c.game) : c.ownerId ? c.maxBet : HOUSE_MAX_BET,
         price: def.price,
         topMultiplier: def.topMultiplier,
         isMine: mine,
         ...(mine
-          ? { profit: c.profit, plays: c.plays, wagered: c.wagered, ownerCash: c.owner?.money ?? 0 }
+          ? { chips: c.chips, profit: c.profit, plays: c.plays, wagered: c.wagered, ownerCash: c.owner?.money ?? 0 }
           : {})
       };
     });
