@@ -28,7 +28,7 @@ const WHEEL = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
 ];
 const STEP = 360 / WHEEL.length;
-const SPIN_MS = 4000;
+const SPIN_MS = 3000;
 
 const CHIPS = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 100_000_000];
 const CHIP_COLOURS: Record<number, string> = {
@@ -205,10 +205,12 @@ const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 
 export default function RouletteGame({
   limit,
+  cash,
   onCash,
   onPlayed
 }: {
   limit: number;
+  cash: number;
   onCash: (cash: number) => void;
   onPlayed?: (info: Played) => void;
 }) {
@@ -258,7 +260,6 @@ export default function RouletteGame({
     if (busy) return;
     setStack((prev) => prev.slice(0, -1));
   }
-
   async function spin() {
     if (busy) return;
     if (bets.length === 0) {
@@ -291,17 +292,20 @@ export default function RouletteGame({
       return;
     }
 
+    // The stake leaves the pocket straight away; the winnings arrive when the wheel stops.
+    onCash(Math.max(0, cash - total));
+
     // Turn the wheel so the winning pocket stops under the pointer at the top.
     const index = WHEEL.indexOf(d.result);
     const want = -index * STEP;
     const delta = (((want - rot) % 360) + 360) % 360;
     setRot(rot + 360 * 5 + delta);
     setSpinId((n) => n + 1);
+
     const result = d;
     timer.current = setTimeout(() => {
       setShown(result);
       setHistory((h) => [result.result, ...h].slice(0, 14));
-      setStack([]);
       if (typeof result.money === "number") onCash(result.money);
       onPlayed?.({
         takeover: Boolean(result.takeover),
@@ -434,22 +438,31 @@ export default function RouletteGame({
           <text x="1004" y="322" textAnchor="middle" dominantBaseline="central" fontSize="44" fill="#ffd36b" style={text({ fontWeight: 700 })}>
             {gbp(total)}
           </text>
-
           {/* Result */}
           <rect x="772" y="428" width="472" height="168" rx="6" fill={shown ? colourOf(shown.result) : "#1a1210"} stroke="#c69a48" strokeWidth="3" />
           <text x="1008" y="516" textAnchor="middle" dominantBaseline="central" fontSize="150" fill={IVORY} style={text({ fontWeight: 700 })}>
             {busy && !shown ? "…" : shown ? shown.result : "?"}
           </text>
+          <rect
+            x="772"
+            y="614"
+            width="472"
+            height="64"
+            rx="6"
+            fill={shown ? (net >= 0 ? "#1f8a3a" : "#b32222") : "#2a1f1a"}
+            stroke="#c69a48"
+            strokeWidth="3"
+          />
           <text
             x="1008"
-            y="646"
+            y="647"
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize="52"
-            fill={shown ? (shown.win ? "#7fe08f" : "#f0b4a8") : "#b7ad93"}
+            fontSize="46"
+            fill={shown ? "#ffffff" : "#b7ad93"}
             style={text({ fontWeight: 700, letterSpacing: 2 })}
           >
-            {shown ? `${shown.win ? "WIN" : "LOSE"} ${net >= 0 ? "+" : "-"}${gbp(Math.abs(net))}` : "—"}
+            {shown ? `${net >= 0 ? "WIN" : "LOSS"} ${gbp(Math.abs(net))}` : "—"}
           </text>
 
           {/* Recent numbers, newest at the top */}
@@ -555,9 +568,7 @@ export default function RouletteGame({
       </div>
 
       <p style={{ margin: "6px 10px 0", fontSize: 11, lineHeight: 1.35, textAlign: "center", color: "#b7ad93", minHeight: 15 }}>
-        {bets.length > 0
-          ? bets.map((b) => `${gbp(b.amount)} on ${labelOf(b)}`).join(" · ")
-          : "Pick a chip, tap the table to bet (up to 25 chips a spot), then tap the wheel. Numbers pay 35:1, dozens and columns 2:1, the rest 1:1."}
+        {bets.map((b) => `${gbp(b.amount)} on ${labelOf(b)}`).join(" · ")}
       </p>
     </div>
   );
