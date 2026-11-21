@@ -171,7 +171,7 @@ export async function POST(req: Request) {
       await prisma.$transaction(async (tx) => {
         const row = await tx.player.findUnique({ where: { id: target.id }, select: { [field]: true } });
         if (!row) throw new Refuse("No player with that name.");
-        const current = (row as Record<string, number>)[field];
+        const current = (row as unknown as Record<string, number>)[field];
         const next = Math.max(0, Math.min(MAX_VALUE, mode === "set" ? amount : current + amount));
         await tx.player.update({ where: { id: target.id }, data: { [field]: next } });
         message = `${target.username}'s ${field} is now ${next.toLocaleString("en-GB")}.`;
