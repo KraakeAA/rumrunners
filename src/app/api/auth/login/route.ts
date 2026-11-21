@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -6,9 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/session";
 import { clientIp, tooMany } from "@/lib/ratelimit";
 
+// Players can sign in with their username or their email address.
 const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1)
+  login: z.string().trim().min(1).max(254).optional(),
+  email: z.string().trim().min(1).max(254).optional(),
+  password: z.string().min(1).max(128)
 });
 
 export async function POST(req: Request) {
@@ -18,19 +19,27 @@ export async function POST(req: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Enter your email and password." },
+      { error: "Enter your username and password." },
       { status: 400 }
     );
   }
 
   // Slow down password guessing: 8 tries per 15 minutes for one email, 30 for one address.
-  const email = parsed.data.email.trim();
-  if (tooMany(`login:e:${email.toLowerCase()}`, 8, 15 * 60_000) || tooMany(`login:ip:${clientIp(req)}`, 30, 15 * 60_000)) {
+  const who = (parsed.data.login ?? parsed.data.email ?? "").trim();
+  if (!who) {
+    return NextResponse.json(
+      { error: "Enter your username and password." },
+      { status: 400 }
+    );
+  }
+  if (tooMany(`login:e:${who.toLowerCase()}`, 8, 15 * 60_000) || tooMany(`login:ip:${clientIp(req)}`, 30, 15 * 60_000)) {
     return NextResponse.json({ error: "Too many tries. Wait a few minutes and try again." }, { status: 429 });
   }
 
   const user = await prisma.user.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
+    where: who.includes("@")
+      ? { email: { equals: who, mode: "insensitive" } }
+      : { player: { is: { username: { equals: who, mode: "insensitive" } } } },
     include: { player: true }
   });
 
@@ -42,7 +51,7 @@ export async function POST(req: Request) {
     ))
   ) {
     return NextResponse.json(
-      { error: "Email or password is incorrect." },
+      { error: "Username or password is incorrect." },
       { status: 401 }
     );
   }
