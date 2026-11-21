@@ -122,6 +122,8 @@ export function CasinoSection({
   const { data, error, reload } = useVenues();
   const [msg, setMsg] = useState("");
   const [maxBetInput, setMaxBetInput] = useState("");
+  const [chipInput, setChipInput] = useState("");
+  const [now, setNow] = useState(() => Date.now());
   const [confirmDrop, setConfirmDrop] = useState(false);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState<{ text: string; good: boolean } | null>(null);
@@ -129,6 +131,12 @@ export function CasinoSection({
   const casino: CasinoView | undefined = data?.casinos.find(
     (c) => c.city === data.currentCity && c.game === game
   );
+
+  // Counts down the opening window of a newly owned casino.
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (casino?.isMine) setMaxBetInput(String(casino.maxBet));
@@ -157,6 +165,8 @@ export function CasinoSection({
   if (!data || !casino) return <p className="flavour">Loading the casino...</p>;
 
   // Owner view: control panel instead of the game.
+  const openLeft = casino.openAt ? Math.max(0, Math.ceil((new Date(casino.openAt).getTime() - now) / 1000)) : 0;
+
   if (casino.isMine) {
     const profit = casino.profit ?? 0;
     return (
@@ -171,9 +181,53 @@ export function CasinoSection({
               {gbp(Math.abs(profit))} {profit >= 0 ? "▲" : "▼"}
             </strong>
           </Row>
-          <Row label="Cash on hand (the casino bankroll)">
-            <strong>{gbp(casino.ownerCash ?? 0)}</strong>
+          <Row label="Casino chips (the bankroll)">
+            <strong>{gbp(casino.chips ?? 0)}</strong>
           </Row>
+          <Row label="Wealth">{casino.ownerWealth ?? "Bankrupt"}</Row>
+          <Row label="Your cash on hand">{gbp(cash)}</Row>
+          {openLeft > 0 && (
+            <div style={{ padding: "6px 8px", textAlign: "center", color: "#ddc18d", borderBottom: "1px solid #6b5d3a" }}>
+              Closed to players for {Math.floor(openLeft / 60)}m {String(openLeft % 60).padStart(2, "0")}s. Stock it with chips.
+            </div>
+          )}
+          <div style={{ padding: 8, borderBottom: "1px solid #6b5d3a" }}>
+            <div style={{ marginBottom: 6, color: "#c9bfa6" }}>Deposit or withdraw chips</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <input
+                style={input}
+                inputMode="numeric"
+                placeholder="Amount"
+                value={chipInput}
+                onChange={(e) => setChipInput(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+              <button
+                type="button"
+                style={btn}
+                disabled={busy}
+                onClick={async () => {
+                  await act({ action: "deposit", city: casino.city, game, amount: Number(chipInput) });
+                  setChipInput("");
+                }}
+              >
+                Deposit
+              </button>
+              <button
+                type="button"
+                style={btn}
+                disabled={busy}
+                onClick={async () => {
+                  await act({ action: "withdraw", city: casino.city, game, amount: Number(chipInput) });
+                  setChipInput("");
+                }}
+              >
+                Withdraw
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: "#c9bfa6", margin: "6px 0 0", lineHeight: 1.4 }}>
+              Depositing turns your cash into casino chips. Withdrawing turns chips back into cash.
+            </p>
+          </div>
           <Row label="Games played">{(casino.plays ?? 0).toLocaleString("en-GB")}</Row>
           <Row label="Total wagered">{gbp(casino.wagered ?? 0)}</Row>
           <Row label="Current maximum bet">{gbp(casino.maxBet)}</Row>
@@ -198,10 +252,10 @@ export function CasinoSection({
               </button>
             </div>
             <p style={{ fontSize: 12, color: "#c9bfa6", margin: "8px 0 0", lineHeight: 1.5 }}>
-              Players bet against your cash on hand. If a player wins more than you
-              can cover, they take the casino from you. Top prize here is{" "}
-              {casino.topMultiplier.toLocaleString("en-GB")}x the bet, so keep your
-              maximum bet low enough to stay safe.
+              Players bet with their own cash, against your chips. If a player wins more
+              than the chips you hold, they only get what is left. Top prize here is{" "}
+              {casino.topMultiplier.toLocaleString("en-GB")}x the bet, so keep enough chips
+              in the casino. When the casino is sold, its chips are returned to you as cash.
             </p>
             {msg && <p style={{ color: "#ddc18d", margin: "8px 0 0" }}>{msg}</p>}
             <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #6b5d3a" }}>
@@ -267,7 +321,7 @@ export function CasinoSection({
   const onPlayed = (info: { takeover: boolean; previousOwner: string | null; payout: number }) => {
     if (info.takeover) {
       setBanner({
-        text: `${info.previousOwner ?? "The owner"} couldn't cover the bet. You now own this casino!`,
+        text: `${info.previousOwner ?? "The owner"} couldn't cover the bet.`,
         good: true,
       });
     } else {
@@ -301,6 +355,13 @@ export function CasinoSection({
             Buy this casino
           </button>
           {msg && <p style={{ color: "#ddc18d", margin: "8px 0 0" }}>{msg}</p>}
+        </div>
+      )}
+
+      {casino.ownerId && openLeft > 0 && (
+        <div style={{ ...panel, padding: 10, textAlign: "center", color: "#ddc18d" }}>
+          {casino.ownerName} has just taken this casino and is stocking it with chips. It opens in{" "}
+          {Math.floor(openLeft / 60)}m {String(openLeft % 60).padStart(2, "0")}s.
         </div>
       )}
 
@@ -352,15 +413,15 @@ function OwnerLine({
 }) {
   if (!owner) {
     return (
-      <div style={{ lineHeight: 1.35 }}>
-        <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 12 }}>No owner</div>
-        <div style={{ color: GREEN, fontSize: 11 }}>{figure}</div>
+      <div style={{ lineHeight: 1.25 }}>
+        <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 10 }}>No owner</div>
+        <div style={{ color: GREEN, fontSize: 10 }}>{figure}</div>
       </div>
     );
   }
   return (
-    <div style={{ lineHeight: 1.35 }}>
-      <div style={{ fontSize: 12 }}>
+    <div style={{ lineHeight: 1.25 }}>
+      <div style={{ fontSize: 11 }}>
         <Link
           href={`/profile/${encodeURIComponent(owner)}`}
           style={{ color: "#f7efdb", textDecoration: "underline", textDecorationColor: "#6b5d3a", textUnderlineOffset: 3 }}
@@ -368,34 +429,35 @@ function OwnerLine({
           {owner}
         </Link>
       </div>
-      <div style={{ fontSize: 11, color: "#b7ad93" }}>
+      <div style={{ fontSize: 10, color: "#b7ad93" }}>
         {figure}
         {figureNote ? <em> {figureNote}</em> : null}
       </div>
-      {wealth && <div style={{ fontSize: 10, color: "#8f8a76" }}>{wealth}</div>}
+      {wealth && <div style={{ fontSize: 9, color: "#8f8a76" }}>{wealth}</div>}
     </div>
   );
 }
 
 function CityRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "38% 1fr", borderTop: "1px solid #6b5d3a" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "36% 1fr", borderTop: "1px solid #6b5d3a" }}>
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
-          padding: "4px 8px",
+          padding: "2px 6px",
           textAlign: "right",
           background: "#17201c",
           borderRight: "1px solid #6b5d3a",
           color: "#e3d9bf",
-          fontSize: 12
+          fontSize: 10,
+          lineHeight: 1.2
         }}
       >
         {label}:
       </div>
-      <div style={{ padding: "4px 8px", minWidth: 0, background: "#1f2a25" }}>{children}</div>
+      <div style={{ padding: "2px 6px", minWidth: 0, background: "#1f2a25" }}>{children}</div>
     </div>
   );
 }
@@ -410,9 +472,9 @@ export function CitiesSection() {
 
   return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
-      <Bar>Cities</Bar>
+      <div style={{ ...barStyle, padding: "3px 8px", fontSize: 13, borderBottom: 0, border: "1px solid #b0904a" }}>Cities</div>
 
-      <div style={{ display: "grid", gap: 4, marginTop: 4 }}>
+      <div style={{ display: "grid", gap: 3, marginTop: 3 }}>
         {cities.map((city) => {
           const rows = data.casinos.filter((c) => c.city === city);
           const factory = data.factories.find((f) => f.city === city);
@@ -428,15 +490,16 @@ export function CitiesSection() {
             >
               <div
                 style={{
-                  padding: "5px 8px 4px",
+                  padding: "3px 8px 3px",
                   textAlign: "center",
-                  background: "#1f2a25"
+                  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+                  borderBottom: "1px solid #b0904a"
                 }}
               >
-                <div style={{ fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 700, color: "#f7efdb", textShadow: "0 1px 3px #000" }}>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: 13, fontWeight: 700, lineHeight: 1.2, color: "#f7efdb", textShadow: "0 1px 2px #000" }}>
                   {city}
                 </div>
-                <div style={{ fontSize: 11, color: "#b7ad93" }}>{cityRegions[city] ?? "Britain"}</div>
+                <div style={{ fontSize: 9, lineHeight: 1.2, color: "#e3d3a8" }}>{cityRegions[city] ?? "Britain"}</div>
               </div>
 
               {(() => {
@@ -469,7 +532,7 @@ export function CitiesSection() {
                       </CityRow>
                     )}
                     <CityRow label="Racetrack Owner">
-                      <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 12 }}>Not open yet</div>
+                      <div style={{ color: "#8a8470", fontStyle: "italic", fontSize: 10 }}>Not open yet</div>
                     </CityRow>
                     {casinoRow("Blackjack")}
                     {casinoRow("Keno")}
