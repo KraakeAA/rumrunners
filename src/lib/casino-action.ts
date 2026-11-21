@@ -38,6 +38,15 @@ async function openTable(tx: Tx, userId: string, game: string, bet: number) {
     if (!released) throw new Error("IN_ESCROW");
   }
 
+  // A player-owned casino stays shut for a few minutes after a change of owner,
+  // and can only take bets its chips can stand behind.
+  if (casino.ownerId) {
+    if (casino.openAt && casino.openAt.getTime() > Date.now()) {
+      throw new Error("CASINO_OPENING:" + Math.ceil((casino.openAt.getTime() - Date.now()) / 1000));
+    }
+    if (casino.chips < bet) throw new Error("CASINO_BROKE");
+  }
+
   const limit = casino.ownerId ? casino.maxBet : HOUSE_MAX_BET;
   if (bet > limit) throw new Error("OVER_MAX_BET:" + limit);
 
@@ -67,38 +76,31 @@ async function settle(
   if (!prepaid) await takeBet(tx, player.id, bet);
 
   let payout = Math.floor(bet * multiplier);
-  let takeover = false;
-  let previousOwner: string | null = null;
+  const takeover = false;
+  const previousOwner: string | null = null;
 
   if (casino.ownerId) {
-    // The owner's cash on hand is the bank. The stake goes to them first.
-    await tx.player.update({ where: { id: casino.ownerId }, data: { money: { increment: bet } } });
+    // The casino's chips are the bank. The stake goes into the chips first.
+    await tx.casino.update({ where: { id: casino.id }, data: { chips: { increment: bet } } });
 
     if (payout > 0) {
-      const covered = await tx.player.updateMany({
-        where: { id: casino.ownerId, money: { gte: payout } },
-        data: { money: { decrement: payout } }
+      const covered = await tx.casino.updateMany({
+        where: { id: casino.id, chips: { gte: payout } },
+        data: { chips: { decrement: payout } }
       });
 
       if (covered.count !== 1) {
-        // Owner cannot cover the win: the player takes everything they have and the casino changes hands.
-        const owner = await tx.player.findUnique({
-          where: { id: casino.ownerId },
-          select: { money: true, username: true }
-        });
-        payout = owner?.money ?? 0;
-        previousOwner = owner?.username ?? null;
-        await tx.player.update({ where: { id: casino.ownerId }, data: { money: 0 } });
-        takeover = true;
+        // The chips cannot cover the win: the player takes whatever is left.
+        const left = await tx.casino.findUnique({ where: { id: casino.id }, select: { chips: true } });
+        payout = left?.chips ?? 0;
+        await tx.casino.update({ where: { id: casino.id }, data: { chips: 0 } });
       }
     }
 
     const net = bet - payout;
     await tx.casino.update({
       where: { id: casino.id },
-      data: takeover
-        ? { ownerId: player.id, ownedSince: new Date(), profit: 0, plays: 0, wagered: 0 }
-        : { profit: { increment: net }, plays: { increment: 1 }, wagered: { increment: bet } }
+      data: { profit: { increment: net }, plays: { increment: 1 }, wagered: { increment: bet } }
     });
   } else {
     await tx.casino.update({
@@ -134,6 +136,15 @@ export function wagerError(error: unknown, game: string) {
     return NextResponse.json({ error: "Finish your current hand first." }, { status: 400 });
   if (message === "NO_HAND")
     return NextResponse.json({ error: "There is no hand in play." }, { status: 400 });
+  if (message.startsWith("CASINO_OPENING:")) {
+    const secs = Number(message.split(":")[1]) || 0;
+    return NextResponse.json(
+      { error: `This casino has a new owner and is still being stocked. It opens in ${Math.floor(secs / 60)}m ${secs % 60}s.` },
+      { status: 400 }
+    );
+  }
+  if (message === "CASINO_BROKE")
+    return NextResponse.json({ error: "The casino doesn't have enough chips to cover that bet." }, { status: 400 });
   if (message.startsWith("OVER_MAX_BET:")) {
     const limit = Number(message.split(":")[1]);
     return NextResponse.json(
