@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
   await destroySession();
 
-  // Stay on whichever address the player is using, so the redirect does not
-  // hop between rumrunners.uk and www.rumrunners.uk.
-  return NextResponse.redirect(new URL("/", req.url));
+  // A relative address keeps the player on whichever site address they are using
+  // (the server itself only knows its own internal name, not rumrunners.uk).
+  return new NextResponse(null, { status: 303, headers: { Location: "/login" } });
 }
