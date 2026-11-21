@@ -218,7 +218,7 @@ export default function BootleggingSection({ onCash }: { onCash: (money: number)
         <div style={grid}>
           {data.market.map((m) => (
             <div key={m.key} style={tile}>
-              <GameImage slot={`booze/${m.key}`} width="100%" height={58} />
+              <GameImage slot={`booze/${m.key}`} width="100%" ratio={1} />
               <div style={{ fontSize: 11, lineHeight: 1.2, color: "#f7efdb", minHeight: 26 }}>
                 {m.name}
               </div>
