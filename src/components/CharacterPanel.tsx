@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import ItemIcon from "@/components/ItemIcon";
 
 type SlotItem = { type: string; name: string; kind: string; value: number };
 type Slot = { key: string; label: string; side: "left" | "right"; item: SlotItem | null };
@@ -237,6 +238,68 @@ function Figure({ worn }: { worn: Record<string, string | undefined> }) {
   );
 }
 
+// The full character picture for whatever guns are carried. Pictures live in
+// public/images/characters/ (nested folders, or all the files loose in that folder).
+const PRIMARY_ART: Record<string, { combo: string; solo: string }> = {
+  "gun:greener": { combo: "shotgun", solo: "pump-shotgun" },
+  "gun:lee_enfield": { combo: "lee-enfield", solo: "bolt-action-rifle" },
+  "gun:thompson": { combo: "thompson-drum", solo: "thompson-smg" }
+};
+const SIDEARM_ART: Record<string, { combo: string; solo: string }> = {
+  "gun:webley": { combo: "webley", solo: "webley-revolver" },
+  "gun:enfield": { combo: "enfield", solo: "enfield-revolver" },
+  "gun:colt": { combo: "colt", solo: "colt-m1911" },
+  "gun:mauser": { combo: "mauser", solo: "mauser-c96" }
+};
+
+function artPaths(primary?: string, side?: string): string[] {
+  const p = primary ? PRIMARY_ART[primary] : undefined;
+  const s = side ? SIDEARM_ART[side] : undefined;
+  let folder = "unarmed";
+  let name = "character";
+  if (p && s) {
+    folder = "combinations";
+    name = `${p.combo}__${s.combo}`;
+  } else if (p) {
+    folder = "primary";
+    name = p.solo;
+  } else if (s) {
+    folder = "secondary";
+    name = s.solo;
+  }
+  return [
+    `/images/characters/${folder}/${name}.png`,
+    `/images/characters/${name}.png`
+  ];
+}
+
+function CharacterArt({ worn }: { worn: Record<string, string | undefined> }) {
+  const paths = artPaths(worn.primary, worn.sidearm);
+  const key = paths[0];
+  const [state, setState] = useState({ key, attempt: 0 });
+  const attempt = state.key === key ? state.attempt : 0;
+
+  // No picture found: fall back to the drawn figure.
+  if (attempt >= paths.length) return <Figure worn={worn} />;
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={paths[attempt]}
+      alt=""
+      onError={() => setState({ key, attempt: attempt + 1 })}
+      style={{
+        display: "block",
+        height: 250,
+        width: "auto",
+        maxWidth: "100%",
+        objectFit: "contain",
+        borderRadius: 3
+      }}
+    />
+  );
+}
+
 export default function CharacterPanel({
   onClose,
   onStats
@@ -386,7 +449,11 @@ export default function CharacterPanel({
                     >
                       {s.item ? (
                         <>
-                          <strong style={slotName}>{s.item.name}</strong>
+                          <ItemIcon
+                            typeKey={s.item.type}
+                            size={34}
+                            fallback={<strong style={slotName}>{s.item.name}</strong>}
+                          />
                           <span style={{ color: "#9be39f", fontSize: 9 }}>+{s.item.value}%</span>
                         </>
                       ) : (
@@ -401,7 +468,7 @@ export default function CharacterPanel({
                     {data.name}
                   </div>
                   <div style={{ flex: 1, minHeight: 0, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Figure worn={Object.fromEntries(data.slots.map((sl) => [sl.key, sl.item?.type]))} />
+                    <CharacterArt worn={Object.fromEntries(data.slots.map((sl) => [sl.key, sl.item?.type]))} />
                   </div>
                   <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 3 }}>{data.rank}</div>
                   <div
@@ -445,7 +512,11 @@ export default function CharacterPanel({
                     >
                       {s.item ? (
                         <>
-                          <strong style={slotName}>{s.item.name}</strong>
+                          <ItemIcon
+                            typeKey={s.item.type}
+                            size={34}
+                            fallback={<strong style={slotName}>{s.item.name}</strong>}
+                          />
                           <span style={{ color: "#e4c04d", fontSize: 9 }}>Attack {s.item.value}</span>
                         </>
                       ) : (
@@ -538,6 +609,9 @@ export default function CharacterPanel({
             <div style={{ padding: 8 }}>
               {kitItem ? (
                 <div style={{ border: "1px solid #4a463c", background: "#232321", padding: 8 }}>
+                  <div style={{ float: "right", marginLeft: 8 }}>
+                    <ItemIcon typeKey={kitItem.type} size={64} />
+                  </div>
                   <strong style={{ fontFamily: "Georgia, serif" }}>{kitItem.name}</strong>
                   {kitItem.detail && <span style={{ color: "#b7ad93" }}> · {kitItem.detail}</span>}
                   <p style={{ margin: "4px 0", color: "#b7ad93", fontSize: 12 }}>{kitItem.note}</p>
@@ -596,7 +670,10 @@ export default function CharacterPanel({
                         fontFamily: "inherit"
                       }}
                     >
-                      <span>{k.name}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                        <ItemIcon typeKey={k.type} size={26} />
+                        <span>{k.name}</span>
+                      </span>
                       <span style={{ color: k.equipped ? "#9be39f" : "#6f6a58", whiteSpace: "nowrap" }}>
                         {k.equipped ? "Equipped" : "Not worn"}
                       </span>
