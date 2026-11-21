@@ -12,7 +12,7 @@ const EXTENSIONS = ["jpg", "png", "webp"];
 export function slugify(name: string) {
   return name
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
@@ -220,13 +220,6 @@ export function JobCard({
     return (
       <div
         style={{
-          border: "1px solid #6b5d3a",
-          background: "#1f2a25",
-          marginBottom: 4,
-          opacity: locked ? 0.7 : waiting ? 0.85 : 1,
-          position: "relative"
-        }}
-      >
           border: "1px solid #6b5d3a",
           background: "#1f2a25",
           marginBottom: 4,
