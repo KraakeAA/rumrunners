@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Result = {
   error?: string;
@@ -27,16 +27,6 @@ type Props = {
   onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
 };
 
-const goldButton: React.CSSProperties = {
-  padding: "5px 10px",
-  border: "1px solid #b0904a",
-  borderRadius: 3,
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
-  color: "#f7efdb",
-  fontSize: 12,
-  cursor: "pointer",
-};
-
 export default function CasinoGames({
   game,
   cash,
@@ -49,7 +39,19 @@ export default function CasinoGames({
   const ownerLabel = ownerName || "Rumrunners";
   const [bet, setBet] = useState("10");
   const [selected, setSelected] = useState<number[]>([]);
-  const [savedNumbers, setSavedNumbers] = useState<number[]>([]);
+  const [savedSets, setSavedSets] = useState<number[][]>([]);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("rr-keno-sets");
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) {
+        setSavedSets(parsed.filter((x) => Array.isArray(x) && x.length === 10).slice(0, 12));
+      }
+    } catch {
+      /* no saved sets */
+    }
+  }, []);
+  const [editSets, setEditSets] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<Result | null>(null);
@@ -59,11 +61,19 @@ export default function CasinoGames({
     []
   );
 
+  function storeSets(sets: number[][]) {
+    setSavedSets(sets);
+    try {
+      window.localStorage.setItem("rr-keno-sets", JSON.stringify(sets));
+    } catch {
+      /* not saved this time */
+    }
+  }
+
   function toggleNumber(number: number) {
     if (busy) return;
 
     setMessage("");
-    setResult(null);
 
     setSelected((current) =>
       current.includes(number)
@@ -87,17 +97,23 @@ export default function CasinoGames({
       return;
     }
 
-    setSavedNumbers([...selected]);
-    setMessage("Your numbers have been saved.");
-  }
-
-  function loadSavedNumbers() {
-    if (savedNumbers.length !== 10) {
-      setMessage("You haven't saved a set of numbers yet.");
+    const sorted = [...selected].sort((x, y) => x - y);
+    if (savedSets.some((set) => set.join(",") === sorted.join(","))) {
+      setMessage("You have already saved that set.");
+      return;
+    }
+    if (savedSets.length >= 12) {
+      setMessage("You can only keep 12 saved sets. Delete one first.");
       return;
     }
 
-    setSelected([...savedNumbers]);
+    storeSets([...savedSets, sorted]);
+    setMessage("Your numbers have been saved.");
+  }
+
+  function loadSet(set: number[]) {
+    if (busy) return;
+    setSelected([...set]);
     setResult(null);
     setMessage("");
   }
@@ -161,7 +177,20 @@ export default function CasinoGames({
 
   if (game === "Keno") {
     const drawn = result?.drawn || [];
-    const matches = selected.filter((n) => drawn.includes(n));
+    const matchCount = result?.matches ?? 0;
+    const panelBg = "#2a2f2c";
+
+    const outlineButton: React.CSSProperties = {
+      padding: "3px 8px",
+      border: "2px solid #b9a36a",
+      borderRadius: 0,
+      background: "#3b3a32",
+      color: "#f7efdb",
+      fontSize: 13,
+      lineHeight: 1.2,
+      cursor: busy ? "default" : "pointer",
+      WebkitAppearance: "none",
+    };
 
     return (
       <section
@@ -169,95 +198,91 @@ export default function CasinoGames({
           width: "100%",
           boxSizing: "border-box",
           overflow: "hidden",
-          border: "1px solid #806747",
-          borderRadius: 4,
-          background: "#1f2a25",
+          border: "1px solid #6b5d3a",
+          background: panelBg,
           color: "#e8e0d4",
-          fontFamily: "Arial, sans-serif",
         }}
       >
         <div
           style={{
-            minHeight: 43,
-            padding: 8,
+            padding: "6px 8px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             position: "relative",
             boxSizing: "border-box",
-            background:
-              "linear-gradient(180deg, #94764d, #59432b 50%, #302115)",
-            borderBottom: "2px solid #b0904a",
+            background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+            borderBottom: "1px solid #b0904a",
           }}
         >
           <strong
             style={{
               color: "#f7efdb",
               fontFamily: "Georgia, serif",
-              fontSize: 15,
-              letterSpacing: 1,
+              fontSize: 14,
+              fontWeight: 700,
+              textShadow: "0 1px 2px #000",
             }}
           >
             Keno
           </strong>
-          <span
-            style={{
-              position: "absolute",
-              right: 12,
-              color: "#d2b783",
-              fontSize: 19,
-            }}
-          >
-            ⓘ
-          </span>
+          <span style={{ position: "absolute", right: 10, color: "#d2b783", fontSize: 16 }}>ⓘ</span>
         </div>
 
         <div
           style={{
-            padding: 7,
+            padding: "4px 7px",
             textAlign: "center",
-            background: "#2a382f",
+            background: "#343a36",
             borderBottom: "1px solid #6b5d3a",
-            fontSize: 14,
+            fontSize: 12,
             color: "#f1e8d3",
           }}
         >
           {ownerLabel}
         </div>
 
-        {result && (
-          <div
-            style={{
-              margin: "10px 10px 5px",
-              padding: 14,
-              borderRadius: 4,
-              background: "#17201c",
-              border: "1px solid #6b5d3a",
-              textAlign: "center",
-              fontSize: 14,
-              lineHeight: 1.5,
-              color: "#f1e8d3",
-              fontWeight: 700,
-            }}
-          >
-            {matches.length > 0 ? (
-              <>
-                You matched {result.matches} numbers and won £
-                {(result.payout || 0).toLocaleString("en-GB")}!
-              </>
+        <div
+          style={{
+            margin: "10px 10px 8px",
+            minHeight: 46,
+            padding: "10px 8px",
+            borderRadius: 6,
+            background: "#242926",
+            textAlign: "center",
+            fontSize: 12,
+            lineHeight: 1.4,
+            color: "#f1e8d3",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxSizing: "border-box",
+          }}
+        >
+          {result ? (
+            (result.payout || 0) > 0 ? (
+              <span>
+                You matched <b>{matchCount}</b> numbers and won{" "}
+                <b>£{(result.payout || 0).toLocaleString("en-GB")}</b>!
+              </span>
             ) : (
-              <>You matched 0 numbers and won £0!</>
-            )}
-          </div>
-        )}
+              <span>
+                You matched <b>{matchCount}</b> numbers, no win.
+              </span>
+            )
+          ) : (
+            <span style={{ color: "#b7ad93" }}>Pick 10 numbers and place your bet.</span>
+          )}
+        </div>
 
-                <div
+        <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
-            gap: 2,
-            padding: "7px 9px 3px",
-            background: "#1f2a25",
+            gap: 0,
+            margin: "0 auto",
+            width: "calc(100% - 20px)",
+            border: "1px solid #8a8a80",
             boxSizing: "border-box",
           }}
         >
@@ -266,26 +291,20 @@ export default function CasinoGames({
             const isDrawn = drawn.includes(number);
             const isMatch = isSelected && isDrawn;
 
-            let background = "#393633";
-            let color = "#bdb5a9";
-            let border = "1px solid #62594e";
+            let background = "#5a5a55";
+            let color = "#cfc9bb";
 
             if (isSelected) {
-              background = "linear-gradient(145deg, #713b38, #482522)";
-              color = "#f3ded2";
-              border = "1px solid #a66b58";
+              background = "#e8341f";
+              color = "#fff";
             }
-
             if (isDrawn && !isSelected) {
-              background = "linear-gradient(145deg, #344653, #202d37)";
-              color = "#d1dce1";
-              border = "1px solid #60798a";
+              background = "#0a0adf";
+              color = "#fff";
             }
-
             if (isMatch) {
-              background = "linear-gradient(145deg, #a83bd0, #69218b)";
-              color = "#fff2ff";
-              border = "1px solid #d58af0";
+              background = "#9a22f0";
+              color = "#fff";
             }
 
             return (
@@ -301,17 +320,19 @@ export default function CasinoGames({
                   aspectRatio: "1 / 1",
                   padding: 0,
                   margin: 0,
-                  borderRadius: 2,
-                  border,
+                  borderRadius: 0,
+                  border: "1px solid #8a8a80",
                   background,
                   color,
-                  fontSize: "clamp(10px, 3.5vw, 16px)",
-                  fontWeight: isMatch ? 700 : 500,
+                  fontSize: "clamp(12px, 4.4vw, 20px)",
+                  fontWeight: 400,
+                  lineHeight: 1,
                   display: "grid",
                   placeItems: "center",
                   cursor: busy ? "default" : "pointer",
                   boxSizing: "border-box",
                   WebkitAppearance: "none",
+                  touchAction: "manipulation",
                 }}
               >
                 {number}
@@ -322,65 +343,26 @@ export default function CasinoGames({
 
         <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            gap: "5px 12px",
-            padding: "5px 8px 7px",
-            fontSize: 10,
-            color: "#c5b497",
-          }}
-        >
-          <span><b style={{ color: "#c66be5" }}>■</b> Winning match</span>
-          <span><b style={{ color: "#a36a60" }}>■</b> Your selection</span>
-          <span><b style={{ color: "#718b9b" }}>■</b> Other drawn</span>
-        </div>
-
-        <div
-          style={{
             display: "grid",
             gridTemplateColumns: "1fr auto 1fr",
-            alignItems: "center",
+            alignItems: "start",
             gap: 5,
-            padding: "7px 11px 3px",
-            borderTop: "1px solid #705638",
-            background: "#1f2a25",
+            margin: "10px 10px 0",
           }}
         >
           <div style={{ justifySelf: "start" }}>
-            <button
-              type="button"
-              onClick={clearNumbers}
-              disabled={busy}
-              style={goldButton}
-            >
+            <button type="button" onClick={clearNumbers} disabled={busy} style={outlineButton}>
               Clear!
             </button>
           </div>
 
-          <strong
-            style={{
-              fontSize: 13,
-              textAlign: "center",
-              whiteSpace: "nowrap",
-              color: "#e1c48e",
-            }}
-          >
-            💵 £{cash.toLocaleString("en-GB")}
-          </strong>
+          <div style={{ textAlign: "center", fontSize: 13, color: "#f1e8d3", whiteSpace: "nowrap", paddingTop: 2 }}>
+            £{cash.toLocaleString("en-GB")}
+          </div>
 
           <div style={{ justifySelf: "end" }}>
-            <button
-              type="button"
-              onClick={
-                savedNumbers.length === 10
-                  ? loadSavedNumbers
-                  : saveNumbers
-              }
-              disabled={busy}
-              style={goldButton}
-            >
-              {savedNumbers.length === 10 ? "Load!" : "Save!"}
+            <button type="button" onClick={saveNumbers} disabled={busy} style={outlineButton}>
+              Save!
             </button>
           </div>
         </div>
@@ -391,16 +373,15 @@ export default function CasinoGames({
             justifyContent: "center",
             alignItems: "center",
             gap: 6,
-            padding: "12px 8px 5px",
-            width: "100%",
+            padding: "14px 8px 6px",
             boxSizing: "border-box",
-            background: "#1f2a25",
           }}
         >
-          <span style={{ fontSize: 14, color: "#c4ad85" }}>£</span>
+          <span style={{ fontSize: 13, color: "#d4cab2" }}>£</span>
 
           <input
             type="number"
+            inputMode="numeric"
             min="1"
             step="1"
             value={bet}
@@ -408,14 +389,13 @@ export default function CasinoGames({
             disabled={busy}
             aria-label="Keno bet amount"
             style={{
-              width: "min(47%, 190px)",
-              minWidth: 90,
-              height: 42,
-              padding: "5px 10px",
-              background: "#17201c",
-              color: "#f1e8d3",
-              border: "1px solid #94764c",
-              borderRadius: 3,
+              width: "min(52%, 200px)",
+              height: 34,
+              padding: "0 8px",
+              background: "#f1e8d3",
+              color: "#1b1b18",
+              border: 0,
+              borderRadius: 4,
               fontSize: 16,
               boxSizing: "border-box",
             }}
@@ -426,90 +406,122 @@ export default function CasinoGames({
             onClick={play}
             disabled={busy}
             style={{
-              padding: "7px 16px",
-              minHeight: 38,
-              borderRadius: 3,
-              background: "linear-gradient(180deg, #987345, #614528)",
+              padding: "0 14px",
+              height: 28,
+              borderRadius: 14,
+              background: "linear-gradient(180deg, #a98240, #6b4f22)",
               color: "#fff0d5",
-              border: "1px solid #c3a06a",
-              fontSize: 14,
-              fontWeight: 700,
+              border: "1px solid #d1b072",
+              fontSize: 13,
               whiteSpace: "nowrap",
               cursor: busy ? "wait" : "pointer",
+              opacity: busy ? 0.7 : 1,
             }}
           >
-            {busy ? "Playing…" : "Bet!"}
+            {busy ? "…" : "Bet!"}
           </button>
         </div>
 
-        <div
-          style={{
-            width: "fit-content",
-            maxWidth: "calc(100% - 20px)",
-            margin: "8px auto",
-            padding: "5px 14px",
-            boxSizing: "border-box",
-            textAlign: "center",
-            fontSize: 12,
-            lineHeight: 1.6,
-            color: "#e3f0e0",
-            background: "rgba(36, 92, 54, 0.38)",
-            border: "1px solid rgba(111, 207, 111, 0.4)",
-            borderRadius: 4,
-          }}
-        >
+        <div style={{ textAlign: "center", fontSize: 12, lineHeight: 1.7, color: "#f1e8d3", padding: "4px 8px 10px" }}>
           <div>
-            <strong style={{ color: "#ddc18d" }}>Maximum bet:</strong>
-            {" "}£{limit.toLocaleString("en-GB")}
-          </div>
-          <div>
-            <strong style={{ color: "#ddc18d" }}>Owner:</strong>
-            {" "}{ownerLabel}
-          </div>
-          <div>
-            <strong style={{ color: "#ddc18d" }}>Numbers selected:</strong>
-            {" "}{selected.length}/10
+            <b>Maximum bet:</b> £{limit.toLocaleString("en-GB")}
           </div>
         </div>
-
-        {result?.drawn && (
-          <div
-            style={{
-              margin: "0 10px 10px",
-              padding: 8,
-              background: "#17201c",
-              border: "1px solid #6b5d3a",
-              borderRadius: 3,
-              textAlign: "center",
-              fontSize: 11,
-              color: "#d4cab2",
-              lineHeight: 1.8,
-            }}
-          >
-            <strong>Drawn numbers:</strong>
-            <div>{result.drawn.join(" · ")}</div>
-            <strong>Matches:</strong> {result.matches}
-            {" · "}
-            <strong>Multiplier:</strong> {result.multiplier}×
-          </div>
-        )}
 
         {message && (
           <div
             style={{
               margin: "0 10px 10px",
-              padding: 8,
+              padding: "6px 8px",
               background: "#382522",
               border: "1px solid #805044",
               color: "#e6b9a7",
               borderRadius: 3,
               textAlign: "center",
-              fontSize: 12,
+              fontSize: 11,
             }}
           >
             {message}
           </div>
         )}
+
+        <div style={{ margin: "0 10px 12px", padding: "8px 8px 10px", borderRadius: 6, background: "#242926" }}>
+          <div style={{ fontSize: 12, marginBottom: 8 }}>
+            <b>Saved Sets</b>{" "}
+            <button
+              type="button"
+              onClick={() => setEditSets((e) => !e)}
+              style={{ background: "none", border: 0, padding: 0, color: "#d9b45f", fontSize: 12, cursor: "pointer" }}
+            >
+              ({editSets ? "Done" : "Edit"})
+            </button>
+          </div>
+
+          {savedSets.length === 0 ? (
+            <div style={{ fontSize: 11, color: "#b7ad93" }}>
+              Pick 10 numbers and tap Save! to keep a set here.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+              {savedSets.map((set, idx) => (
+                <div key={set.join("-")} style={{ position: "relative" }}>
+                  <button
+                    type="button"
+                    onClick={() => (editSets ? storeSets(savedSets.filter((_, i) => i !== idx)) : loadSet(set))}
+                    aria-label={editSets ? "Delete this set" : "Use this set"}
+                    style={{
+                      width: "100%",
+                      padding: 0,
+                      border: "1px solid #8a8a80",
+                      background: "#5a5a55",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                      cursor: "pointer",
+                      WebkitAppearance: "none",
+                    }}
+                  >
+                    {set.map((n) => (
+                      <span
+                        key={n}
+                        style={{
+                          fontSize: "clamp(9px, 3vw, 13px)",
+                          lineHeight: 1.3,
+                          color: "#e8e0d4",
+                          textAlign: "center",
+                          border: "1px solid #8a8a80",
+                          padding: "1px 0",
+                        }}
+                      >
+                        {n}
+                      </span>
+                    ))}
+                  </button>
+                  {editSets && (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        top: -6,
+                        right: -6,
+                        width: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        background: "#c0392b",
+                        color: "#fff",
+                        fontSize: 11,
+                        lineHeight: "16px",
+                        textAlign: "center",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      ×
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
     );
   }
@@ -586,7 +598,7 @@ export default function CasinoGames({
     >
       <div
         style={{
-          width: "min(100%, 250px)",
+          width: "min(100%, 300px)",
           overflow: "hidden",
           border: "2px solid #b0904a",
           borderRadius: 2,
@@ -599,7 +611,7 @@ export default function CasinoGames({
         {/* Antique gold machine header */}
         <div
           style={{
-            minHeight: 32,
+            minHeight: 36,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -637,7 +649,7 @@ export default function CasinoGames({
               <div
                 key={`${index}-${symbol}`}
                 style={{
-                  height: "clamp(52px, 16vw, 68px)",
+                  height: "clamp(66px, 20vw, 84px)",
                   minWidth: 0,
                   background: "#fffaf0",
                   display: "flex",
@@ -669,7 +681,7 @@ export default function CasinoGames({
         <div
           aria-live="polite"
           style={{
-            minHeight: 30,
+            minHeight: 34,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -698,7 +710,7 @@ export default function CasinoGames({
         <div
           style={{
             minHeight: 0,
-            padding: "12px 10px 12px",
+            padding: "10px 10px 10px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -722,7 +734,7 @@ export default function CasinoGames({
           >
             <span
               style={{
-                fontSize: 26,
+                fontSize: 22,
                 lineHeight: 1,
                 fontWeight: 300,
                 color: "#f0d7a5",
@@ -742,15 +754,15 @@ export default function CasinoGames({
               disabled={busy}
               aria-label="Slot machine bet amount"
               style={{
-                width: 96,
+                width: 100,
                 maxWidth: "55%",
-                height: 40,
+                height: 36,
                 padding: "5px 8px",
                 border: "2px solid #c4a675",
                 borderRadius: 7,
                 background: "#f7f4ed",
                 color: "#17120c",
-                fontSize: 18,
+                fontSize: 16,
                 textAlign: "center",
                 boxSizing: "border-box",
               }}
@@ -762,15 +774,15 @@ export default function CasinoGames({
             onClick={play}
             disabled={busy}
             style={{
-              minWidth: 130,
-              minHeight: 34,
-              padding: "5px 18px",
+              minWidth: 0,
+              minHeight: 28,
+              padding: "3px 16px",
               borderRadius: 24,
               border: "2px solid #c5b18c",
               background:
                 "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
               color: "#17130e",
-              fontSize: 16,
+              fontSize: 13,
               fontWeight: 500,
               boxShadow: "0 2px 3px #100d09",
               cursor: busy ? "wait" : "pointer",
