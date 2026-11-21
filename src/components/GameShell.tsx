@@ -385,6 +385,24 @@ const menuGroups = [
   }
 ];
 
+// A page's web address is its name in lower case with no spaces or hyphens:
+// "Organised Crime" is /organisedcrime. Slot Machines is just /slots.
+const slugOf = (name: string) => {
+  const plain = name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return plain === "slotmachines" ? "slots" : plain;
+};
+
+// Finds the page that matches a name or a web address. Anything unknown opens Home.
+function sectionFromAddress(groups: { items: string[] }[], value: string) {
+  const wanted = slugOf(value);
+  for (const g of groups) {
+    for (const item of g.items) {
+      if (slugOf(item) === wanted) return item;
+    }
+  }
+  return "Home";
+}
+
 // The header sky follows UK time: night, dawn, day, dusk, and back round.
 // Each point is [minute of the day, top, middle, bottom, how lit the windows are].
 const SKY_POINTS: [number, string, string, string, number][] = [
@@ -464,18 +482,25 @@ export default function GameShell({
   const groups = staffLevel >= 2
     ? menuGroups.map((g) => (g.title === "Main" ? { ...g, items: [...g.items, "Admin"] } : g))
     : menuGroups;
-  const [section, setSection] = useState(
-    composeTo
-      ? "Send Letter"
-      : groups.some((g) => g.items.includes(startSection))
-        ? startSection
-        : "Home"
-  );
+  const [section, setSection] = useState(composeTo ? "Send Letter" : sectionFromAddress(groups, startSection));
   const [letterTo, setLetterTo] = useState(composeTo);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [characterOpen, setCharacterOpen] = useState(false);
   const [menuGroup, setMenuGroup] = useState("");
+
+  // The back and forward buttons move between pages.
+  useEffect(() => {
+    const onPop = () => {
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
+      setSection(sectionFromAddress(groups, path));
+      setLetterTo("");
+      setMenuOpen(false);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [notice, setNotice] = useState("");
   const status = useActionStatus({
     energy: player.energy,
@@ -804,6 +829,7 @@ export default function GameShell({
     }
 
     setSection(item);
+    window.history.pushState(null, "", item === "Home" ? "/" : "/" + slugOf(item));
   }
 
   function toggleMenu() {
