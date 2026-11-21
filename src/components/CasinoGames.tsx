@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { InfoButton, OwnerBar } from "@/components/CasinoInfo";
 
 type Result = {
   error?: string;
@@ -36,7 +37,6 @@ export default function CasinoGames({
   onPlayed,
 }: Props) {
   const limit = maxBet ?? 1000000;
-  const ownerLabel = ownerName || "Rumrunners";
   const [bet, setBet] = useState("10");
   const [selected, setSelected] = useState<number[]>([]);
   const [savedSets, setSavedSets] = useState<number[][]>([]);
@@ -174,7 +174,6 @@ export default function CasinoGames({
       setBusy(false);
     }
   }
-
   if (game === "Keno") {
     const drawn = result?.drawn || [];
     const matchCount = result?.matches ?? 0;
@@ -226,21 +225,10 @@ export default function CasinoGames({
           >
             Keno
           </strong>
-          <span style={{ position: "absolute", right: 10, color: "#d2b783", fontSize: 16 }}>ⓘ</span>
+          <InfoButton game="Keno" />
         </div>
 
-        <div
-          style={{
-            padding: "4px 7px",
-            textAlign: "center",
-            background: "#343a36",
-            borderBottom: "1px solid #6b5d3a",
-            fontSize: 12,
-            color: "#f1e8d3",
-          }}
-        >
-          {ownerLabel}
-        </div>
+        <OwnerBar ownerName={ownerName} />
 
         <div
           style={{
@@ -271,7 +259,7 @@ export default function CasinoGames({
               </span>
             )
           ) : (
-            <span style={{ color: "#b7ad93" }}>Pick 10 numbers and place your bet.</span>
+            <span style={{ color: "#b7ad93" }}>Pick 10 numbers</span>
           )}
         </div>
 
@@ -340,7 +328,6 @@ export default function CasinoGames({
             );
           })}
         </div>
-
         <div
           style={{
             display: "grid",
@@ -458,9 +445,7 @@ export default function CasinoGames({
           </div>
 
           {savedSets.length === 0 ? (
-            <div style={{ fontSize: 11, color: "#b7ad93" }}>
-              Pick 10 numbers and tap Save! to keep a set here.
-            </div>
+            <div style={{ fontSize: 11, color: "#b7ad93" }}>No saved sets</div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
               {savedSets.map((set, idx) => (
@@ -525,7 +510,6 @@ export default function CasinoGames({
       </section>
     );
   }
-
   const slotSymbols: Record<string, { src: string; alt: string }> = {
     "7": {
       src: "/seven.png",
@@ -625,10 +609,13 @@ export default function CasinoGames({
             fontSize: 15,
             letterSpacing: 0.5,
             textShadow: "0 1px 3px #000",
+            position: "relative",
           }}
         >
           Slot Machines
+          <InfoButton game="Slots" />
         </div>
+        <OwnerBar ownerName={ownerName} />
 
         {/* Three compact reel windows */}
         <div
@@ -705,7 +692,6 @@ export default function CasinoGames({
               : "No win this time"
             : "Ready to play"}
         </div>
-
         {/* Compact bronze and gold control cabinet */}
         <div
           style={{
@@ -830,29 +816,8 @@ export default function CasinoGames({
         </div>
       </div>
 
-      {/* Machine ownership and betting limit */}
-      <div
-        style={{
-          width: "fit-content",
-          maxWidth: "calc(100% - 20px)",
-          margin: "8px auto",
-          padding: "5px 14px",
-          boxSizing: "border-box",
-          textAlign: "center",
-          fontSize: 12,
-          lineHeight: 1.6,
-          color: "#e3f0e0",
-          background: "rgba(36, 92, 54, 0.38)",
-          border: "1px solid rgba(111, 207, 111, 0.4)",
-          borderRadius: 4,
-        }}
-      >
-        <div>
-          This slot machine is owned by <strong>{ownerLabel}</strong>
-        </div>
-        <div>
-          The maximum bet is set at <strong>£{limit.toLocaleString("en-GB")}.</strong>
-        </div>
+      <div style={{ textAlign: "center", fontSize: 12, color: "#f1e8d3", marginTop: 8 }}>
+        <b>Maximum bet:</b> £{limit.toLocaleString("en-GB")}
       </div>
     </section>
   );
