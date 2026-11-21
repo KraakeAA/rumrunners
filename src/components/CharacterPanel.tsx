@@ -348,11 +348,7 @@ export default function CharacterPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, type })
       });
-      const res = await fetch("/api/character", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, type })
-      });
+      
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(d.error ?? "That could not be completed.");
