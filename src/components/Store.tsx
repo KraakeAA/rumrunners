@@ -30,15 +30,15 @@ const bar: CSSProperties = {
   fontFamily: "Georgia, serif",
   fontSize: 15,
   color: "#f7efdb",
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
-  borderTop: "1px solid #b0904a",
-  borderBottom: "1px solid #b0904a",
+  background: "linear-gradient(180deg, #7d1f1d, #3a0c0c)",
+  borderTop: "1px solid #c9a24a",
+  borderBottom: "1px solid #c9a24a",
   textShadow: "0 1px 2px #000"
 };
 
 const box: CSSProperties = {
-  border: "1px solid #6b5d3a",
-  background: "#1f2a25",
+  border: "1px solid #8f6f2f",
+  background: "#1d1111",
   padding: "7px 8px",
   display: "flex",
   alignItems: "center",
@@ -133,8 +133,8 @@ export default function StoreSection({ onCash }: { onCash: (money: number) => vo
               fontSize: 14,
               cursor: "pointer",
               color: tab === t.key ? "#f7efdb" : "#b7ad93",
-              background: tab === t.key ? "linear-gradient(180deg, #8a7038, #4d3d1c)" : "#17201c",
-              border: "1px solid #6b5d3a"
+              background: tab === t.key ? "linear-gradient(180deg, #7d1f1d, #3a0c0c)" : "#150c0c",
+              border: "1px solid #8f6f2f"
             }}
           >
             {t.label}
