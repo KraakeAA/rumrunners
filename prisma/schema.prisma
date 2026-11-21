@@ -237,6 +237,10 @@ model Casino {
   plays      Int       @default(0)
   wagered    Int       @default(0)
   ownedSince DateTime?
+  // The casino bankroll, held as chips. Players bet against these, not the owner's cash.
+  chips      Int       @default(0)
+  // A new owner gets a few minutes to stock the casino before anyone may play.
+  openAt     DateTime?
   // Set while the casino is held by the Escrow agent: nobody can gamble at it or change it.
   escrowId   String?
 
