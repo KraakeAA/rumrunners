@@ -5,6 +5,10 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 type Played = { takeover: boolean; previousOwner: string | null; payout: number };
 
 type Bet = { type: string; number?: number; amount: number };
+type PlacedChip = { type: string; number?: number; value: number };
+
+// The most chips that can sit on one spot of the table, whatever they are worth.
+const MAX_CHIPS_PER_SPOT = 25;
 
 type Spin = {
   result: number;
@@ -16,7 +20,7 @@ type Spin = {
   previousOwner?: string | null;
 };
 
-const GOLD = "#b0904a";
+const IVORY = "#f3e9cf";
 const REDS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
 // The order of the pockets round a European wheel, starting from zero.
@@ -26,14 +30,16 @@ const WHEEL = [
 const STEP = 360 / WHEEL.length;
 const SPIN_MS = 4000;
 
-const CHIPS = [10, 100, 1_000, 10_000, 100_000, 1_000_000];
+const CHIPS = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 100_000_000];
 const CHIP_COLOURS: Record<number, string> = {
+  1: "#7a7a72",
   10: "#2f6fb5",
   100: "#2a8a4a",
   1000: "#b03030",
   10000: "#6b3fa0",
   100000: "#c9a227",
-  1000000: "#222222"
+  1000000: "#222222",
+  100000000: "#7a1a5a"
 };
 
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
@@ -53,47 +59,149 @@ const labelOf = (b: Bet) =>
         } as Record<string, string>
       )[b.type] ?? b.type;
 
-const pt = (r: number, deg: number) => {
-  const a = (deg * Math.PI) / 180;
-  return `${(100 + r * Math.sin(a)).toFixed(2)},${(100 - r * Math.cos(a)).toFixed(2)}`;
-};
+// ---- The artwork ------------------------------------------------------------------------
+// public/images/roulette/roulette-table.png (1800 x 1600) and roulette-wheel.png.
+// Everything that changes is laid on top of the picture. All the numbers below are
+// positions measured on the 1800 x 1600 picture.
+const ART_W = 1800;
+const ART_H = 1600;
+const TABLE_SRC = "/images/roulette/roulette-table.png";
+const WHEEL_SRC = "/images/roulette/roulette-wheel.png";
 
-function WheelFace() {
-  return (
-    <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true" style={{ display: "block" }}>
-      <circle cx="100" cy="100" r="99" fill="#4a2f17" stroke={GOLD} strokeWidth="2" />
-      {WHEEL.map((n, i) => {
-        const a0 = (i - 0.5) * STEP;
-        const a1 = (i + 0.5) * STEP;
-        return (
-          <g key={n}>
-            <path
-              d={`M ${pt(58, a0)} L ${pt(92, a0)} A 92 92 0 0 1 ${pt(92, a1)} L ${pt(58, a1)} A 58 58 0 0 0 ${pt(58, a0)} Z`}
-              fill={colourOf(n)}
-              stroke="#d9c38a"
-              strokeWidth="0.5"
-            />
-            <text
-              x="100"
-              y="22"
-              fontSize="9"
-              fontFamily="Georgia, serif"
-              fill="#f7efdb"
-              textAnchor="middle"
-              transform={`rotate(${i * STEP} 100 100)`}
-            >
-              {n}
-            </text>
-          </g>
-        );
-      })}
-      <circle cx="100" cy="100" r="56" fill="#2a1a0c" stroke={GOLD} strokeWidth="1.5" />
-      <circle cx="100" cy="100" r="40" fill="#5a4326" stroke="#d9c38a" strokeWidth="1" />
-      <circle cx="100" cy="100" r="9" fill="#d9c38a" />
-      <path d="M100 62 L100 138 M62 100 L138 100" stroke="#d9c38a" strokeWidth="2.4" />
-    </svg>
-  );
+// The bowl the wheel sits in (an ellipse, seen at an angle).
+const BOWL = { cx: 382, cy: 418, w: 572, squash: 0.677 };
+
+// Horizontal gold lines between the three number rows and the bottom of the block.
+const ROW_Y = [791, 896, 1006, 1123];
+
+// The 13 gold lines that run down the 12 number columns, measured at four heights.
+const LINE_Y = [805, 905, 1015, 1115];
+const NUM_LINES: number[][] = [
+  [282, 262, 241, 221],
+  [390, 375, 359, 345],
+  [494, 483, 470, 459],
+  [600, 591, 581, 572],
+  [704, 697, 691, 684],
+  [807, 803, 799, 796],
+  [910, 909, 908, 907],
+  [1015, 1017, 1018, 1019],
+  [1120, 1123, 1127, 1131],
+  [1223, 1229, 1237, 1243],
+  [1324, 1334, 1345, 1354],
+  [1426, 1439, 1453, 1466],
+  [1529, 1548, 1568, 1587]
+];
+const ZERO_LEFT = [160, 131, 102, 76];
+const BLOCK_RIGHT = [1665, 1689, 1714, 1736];
+
+type P = [number, number];
+
+// x on a line at height y, from samples taken at LINE_Y (extends the line if y is outside them).
+function xAt(samples: number[], y: number): number {
+  const n = LINE_Y.length;
+  const i = y <= LINE_Y[0] ? 0 : y >= LINE_Y[n - 1] ? n - 2 : LINE_Y.findIndex((v, k) => y >= v && y < LINE_Y[k + 1]);
+  const t = (y - LINE_Y[i]) / (LINE_Y[i + 1] - LINE_Y[i]);
+  return samples[i] + (samples[i + 1] - samples[i]) * t;
 }
+
+// A line through two measured points.
+const through = (y0: number, x0: number, y1: number, x1: number) => (y: number) => x0 + ((x1 - x0) * (y - y0)) / (y1 - y0);
+
+type Spot = { key: string; type: string; number?: number; label: string; pts: P[]; fill: string };
+
+function quad(left: (y: number) => number, right: (y: number) => number, y0: number, y1: number): P[] {
+  return [
+    [left(y0), y0],
+    [right(y0), y0],
+    [right(y1), y1],
+    [left(y1), y1]
+  ];
+}
+
+function buildSpots(): Spot[] {
+  const spots: Spot[] = [];
+
+  // Zero
+  spots.push({
+    key: "number:0",
+    type: "number",
+    number: 0,
+    label: "Number 0",
+    fill: "#1f6b3a",
+    pts: quad((y) => xAt(ZERO_LEFT, y), (y) => xAt(NUM_LINES[0], y), ROW_Y[0], ROW_Y[3])
+  });
+
+  // 1-36, three to a column: the top row is 3, 6, 9... the bottom row is 1, 4, 7...
+  for (let c = 0; c < 12; c++) {
+    for (let r = 0; r < 3; r++) {
+      const n = c * 3 + (3 - r);
+      spots.push({
+        key: `number:${n}`,
+        type: "number",
+        number: n,
+        label: `Number ${n}`,
+        fill: REDS.has(n) ? "#9c1f1f" : "#161616",
+        pts: quad((y) => xAt(NUM_LINES[c], y), (y) => xAt(NUM_LINES[c + 1], y), ROW_Y[r], ROW_Y[r + 1])
+      });
+    }
+  }
+
+  // 2 to 1 at the end of each row (top row = column 3, bottom row = column 1)
+  ["col3", "col2", "col1"].forEach((t, r) => {
+    spots.push({
+      key: t,
+      type: t,
+      label: `Column ${t.slice(3)}, pays 2 to 1`,
+      fill: "#23402d",
+      pts: quad((y) => xAt(NUM_LINES[12], y), (y) => xAt(BLOCK_RIGHT, y), ROW_Y[r], ROW_Y[r + 1])
+    });
+  });
+
+  // Dozens
+  const dozenLines = [
+    through(1135, 168, 1245, 138),
+    through(1135, 647, 1245, 641),
+    through(1135, 1136, 1245, 1145),
+    through(1135, 1633, 1245, 1660)
+  ];
+  ["dozen1", "dozen2", "dozen3"].forEach((t, i) => {
+    spots.push({
+      key: t,
+      type: t,
+      label: `${i + 1}${["st", "nd", "rd"][i]} 12, pays 2 to 1`,
+      fill: "#23402d",
+      pts: quad(dozenLines[i], dozenLines[i + 1], 1127, 1253)
+    });
+  });
+
+  // Outside bets
+  const outLines = [
+    through(1265, 132, 1385, 100),
+    through(1265, 391, 1385, 374),
+    through(1265, 640, 1385, 632),
+    through(1265, 892, 1385, 892),
+    through(1265, 1144, 1385, 1152),
+    through(1265, 1408, 1385, 1426),
+    through(1265, 1666, 1385, 1696)
+  ];
+  ["low", "even", "red", "black", "odd", "high"].forEach((t, i) => {
+    spots.push({
+      key: t,
+      type: t,
+      label: `${labelOf({ type: t, amount: 0 })}, pays 1 to 1`,
+      fill: "#23402d",
+      pts: quad(outLines[i], outLines[i + 1], 1259, 1394)
+    });
+  });
+
+  return spots;
+}
+
+const SPOTS = buildSpots();
+const centre = (pts: P[]): P => [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+const pointsAttr = (pts: P[]) => pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+
+const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 
 export default function RouletteGame({
   limit,
@@ -104,7 +212,7 @@ export default function RouletteGame({
   onCash: (cash: number) => void;
   onPlayed?: (info: Played) => void;
 }) {
-  const [bets, setBets] = useState<Bet[]>([]);
+  const [stack, setStack] = useState<PlacedChip[]>([]);
   const [chip, setChip] = useState(10);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -112,7 +220,6 @@ export default function RouletteGame({
   const [spinId, setSpinId] = useState(0);
   const [shown, setShown] = useState<Spin | null>(null);
   const [history, setHistory] = useState<number[]>([]);
-  const [lastBets, setLastBets] = useState<Bet[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -122,38 +229,40 @@ export default function RouletteGame({
     []
   );
 
+  // Every chip on the table, added up spot by spot.
+  const bets: Bet[] = [];
+  for (const c of stack) {
+    const found = bets.find((b) => keyOf(b.type, b.number) === keyOf(c.type, c.number));
+    if (found) found.amount += c.value;
+    else bets.push({ type: c.type, number: c.number, amount: c.value });
+  }
   const total = bets.reduce((sum, b) => sum + b.amount, 0);
   const chipsAvailable = CHIPS.filter((c) => c <= limit);
 
   function place(type: string, number?: number) {
     if (busy) return;
     setMessage("");
+    const onSpot = stack.filter((c) => keyOf(c.type, c.number) === keyOf(type, number)).length;
+    if (onSpot >= MAX_CHIPS_PER_SPOT) {
+      setMessage(`You can only put ${MAX_CHIPS_PER_SPOT} chips on one spot.`);
+      return;
+    }
     if (total + chip > limit) {
       setMessage(`The maximum bet here is ${gbp(limit)}.`);
       return;
     }
-    setBets((prev) => {
-      const key = keyOf(type, number);
-      const at = prev.findIndex((b) => keyOf(b.type, b.number) === key);
-      if (at === -1) return [...prev, { type, number, amount: chip }];
-      return prev.map((b, i) => (i === at ? { ...b, amount: b.amount + chip } : b));
-    });
+    setStack((prev) => [...prev, { type, number, value: chip }]);
   }
 
   function undo() {
     if (busy) return;
-    setBets((prev) => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      if (last.amount > chip) return prev.map((b, i) => (i === prev.length - 1 ? { ...b, amount: b.amount - chip } : b));
-      return prev.slice(0, -1);
-    });
+    setStack((prev) => prev.slice(0, -1));
   }
 
   async function spin() {
     if (busy) return;
     if (bets.length === 0) {
-      setMessage("Tap the table to place a bet, then tap the wheel.");
+      setMessage("Pick a chip and tap the table to place a bet first.");
       return;
     }
     setBusy(true);
@@ -188,13 +297,11 @@ export default function RouletteGame({
     const delta = (((want - rot) % 360) + 360) % 360;
     setRot(rot + 360 * 5 + delta);
     setSpinId((n) => n + 1);
-
     const result = d;
-    setLastBets(bets);
     timer.current = setTimeout(() => {
       setShown(result);
       setHistory((h) => [result.result, ...h].slice(0, 14));
-      setBets([]);
+      setStack([]);
       if (typeof result.money === "number") onCash(result.money);
       onPlayed?.({
         takeover: Boolean(result.takeover),
@@ -205,80 +312,56 @@ export default function RouletteGame({
     }, SPIN_MS + 150);
   }
 
-  const cell = (bg: string, chosen: boolean, landed: boolean): CSSProperties => ({
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 0,
-    margin: 0,
-    minWidth: 0,
-    background: bg,
-    color: "#f7efdb",
-    fontFamily: "Georgia, serif",
-    fontSize: 14,
-    lineHeight: 1.1,
-    cursor: busy ? "default" : "pointer",
-    border: "1px solid rgba(176,144,74,0.55)",
-    boxSizing: "border-box",
-    outline: chosen ? "2px solid #ffe08a" : "none",
-    outlineOffset: -2,
-    boxShadow: landed ? "inset 0 0 0 3px #ffffff, inset 0 0 14px 4px rgba(255,255,255,0.55)" : "none",
-    zIndex: chosen ? 2 : 1,
-    WebkitTapHighlightColor: "rgba(255,224,138,0.3)"
-  });
-
-  const amountOn = (type: string, number?: number) => {
-    const b = bets.find((x) => keyOf(x.type, x.number) === keyOf(type, number));
+  const amountOn = (key: string) => {
+    const b = bets.find((x) => keyOf(x.type, x.number) === key);
     return b ? b.amount : 0;
   };
 
-  const badge = (amount: number) =>
-    amount > 0 ? (
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          right: 2,
-          top: 2,
-          minWidth: 20,
-          padding: "1px 4px",
-          borderRadius: 10,
-          boxSizing: "border-box",
-          background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 60%, #9a7410)",
-          border: "1px solid #5a4306",
-          color: "#2a1c00",
-          fontFamily: "Arial, sans-serif",
-          fontSize: 10,
-          fontWeight: 700,
-          lineHeight: "13px",
-          textAlign: "center"
-        }}
-      >
-        {short(amount)}
-      </span>
-    ) : null;
-
   const landed = shown ? shown.result : null;
+  const net = shown ? shown.payout - shown.bet : 0;
+  const text = (extra: CSSProperties): CSSProperties => ({ fontFamily: "Georgia, 'Times New Roman', serif", ...extra });
 
   return (
-    <div style={{ padding: "4px 8px 12px" }}>
+    <div style={{ padding: "4px 0 10px" }}>
       <style>{`@keyframes rg-ball { from { transform: rotate(0deg); } to { transform: rotate(-1800deg); } }`}</style>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "stretch" }}>
-        {/* The wheel: tap it to spin */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: 680,
+          margin: "0 auto",
+          aspectRatio: `${ART_W} / ${ART_H}`,
+          backgroundColor: "#100d0c",
+          overflow: "hidden"
+        }}
+      >
+        {/* The picture of the table */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={TABLE_SRC}
+          alt=""
+          draggable={false}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", userSelect: "none" }}
+        />
+
+        {/* The wheel, tilted to sit in its bowl. Tap it to spin. */}
         <button
           type="button"
           onClick={spin}
           disabled={busy}
-          aria-label="Spin the wheel"
+          aria-label="Tap the wheel to spin"
           style={{
-            position: "relative",
-            flex: "0 0 48%",
-            aspectRatio: "1",
+            position: "absolute",
+            left: pct(BOWL.cx - BOWL.w / 2, ART_W),
+            top: pct(BOWL.cy - BOWL.w / 2, ART_H),
+            width: pct(BOWL.w, ART_W),
+            height: pct(BOWL.w, ART_H),
             padding: 0,
             border: 0,
             background: "transparent",
+            borderRadius: "50%",
+            transform: `scaleY(${BOWL.squash})`,
             cursor: busy ? "default" : "pointer",
             WebkitTapHighlightColor: "transparent"
           }}
@@ -291,7 +374,8 @@ export default function RouletteGame({
               transition: spinId === 0 ? "none" : `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.6, 0.1, 1)`
             }}
           >
-            <WheelFace />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={WHEEL_SRC} alt="" draggable={false} style={{ width: "100%", height: "100%", display: "block" }} />
           </div>
 
           {/* The ball runs the other way and settles at the top */}
@@ -303,221 +387,136 @@ export default function RouletteGame({
               animation: spinId === 0 ? "none" : `rg-ball ${SPIN_MS}ms cubic-bezier(0.12, 0.6, 0.1, 1) forwards`
             }}
           >
-            <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true" style={{ display: "block" }}>
-              <circle cx="100" cy="30" r="5" fill="#fbfbf5" stroke="#999" strokeWidth="0.8" />
+            <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true" style={{ display: "block" }}>
+              <circle cx="50" cy="14.5" r="2.4" fill="#fbfbf5" stroke="#8a8a80" strokeWidth="0.4" />
             </svg>
           </div>
-
-          {/* Pointer */}
-          <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
-            <path d="M92 0 L108 0 L100 12 Z" fill="#ffe08a" stroke="#5a4306" strokeWidth="1" />
-          </svg>
-
-          {!busy && !shown && (
-            <span
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-                padding: "3px 7px",
-                borderRadius: 10,
-                background: "rgba(0,0,0,0.7)",
-                color: "#ffe08a",
-                fontSize: 11,
-                fontFamily: "Georgia, serif",
-                letterSpacing: 1
-              }}
-            >
-              SPIN
-            </span>
-          )}
         </button>
 
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-          <div
-            style={{
-              padding: "5px 6px",
-              textAlign: "center",
-              fontSize: 12,
-              lineHeight: 1.35,
-              color: "#2a1c00",
-              background: "linear-gradient(180deg, #e8dcb5, #c9b98a)",
-              border: "1px solid #7a6330",
-              borderRadius: 3
-            }}
-          >
-            <strong>Maximum bet</strong>
-            <div>{gbp(limit)}</div>
-            <strong>Current bet</strong>
-            <div style={{ color: "#8a1f1f", fontWeight: 700 }}>{gbp(total)}</div>
-          </div>
-
-          <div style={{ flex: 1, border: `1px solid ${GOLD}`, borderRadius: 3, overflow: "hidden", background: "#0e1411", display: "flex", flexDirection: "column" }}>
-            <div
-              style={{
-                flex: 1,
-                display: "grid",
-                placeItems: "center",
-                background: shown ? colourOf(shown.result) : "#1a241f",
-                color: "#f7efdb",
-                fontFamily: "Georgia, serif",
-                fontSize: 40,
-                minHeight: 52
-              }}
-            >
-              {busy && !shown ? "…" : shown ? shown.result : "?"}
-            </div>
-            <div
-              style={{
-                padding: "3px 2px",
-                textAlign: "center",
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: 1,
-                background: "#1b0f0f",
-                color: shown ? (shown.win ? "#7fe08f" : "#f0c2b8") : "#b7ad93"
-              }}
-            >
-              {shown ? (shown.win ? "WIN!" : "LOSE!") : "—"}
-            </div>
-            <div style={{ padding: "2px 2px 3px", textAlign: "center", fontSize: 12, color: "#e8e0d4" }}>
-              {shown ? `${shown.payout - shown.bet >= 0 ? "+" : "-"}${gbp(Math.abs(shown.payout - shown.bet))}` : " "}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Past results */}
-      <div style={{ display: "flex", gap: 3, marginTop: 6, minHeight: 22, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontSize: 11, color: "#b7ad93", marginRight: 2 }}>Last:</span>
-        {history.length === 0 && <span style={{ fontSize: 11, color: "#6f6a58" }}>no spins yet</span>}
-        {history.map((n, i) => (
+        {!busy && !shown && (
           <span
-            key={i}
-            style={{
-              display: "inline-grid",
-              placeItems: "center",
-              width: 22,
-              height: 22,
-              borderRadius: "50%",
-              background: colourOf(n),
-              border: "1px solid #b0904a",
-              color: "#f7efdb",
-              fontSize: 11
-            }}
+            style={text({
+              position: "absolute",
+              left: pct(BOWL.cx, ART_W),
+              top: pct(BOWL.cy, ART_H),
+              transform: "translate(-50%, -50%)",
+              padding: "3px 8px",
+              borderRadius: 10,
+              background: "rgba(0,0,0,0.72)",
+              color: "#ffe08a",
+              fontSize: "clamp(9px, 2.6vw, 13px)",
+              letterSpacing: 0.5,
+              whiteSpace: "nowrap",
+              pointerEvents: "none"
+            })}
           >
-            {n}
+            TAP TO SPIN
           </span>
-        ))}
+        )}
+
+        {/* Hit areas, chips and the live figures, all in picture coordinates */}
+        <svg
+          viewBox={`0 0 ${ART_W} ${ART_H}`}
+          width="100%"
+          height="100%"
+          preserveAspectRatio="none"
+          role="group"
+          aria-label="Roulette table"
+          style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+        >
+          {/* Pointer above the wheel */}
+          <polygon points={`${BOWL.cx - 22},${BOWL.cy - 205} ${BOWL.cx + 22},${BOWL.cy - 205} ${BOWL.cx},${BOWL.cy - 168}`} fill="#ffe08a" stroke="#5a4306" strokeWidth="4" />
+
+          {/* Maximum and current bet */}
+          <text x="1004" y="196" textAnchor="middle" dominantBaseline="central" fontSize="44" fill={IVORY} style={text({ fontWeight: 700 })}>
+            {gbp(limit)}
+          </text>
+          <text x="1004" y="322" textAnchor="middle" dominantBaseline="central" fontSize="44" fill="#ffd36b" style={text({ fontWeight: 700 })}>
+            {gbp(total)}
+          </text>
+
+          {/* Result */}
+          <rect x="772" y="428" width="472" height="168" rx="6" fill={shown ? colourOf(shown.result) : "#1a1210"} stroke="#c69a48" strokeWidth="3" />
+          <text x="1008" y="516" textAnchor="middle" dominantBaseline="central" fontSize="150" fill={IVORY} style={text({ fontWeight: 700 })}>
+            {busy && !shown ? "…" : shown ? shown.result : "?"}
+          </text>
+          <text
+            x="1008"
+            y="646"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize="52"
+            fill={shown ? (shown.win ? "#7fe08f" : "#f0b4a8") : "#b7ad93"}
+            style={text({ fontWeight: 700, letterSpacing: 2 })}
+          >
+            {shown ? `${shown.win ? "WIN" : "LOSE"} ${net >= 0 ? "+" : "-"}${gbp(Math.abs(net))}` : "—"}
+          </text>
+
+          {/* Recent numbers, newest at the top */}
+          {history.slice(0, 8).map((n, i) => (
+            <g key={i}>
+              <rect
+                x="1346"
+                y={108 + i * 70}
+                width="348"
+                height="52"
+                rx="6"
+                fill={colourOf(n)}
+                stroke={i === 0 ? "#ffe08a" : "#c69a48"}
+                strokeWidth={i === 0 ? 5 : 2}
+              />
+              <text x="1520" y={108 + i * 70 + 27} textAnchor="middle" dominantBaseline="central" fontSize="40" fill={IVORY} style={text({ fontWeight: 700 })}>
+                {n}
+              </text>
+            </g>
+          ))}
+
+          {/* The winning number lights up */}
+          {landed !== null &&
+            SPOTS.filter((s) => s.type === "number" && s.number === landed).map((s) => (
+              <polygon key="landed" points={pointsAttr(s.pts)} fill="rgba(255,255,255,0.28)" stroke="#ffffff" strokeWidth="7" />
+            ))}
+
+          {/* Tap areas */}
+          {SPOTS.map((s) => (
+            <polygon
+              key={s.key}
+              points={pointsAttr(s.pts)}
+              fill="transparent"
+              stroke={amountOn(s.key) > 0 ? "#ffe08a" : "none"}
+              strokeWidth="5"
+              role="button"
+              aria-label={s.label}
+              onClick={() => place(s.type, s.number)}
+              style={{ pointerEvents: busy ? "none" : "all", cursor: "pointer" }}
+            />
+          ))}
+
+          {/* Chips on the table */}
+          {SPOTS.filter((s) => amountOn(s.key) > 0).map((s) => {
+            const [x, y] = centre(s.pts);
+            const amount = amountOn(s.key);
+            return (
+              <g key={`chip-${s.key}`} style={{ pointerEvents: "none" }}>
+                <circle cx={x} cy={y} r="40" fill="#e4b822" stroke="#5a4306" strokeWidth="4" />
+                <circle cx={x} cy={y} r="31" fill="none" stroke="#fff2a8" strokeWidth="3" strokeDasharray="10 8" />
+                <text x={x} y={y + 2} textAnchor="middle" dominantBaseline="central" fontSize={short(amount).length > 3 ? 27 : 32} fill="#2a1c00" style={{ fontFamily: "Arial, sans-serif", fontWeight: 700 }}>
+                  {short(amount)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
 
       {message && (
-        <p role="alert" className="notice" style={{ margin: "6px 0 0", textAlign: "center" }}>
+        <p role="alert" className="notice" style={{ margin: "6px 10px 0", textAlign: "center" }}>
           {message}
         </p>
       )}
 
-      {/* The table */}
-      <div
-        role="group"
-        aria-label="Roulette table"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "50px 32px 1fr 1fr 1fr",
-          gridTemplateRows: "36px repeat(12, 34px) 34px",
-          marginTop: 8,
-          padding: 4,
-          background: "#173a25",
-          border: `2px solid ${GOLD}`,
-          borderRadius: 4
-        }}
-      >
-        <button
-          type="button"
-          disabled={busy}
-          aria-label="Number 0"
-          onClick={() => place("number", 0)}
-          style={{ ...cell("#1f6b3a", amountOn("number", 0) > 0, landed === 0), gridColumn: "3 / span 3", gridRow: 1, fontSize: 18 }}
-        >
-          0{badge(amountOn("number", 0))}
-        </button>
-
-        {Array.from({ length: 36 }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            type="button"
-            disabled={busy}
-            aria-label={`Number ${n}`}
-            onClick={() => place("number", n)}
-            style={{
-              ...cell(REDS.has(n) ? "#8e1f1f" : "#151515", amountOn("number", n) > 0, landed === n),
-              gridColumn: ((n - 1) % 3) + 3,
-              gridRow: Math.ceil(n / 3) + 1,
-              fontSize: 16
-            }}
-          >
-            {n}
-            {badge(amountOn("number", n))}
-          </button>
-        ))}
-
-        {[
-          { type: "dozen1", label: "1st 12" },
-          { type: "dozen2", label: "2nd 12" },
-          { type: "dozen3", label: "3rd 12" }
-        ].map((d, i) => (
-          <button
-            key={d.type}
-            type="button"
-            disabled={busy}
-            aria-label={`${d.label}, pays 2 to 1`}
-            onClick={() => place(d.type)}
-            style={{ ...cell("#23402d", amountOn(d.type) > 0, false), gridColumn: 2, gridRow: `${2 + i * 4} / span 4`, fontSize: 12 }}
-          >
-            <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: 1 }}>{d.label}</span>
-            {badge(amountOn(d.type))}
-          </button>
-        ))}
-
-        {[
-          { type: "low", label: "1-18", bg: "#23402d" },
-          { type: "even", label: "Even", bg: "#23402d" },
-          { type: "red", label: "Red", bg: "#8e1f1f" },
-          { type: "black", label: "Black", bg: "#151515" },
-          { type: "odd", label: "Odd", bg: "#23402d" },
-          { type: "high", label: "19-36", bg: "#23402d" }
-        ].map((o, i) => (
-          <button
-            key={o.type}
-            type="button"
-            disabled={busy}
-            aria-label={`${o.label}, pays 1 to 1`}
-            onClick={() => place(o.type)}
-            style={{ ...cell(o.bg, amountOn(o.type) > 0, false), gridColumn: 1, gridRow: `${2 + i * 2} / span 2`, fontSize: 12 }}
-          >
-            {o.label}
-            {badge(amountOn(o.type))}
-          </button>
-        ))}
-
-        {["col1", "col2", "col3"].map((c, i) => (
-          <button
-            key={c}
-            type="button"
-            disabled={busy}
-            aria-label={`Column ${i + 1}, pays 2 to 1`}
-            onClick={() => place(c)}
-            style={{ ...cell("#23402d", amountOn(c) > 0, false), gridColumn: i + 3, gridRow: 14, fontSize: 13 }}
-          >
-            2:1
-            {badge(amountOn(c))}
-          </button>
-        ))}
-      </div>
-
       {/* Chips */}
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginTop: 10 }}>
+      <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap", marginTop: 8, padding: "0 6px" }}>
         {chipsAvailable.map((c) => (
           <button
             key={c}
@@ -527,15 +526,16 @@ export default function RouletteGame({
             aria-pressed={chip === c}
             onClick={() => setChip(c)}
             style={{
-              width: 46,
-              height: 46,
+              width: 36,
+              height: 36,
               borderRadius: "50%",
-              border: chip === c ? "3px solid #ffe08a" : "3px dashed rgba(255,255,255,0.7)",
+              border: chip === c ? "2px solid #ffe08a" : "2px dashed rgba(255,255,255,0.7)",
               background: CHIP_COLOURS[c],
               color: "#fff",
               fontFamily: "Arial, sans-serif",
-              fontSize: 12,
+              fontSize: 10,
               fontWeight: 700,
+              padding: 0,
               cursor: busy ? "default" : "pointer",
               boxShadow: chip === c ? "0 0 10px rgba(255,224,138,0.8)" : "none"
             }}
@@ -545,38 +545,19 @@ export default function RouletteGame({
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10, flexWrap: "wrap" }}>
-        <button type="button" style={smallBtn} disabled={busy || bets.length === 0} onClick={undo}>
-          Undo
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 8 }}>
+        <button type="button" style={smallBtn} disabled={busy || stack.length === 0} onClick={undo}>
+          Undo chip
         </button>
-        <button type="button" style={smallBtn} disabled={busy || bets.length === 0} onClick={() => setBets([])}>
-          Clear
-        </button>
-        <button
-          type="button"
-          style={smallBtn}
-          disabled={busy || lastBets.length === 0}
-          onClick={() => {
-            const sum = lastBets.reduce((s, b) => s + b.amount, 0);
-            if (sum > limit) return setMessage(`The maximum bet here is ${gbp(limit)}.`);
-            setMessage("");
-            setBets(lastBets.map((b) => ({ ...b })));
-          }}
-        >
-          Repeat last
-        </button>
-        <button type="button" style={{ ...smallBtn, minWidth: 90 }} disabled={busy} onClick={spin}>
-          Spin
+        <button type="button" style={smallBtn} disabled={busy || stack.length === 0} onClick={() => setStack([])}>
+          Clear table
         </button>
       </div>
 
-      {bets.length > 0 && (
-        <p style={{ margin: "8px 0 0", fontSize: 12, textAlign: "center", color: "#d4d0c4" }}>
-          {bets.map((b) => `${gbp(b.amount)} on ${labelOf(b)}`).join(" · ")}
-        </p>
-      )}
-      <p style={{ margin: "6px 0 0", fontSize: 11, textAlign: "center", color: "#8d8878" }}>
-        Single numbers pay 35 to 1. Dozens and columns pay 2 to 1. Everything else pays 1 to 1.
+      <p style={{ margin: "6px 10px 0", fontSize: 11, lineHeight: 1.35, textAlign: "center", color: "#b7ad93", minHeight: 15 }}>
+        {bets.length > 0
+          ? bets.map((b) => `${gbp(b.amount)} on ${labelOf(b)}`).join(" · ")
+          : "Pick a chip, tap the table to bet (up to 25 chips a spot), then tap the wheel. Numbers pay 35:1, dozens and columns 2:1, the rest 1:1."}
       </p>
     </div>
   );
@@ -584,7 +565,7 @@ export default function RouletteGame({
 
 const smallBtn: CSSProperties = {
   minHeight: 40,
-  padding: "6px 14px",
+  padding: "6px 12px",
   border: "1px solid #b0904a",
   borderRadius: 3,
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
