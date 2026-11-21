@@ -348,7 +348,6 @@ export default function CharacterPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, type })
       });
-      
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(d.error ?? "That could not be completed.");
@@ -437,7 +436,13 @@ export default function CharacterPanel({
         {data && (
           <>
             {/* STAGE: SLOTS AROUND THE FIGURE */}
-            <div style={{ background: "linear-gradient(180deg, #232321, #141412)", borderBottom: "1px solid #3a372f" }}>
+            <div
+              style={{
+                // One dark backdrop across the whole stage, deepest behind the figure, so the portrait blends in.
+                background: "radial-gradient(ellipse 62% 56% at 50% 46%, #0b0b0a 0%, #121211 42%, #1b1b19 78%, #1f1f1d 100%)",
+                borderBottom: "1px solid #3a372f"
+              }}
+            >
               <div
                 style={{
                   display: "grid",
