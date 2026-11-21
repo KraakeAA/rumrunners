@@ -165,9 +165,10 @@ const STAT_CATEGORIES = [
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 const titleBarStyle: CSSProperties = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   textAlign: "center",
-  fontSize: 15,
+  fontSize: 13,
+  lineHeight: 1.25,
   fontWeight: 400,
   fontFamily: "Georgia, serif",
   letterSpacing: 0.3,
@@ -186,14 +187,17 @@ function StatGroup({ title }: { title: string }) {
   return (
     <div
       style={{
-        padding: "2px 8px",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: 0.5,
-        textTransform: "uppercase",
-        color: "#d9b45f",
-        background: "#26322c",
-        borderBottom: "1px solid #6b5d3a"
+        padding: "3px 8px",
+        textAlign: "center",
+        fontSize: 12,
+        lineHeight: 1.25,
+        fontFamily: "Georgia, serif",
+        letterSpacing: 0.3,
+        color: "#f7efdb",
+        textShadow: "0 1px 2px #000",
+        background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+        borderTop: "1px solid #b0904a",
+        borderBottom: "1px solid #b0904a"
       }}
     >
       {title}
@@ -212,19 +216,25 @@ function StatRow({
 }) {
   return (
     <div
+      className="stat-row"
       style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        gap: 10,
-        padding: "3px 8px",
-        fontSize: 12,
-        lineHeight: 1.3,
-        background: "#17201c",
-        borderBottom: "1px solid #2b3630"
+        display: "grid",
+        gridTemplateColumns: "56% 1fr",
+        alignItems: "center",
+        fontSize: 11,
+        lineHeight: 1.25,
+        borderBottom: "1px solid #6b5d3a"
       }}
     >
-      <span style={{ color: "#d4cab2", minWidth: 0, overflowWrap: "anywhere" }}>
+      <span
+        style={{
+          color: "#d4cab2",
+          minWidth: 0,
+          overflowWrap: "anywhere",
+          padding: "3px 6px",
+          borderRight: "1px solid #6b5d3a"
+        }}
+      >
         {label}
       </span>
       <span
@@ -235,9 +245,11 @@ function StatRow({
               : tone === "bad"
                 ? "#e08f7f"
                 : "#f1e8d3",
-          fontWeight: 600,
-          textAlign: "right",
-          flexShrink: 0
+          fontWeight: 400,
+          textAlign: "left",
+          padding: "3px 6px",
+          minWidth: 0,
+          overflowWrap: "anywhere"
         }}
       >
         {value}
@@ -267,9 +279,9 @@ function StatTable({
           display: "grid",
           gridTemplateColumns: template,
           gap: 8,
-          padding: "3px 8px",
-          fontSize: 11,
-          color: "#b7ad93",
+          padding: "3px 6px",
+          fontSize: 10,
+          color: "#d9b45f",
           background: "#161d19",
           borderBottom: "1px solid #6b5d3a"
         }}
@@ -288,12 +300,12 @@ function StatTable({
             display: "grid",
             gridTemplateColumns: template,
             gap: 8,
-            padding: "3px 8px",
-            fontSize: 12,
-            lineHeight: 1.3,
+            padding: "3px 6px",
+            fontSize: 11,
+            lineHeight: 1.25,
             color: "#f1e8d3",
             background: "#17201c",
-            borderBottom: "1px solid #2b3630"
+            borderBottom: "1px solid #6b5d3a"
           }}
         >
           {row.map((value, i) => (
@@ -302,7 +314,7 @@ function StatTable({
               style={{
                 ...cell(i),
                 color: i === 0 ? "#d4cab2" : "#f1e8d3",
-                fontWeight: i === 0 ? 400 : 600
+                fontWeight: 400
               }}
             >
               {value}
@@ -322,7 +334,7 @@ const BANNER_PAGES = new Set([
   "Bootlegging", "Organised Crime", "Whack", "Rackets",
   "Marketplace", "Railway", "Garage", "Bullet Factory", "Escrow", "Jail",
   "Hospital", "Graveyard", "Store", "Lottery", "Gold",
-  "Pawn Shop", "Stock Market", "Brothel", "Crew", "Find Player"
+  "Pawn Shop", "Stock Market", "Brothel", "Crew", "Find Player", "Cities"
 ]);
 
 const JAIL_BLOCKED = new Set([
@@ -484,6 +496,7 @@ export default function GameShell({
   // sale), so check the balance every few seconds while the page is showing.
   const [liveUnread, setLiveUnread] = useState<number | null>(null);
   const [latestMailId, setLatestMailId] = useState("");
+  const [jailCount, setJailCount] = useState(0);
   const checkBalanceRef = useRef<() => void>(() => {});
   useEffect(() => {
     let alive = true;
@@ -501,6 +514,7 @@ export default function GameShell({
         if (typeof d.bullets === "number") setBullets(d.bullets);
         if (typeof d.unreadMail === "number") setLiveUnread(d.unreadMail);
         if (typeof d.latestMailId === "string") setLatestMailId(d.latestMailId);
+        if (typeof d.jailCount === "number") setJailCount(d.jailCount);
       } catch {
         /* try again next time */
       } finally {
@@ -575,7 +589,6 @@ export default function GameShell({
         if (!response.ok) return;
 
         const data = await response.json();
-
         if (active && typeof data.currentCity === "string") {
           setCurrentCity(data.currentCity);
         }
@@ -826,10 +839,14 @@ export default function GameShell({
 
     return (
       <div style={{ width: "100%", minWidth: 0 }}>
+        <style>{`
+          .stat-scroll .stat-row:nth-of-type(odd) { background: #1c2621; }
+          .stat-scroll .stat-row:nth-of-type(even) { background: #151d19; }
+        `}</style>
         <TitleBar>Welcome to Rumrunners</TitleBar>
         <TitleBar>Statistics</TitleBar>
 
-        <div style={{ padding: "4px 0", background: "#101612" }}>
+        <div style={{ padding: "3px 4px", background: "#101612" }}>
           <select
             aria-label="Statistics category"
             value={statsCategory}
@@ -837,10 +854,10 @@ export default function GameShell({
             style={{
               display: "block",
               width: "100%",
-              height: 32,
+              height: 30,
               padding: "0 8px",
               border: "1px solid #a08340",
-              borderRadius: 0,
+              borderRadius: 14,
               background: "#161d19",
               color: "#f1e8d3",
               fontSize: 16
@@ -854,7 +871,17 @@ export default function GameShell({
           </select>
         </div>
 
-        <div style={{ border: "1px solid #6b5d3a", borderBottom: 0 }}>
+        <div
+          className="stat-scroll"
+          style={{
+            border: "1px solid #6b5d3a",
+            maxHeight: "calc(100dvh - 190px)",
+            minHeight: 240,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            WebkitOverflowScrolling: "touch"
+          }}
+        >
           {statsCategory === "Current" && (
             <>
               <StatGroup title="Crimes" />
@@ -1152,7 +1179,7 @@ export default function GameShell({
               style={{
                 display: "grid",
                 gap: 1,
-                padding: "2px 6px",
+                padding: "1px 6px",
                 background: "rgba(0, 0, 0, 0.55)",
                 borderRadius: 2,
                 color: "#f1e8d3"
@@ -1165,8 +1192,8 @@ export default function GameShell({
                 <span
                   aria-hidden="true"
                   style={{
-                    width: 14,
-                    height: 8,
+                    width: 12,
+                    height: 7,
                     borderRadius: 2,
                     border: "1px solid #3f8a4d",
                     background: "linear-gradient(135deg, #4f9a5a, #2a5c34)",
@@ -1175,7 +1202,8 @@ export default function GameShell({
                 />
                 <strong
                   style={{
-                    fontSize: 12,
+                    fontSize: 10,
+                    lineHeight: 1.15,
                     fontWeight: 400,
                     color: "#f7efdb",
                     overflow: "hidden",
@@ -1186,12 +1214,12 @@ export default function GameShell({
                 </strong>
               </span>
 
-              <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontSize: 12 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontSize: 10, lineHeight: 1.15 }}>
                 <span
                   aria-hidden="true"
                   style={{
-                    width: 10,
-                    height: 10,
+                    width: 8,
+                    height: 8,
                     borderRadius: "50%",
                     background: "radial-gradient(circle at 35% 30%, #fff2a8, #e4b822 55%, #9a7410)",
                     border: "1px solid #7a5a0c",
@@ -1231,7 +1259,7 @@ export default function GameShell({
                 style={{
                   position: "relative",
                   textAlign: "center",
-                  fontSize: 10,
+                  fontSize: 9,
                   lineHeight: "11px",
                   fontWeight: 600,
                   color: "#fff",
@@ -1277,7 +1305,30 @@ export default function GameShell({
               cursor: "pointer"
             }}
           >
-            ✉
+            <svg
+              aria-hidden="true"
+              width="18"
+              height="32"
+              viewBox="0 0 18 32"
+              style={{
+                filter:
+                  (liveUnread ?? status.unreadMail) > 0
+                    ? "drop-shadow(0 0 4px #e4b822) drop-shadow(0 0 2px #ffd86b)"
+                    : "drop-shadow(0 1px 2px #000)",
+                opacity: (liveUnread ?? status.unreadMail) > 0 ? 1 : 0.75
+              }}
+            >
+              <rect x="6.5" y="1" width="5" height="4" rx="1" fill="#6b4a22" />
+              <path
+                d="M7 5 h4 v6 c0 2 4 3 4 7 v11 c0 1.2 -0.8 2 -2 2 h-8 c-1.2 0 -2 -0.8 -2 -2 v-11 c0 -4 4 -5 4 -7 z"
+                fill={(liveUnread ?? status.unreadMail) > 0 ? "#b5651d" : "#7a5a33"}
+                stroke="#3a2610"
+                strokeWidth="1"
+              />
+              <rect x="3.5" y="17" width="11" height="9" rx="1" fill="#efe2bd" stroke="#3a2610" strokeWidth="0.6" />
+              <text x="9" y="23.6" textAnchor="middle" fontSize="5" fontWeight="700" fill="#5a1a10" fontFamily="Georgia, serif">RUM</text>
+              <path d="M5.5 13 q0.5 -1.5 2 -2" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1" fill="none" />
+            </svg>
             {(liveUnread ?? status.unreadMail) > 0 && (
               <span
                 aria-hidden="true"
@@ -1306,10 +1357,11 @@ export default function GameShell({
 
           <button
             type="button"
-            aria-label="Jail"
+            aria-label={jailCount > 0 ? `Jail, ${jailCount} inmates` : "Jail"}
             title="Jail"
             onClick={() => navigate("Jail")}
             style={{
+              position: "relative",
               width: 34,
               height: 38,
               display: "grid",
@@ -1317,13 +1369,36 @@ export default function GameShell({
               padding: 0,
               border: 0,
               background: "transparent",
-              color: "#e8d7b6",
+              color: jailCount > 0 ? "#ffd86b" : "#8f866f",
               fontSize: 20,
-              textShadow: "0 1px 3px #000",
+              textShadow: jailCount > 0 ? "0 0 6px #e4b822, 0 1px 3px #000" : "0 1px 3px #000",
+              opacity: jailCount > 0 ? 1 : 0.7,
               cursor: "pointer"
             }}
           >
             ▥
+            {jailCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: 1,
+                  right: 0,
+                  minWidth: 15,
+                  height: 15,
+                  padding: "0 3px",
+                  borderRadius: 8,
+                  background: "#c0392b",
+                  color: "#fff",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  lineHeight: "15px",
+                  textAlign: "center",
+                  textShadow: "none"
+                }}
+              >
+                {jailCount > 99 ? "99+" : jailCount}
+              </span>
+            )}
           </button>
 
           <button
