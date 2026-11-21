@@ -8,6 +8,7 @@ type Cfg = {
   src: string;
   W: number;
   H: number;
+  fillWidth?: boolean;
   user: Rect;
   pass: Rect;
   btn: Rect;
@@ -23,6 +24,7 @@ const MOBILE: Cfg = {
   src: "/images/login/rumrunners-login-iphone.png",
   W: 452,
   H: 909,
+  fillWidth: true, // fill the phone's width; the page scrolls a little if the screen is short
   user: { x: 70, y: 467, w: 314, h: 43 },
   pass: { x: 70, y: 545, w: 314, h: 43 },
   btn: { x: 69, y: 605, w: 320, h: 60 },
@@ -136,7 +138,7 @@ function Layout({
         style={{
           position: "relative",
           zIndex: 1,
-          width: `min(100vw, calc(100dvh * ${W / H}))`,
+          width: cfg.fillWidth ? "100vw" : `min(100vw, calc(100dvh * ${W / H}))`,
           aspectRatio: `${W} / ${H}`,
           containerType: "inline-size"
         }}
