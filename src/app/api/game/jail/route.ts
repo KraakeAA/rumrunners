@@ -41,7 +41,8 @@ export async function GET() {
       rank: true,
       jailReason: true,
       jailSecurity: true,
-      jailUntil: true
+      jailUntil: true,
+      crew: { select: { name: true, color: true } }
     }
   });
 
@@ -74,6 +75,8 @@ export async function GET() {
       username: i.username,
       rank: i.rank,
       reason: i.jailReason ?? "Unknown",
+      crewName: i.crew?.name ?? null,
+      crewColor: i.crew?.color ?? null,
       security: i.jailSecurity,
       remaining: jailRemaining(i.jailUntil, now)
     }))
