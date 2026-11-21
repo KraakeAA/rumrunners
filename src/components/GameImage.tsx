@@ -12,7 +12,7 @@ const EXTENSIONS = ["jpg", "png", "webp"];
 export function slugify(name: string) {
   return name
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
@@ -23,19 +23,30 @@ export function GameImage({
   slot,
   width,
   height,
+  ratio,
   dim = false
 }: {
   slot: string;
   width: number | string;
-  height: number | string;
+  height?: number | string;
+  // Width divided by height. When set the box keeps the picture's own shape, so
+  // nothing is cropped (1150 / 300 for a banner, 1 for a square icon).
+  ratio?: number;
   dim?: boolean;
 }) {
   const [attempt, setAttempt] = useState(0);
-  const missing = attempt >= EXTENSIONS.length;
+  // Looks in the slot's own folder first (images/banners/jail.jpg), then straight in
+  // public/images (images/jail.jpg), so pictures work uploaded either way.
+  const flat = slot.includes("/") ? slot.slice(slot.lastIndexOf("/") + 1) : "";
+  const candidates = [
+    ...EXTENSIONS.map((e) => `${slot}.${e}`),
+    ...(flat ? EXTENSIONS.map((e) => `${flat}.${e}`) : [])
+  ];
+  const missing = attempt >= candidates.length;
 
   const frame: CSSProperties = {
     width,
-    height,
+    ...(ratio ? { aspectRatio: String(ratio) } : { height: height ?? "auto" }),
     boxSizing: "border-box",
     overflow: "hidden",
     position: "relative",
@@ -79,20 +90,27 @@ export function GameImage({
     <div style={frame}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`/images/${slot}.${EXTENSIONS[attempt]}`}
+        src={`/images/${candidates[attempt]}`}
         alt=""
         onError={() => setAttempt((a) => a + 1)}
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        style={{
+          position: ratio ? "absolute" : "static",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block"
+        }}
       />
     </div>
   );
 }
 
 // The wide picture across the top of a page.
-export function Banner({ slot, height = 130 }: { slot: string; height?: number }) {
+export function Banner({ slot }: { slot: string }) {
   return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto 6px" }}>
-      <GameImage slot={slot} width="100%" height={height} />
+      <GameImage slot={slot} width="100%" ratio={1150 / 300} />
     </div>
   );
 }
@@ -202,6 +220,13 @@ export function JobCard({
     return (
       <div
         style={{
+          border: "1px solid #6b5d3a",
+          background: "#1f2a25",
+          marginBottom: 4,
+          opacity: locked ? 0.7 : waiting ? 0.85 : 1,
+          position: "relative"
+        }}
+      >
           border: "1px solid #6b5d3a",
           background: "#1f2a25",
           marginBottom: 4,
