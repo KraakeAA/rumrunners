@@ -351,9 +351,14 @@ export async function POST(req: Request) {
         // Nobody on the job may have died since they signed up.
         const crewmen = await tx.player.findMany({
           where: { id: { in: [weapons, explosives, driver].map((x) => x.playerId as string) } },
-          select: { health: true }
+          select: { health: true, username: true, currentCity: true }
         });
         if (crewmen.length !== 3 || crewmen.some((c) => c.health <= 0)) throw new Error("MEMBER_DEAD");
+
+        // Members may travel after they are ready, but every one of them has to be
+        // back in the crew's city when the job is committed.
+        const away = crewmen.filter((c) => c.currentCity !== led.city);
+        if (away.length > 0) throw new Error("MEMBER_ELSEWHERE:" + away.map((c) => c.username).join(", "));
 
         // The driver's car must still be there, theirs, and undamaged.
         const car = driver.carId
@@ -545,6 +550,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, message });
   } catch (error) {
     const m = error instanceof Error ? error.message : "";
+
+    if (m.startsWith("MEMBER_ELSEWHERE:")) {
+      const names = m.slice("MEMBER_ELSEWHERE:".length);
+      return NextResponse.json(
+        { error: `Everyone has to be in the crew's city to commit. Not there yet: ${names}.` },
+        { status: 400 }
+      );
+    }
 
     if (m.startsWith("WRONG_CITY:")) {
       return NextResponse.json(
