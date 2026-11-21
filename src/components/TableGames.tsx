@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import RouletteGame from "@/components/RouletteGame";
+import { InfoButton, OwnerBar } from "@/components/CasinoInfo";
 
 type Card = { r: number; s: number };
 
@@ -108,7 +109,7 @@ function Row({ label, cards, total, hidden }: { label: string; cards: Card[]; to
 }
 
 
-export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }: Props) {
+export default function TableGames({ game, cash, onCash, ownerName, maxBet, onPlayed }: Props) {
   const limit = maxBet ?? 1_000_000;
   const [bet, setBet] = useState("10");
   const [busy, setBusy] = useState(false);
@@ -179,7 +180,6 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
       setBusy(false);
     }
   }
-
   const stake = Number(bet);
   const stakeOk = Number.isSafeInteger(stake) && stake >= 1;
 
@@ -243,33 +243,20 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
 
   return (
     <section style={wrap}>
-      <div style={head}>{game}</div>
-      <div
-        style={{
-          width: "fit-content",
-          maxWidth: "calc(100% - 20px)",
-          margin: "8px auto",
-          padding: "5px 14px",
-          boxSizing: "border-box",
-          textAlign: "center",
-          fontSize: 12,
-          color: "#e3f0e0",
-          background: "rgba(36, 92, 54, 0.38)",
-          border: "1px solid rgba(111, 207, 111, 0.4)",
-          borderRadius: 4
-        }}
-      >
-        Run by {ownerName || "Rumrunners"} · max bet {gbp(limit)}
+      <div style={{ ...head, position: "relative" }}>
+        {game}
+        <InfoButton game={game} />
       </div>
+      <OwnerBar ownerName={ownerName} />
+      {game !== "Roulette" && (
+        <div style={{ textAlign: "center", fontSize: 12, color: "#b7ad93", margin: "6px 0 0" }}>Max bet {gbp(limit)}</div>
+      )}
 
       {message && <p className="notice" style={{ margin: "8px 10px 0", textAlign: "center" }}>{message}</p>}
 
       {/* ------------------------------ Blackjack ------------------------------ */}
       {game === "Blackjack" && (
         <div style={{ padding: "4px 10px 12px" }}>
-          <p style={{ fontSize: 11, color: "#b7ad93", textAlign: "center", margin: "6px 0 0" }}>
-            Blackjack pays 3 to 2. Dealer stands on 17. Hit or stand.
-          </p>
 
           {bj && (
             <>
@@ -307,10 +294,6 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
       {/* -------------------------------- War -------------------------------- */}
       {game === "War" && (
         <div style={{ padding: "4px 10px 12px" }}>
-          <p style={{ fontSize: 11, color: "#b7ad93", textAlign: "center", margin: "6px 0 0" }}>
-            Higher card wins and pays 1 to 1. Aces are high. On a tie it&apos;s war: a second card
-            each, and you win 1.5 times your bet if yours is equal or higher.
-          </p>
 
           {war && (
             <>
@@ -335,7 +318,7 @@ export default function TableGames({ game, onCash, ownerName, maxBet, onPlayed }
       )}
 
       {/* ------------------------------ Roulette ------------------------------ */}
-      {game === "Roulette" && <RouletteGame limit={limit} onCash={onCash} onPlayed={onPlayed} />}
+      {game === "Roulette" && <RouletteGame limit={limit} cash={cash} onCash={onCash} onPlayed={onPlayed} />}
     </section>
   );
 }
