@@ -3,7 +3,7 @@ import { lockPlayer } from "@/lib/lock";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { HOUSE_MAX_BET, houseMaxBet, isHouseOnly } from "@/lib/venues";
+import { HOUSE_MAX_BET, OPENING_WINDOW_MS, houseMaxBet, isHouseOnly } from "@/lib/venues";
 import { expireEscrowIfStale } from "@/lib/escrow";
 
 type Tx = Prisma.TransactionClient;
@@ -76,8 +76,8 @@ async function settle(
   if (!prepaid) await takeBet(tx, player.id, bet);
 
   let payout = Math.floor(bet * multiplier);
-  const takeover = false;
-  const previousOwner: string | null = null;
+  let takeover = false;
+  let previousOwner: string | null = null;
 
   if (casino.ownerId) {
     // The casino's chips are the bank. The stake goes into the chips first.
@@ -93,15 +93,45 @@ async function settle(
         // The chips cannot cover the win: the player takes whatever is left.
         const left = await tx.casino.findUnique({ where: { id: casino.id }, select: { chips: true } });
         payout = left?.chips ?? 0;
-        await tx.casino.update({ where: { id: casino.id }, data: { chips: 0 } });
+
+        // The owner could not pay in full, so the player takes the casino over.
+        const oldOwner = await tx.player.findUnique({ where: { id: casino.ownerId }, select: { id: true, username: true } });
+        const winner = await tx.player.findUnique({ where: { id: player.id }, select: { username: true } });
+        takeover = true;
+        previousOwner = oldOwner?.username ?? null;
+        await tx.casino.update({
+          where: { id: casino.id },
+          data: {
+            ownerId: player.id,
+            ownedSince: new Date(),
+            chips: 0,
+            openAt: new Date(Date.now() + OPENING_WINDOW_MS),
+            maxBet: HOUSE_MAX_BET,
+            profit: 0,
+            plays: 0,
+            wagered: 0
+          }
+        });
+        if (oldOwner) {
+          await tx.message.create({
+            data: {
+              toId: oldOwner.id,
+              fromName: winner?.username ?? "Rumrunners",
+              subject: "You lost your casino",
+              body: `${winner?.username ?? "A player"} won more than your ${game} casino in ${city} could pay. You could not cover it, so they were paid what was left and now own the casino.`
+            }
+          });
+        }
       }
     }
 
-    const net = bet - payout;
-    await tx.casino.update({
-      where: { id: casino.id },
-      data: { profit: { increment: net }, plays: { increment: 1 }, wagered: { increment: bet } }
-    });
+    if (!takeover) {
+      const net = bet - payout;
+      await tx.casino.update({
+        where: { id: casino.id },
+        data: { profit: { increment: net }, plays: { increment: 1 }, wagered: { increment: bet } }
+      });
+    }
   } else {
     await tx.casino.update({
       where: { id: casino.id },
@@ -120,7 +150,6 @@ async function settle(
 
   return { money: updated.money, bet, payout, net: payout - bet, takeover, previousOwner, city };
 }
-
 export function wagerError(error: unknown, game: string) {
   const message = error instanceof Error ? error.message : "";
 
