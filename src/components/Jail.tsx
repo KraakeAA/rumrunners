@@ -10,6 +10,8 @@ type Inmate = {
   reason: string;
   security: number;
   remaining: number;
+  crewName?: string | null;
+  crewColor?: string | null;
 };
 
 type Me = {
@@ -29,12 +31,13 @@ type BustStats = {
 };
 
 const bar: CSSProperties = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 15,
+  fontSize: 13,
+  lineHeight: 1.25,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderTop: "1px solid #b0904a",
@@ -119,7 +122,7 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
     border: "1px solid #6b5d3a",
     background: "#17201c",
     color: "#f7efdb",
-    fontSize: 13,
+    fontSize: 11,
     textDecoration: "none",
   };
 
@@ -233,15 +236,15 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            padding: "4px 8px",
-            fontSize: 11,
-            color: "#b7ad93",
-            background: "#161d19",
+            padding: "3px 8px",
+            fontSize: 10,
+            color: "#d9b45f",
+            background: "#26322c",
             borderBottom: "1px solid #6b5d3a",
           }}
         >
           <span>Name</span>
-          <span style={{ marginRight: 74 }}>Security</span>
+          <span style={{ marginRight: 74 }}>Security ▾</span>
         </div>
 
         {inmates.length === 0 && (
@@ -257,37 +260,68 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
             <div
               key={i.username}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "5px 8px",
-                background: "#17201c",
-                borderBottom: "1px solid #2b3630",
+                display: "grid",
+                gridTemplateColumns: "1fr 64px",
+                borderBottom: "1px solid #6b5d3a",
+                background: "#1c2621",
               }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Link
-                  href={`/profile/${encodeURIComponent(i.username)}`}
-                  style={{ color: "#f7efdb", fontSize: 14, textDecoration: "none", fontWeight: 600 }}
-                >
-                  {i.username}
-                </Link>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "#b7ad93",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {i.reason}
+              <div style={{ minWidth: 0, padding: "3px 6px", display: "grid", gridTemplateColumns: "1fr auto", gap: 6, alignItems: "center" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                    <Link
+                      href={`/profile/${encodeURIComponent(i.username)}`}
+                      style={{
+                        color: "#f7efdb",
+                        fontSize: 11,
+                        textDecoration: "none",
+                        padding: "1px 6px",
+                        border: "1px solid #6b5d3a",
+                        background: "#2a332e",
+                        borderRadius: 2,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "100%",
+                      }}
+                    >
+                      {i.username}
+                    </Link>
+                    {i.crewName && (
+                      <span
+                        title={i.crewName}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                          fontSize: 9,
+                          color: "#d4cab2",
+                          minWidth: 0,
+                        }}
+                      >
+                        <span style={{ width: 8, height: 8, flexShrink: 0, background: i.crewColor || "#6b5d3a", border: "1px solid #000" }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.crewName}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      lineHeight: 1.3,
+                      color: "#b7ad93",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {i.reason}
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ textAlign: "center", flexShrink: 0 }}>
-                <div style={{ color: "#e4c04d", fontSize: 12, letterSpacing: 1 }}>{stars(i.security)}</div>
-                <div style={{ fontSize: 11, color: "#c9bfa6" }}>{mins(left)}</div>
+                <div style={{ textAlign: "center", flexShrink: 0 }}>
+                  <div style={{ color: "#e4c04d", fontSize: 10, letterSpacing: 0.5, lineHeight: 1.2 }}>{stars(i.security)}</div>
+                  <div style={{ fontSize: 10, color: "#c9bfa6", lineHeight: 1.2 }}>{mins(left)}</div>
+                </div>
               </div>
 
               <button
@@ -295,34 +329,29 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
                 disabled={busy}
                 onClick={() => act({ action: "bust", username: i.username })}
                 style={{
-                  flexShrink: 0,
-                  alignSelf: "stretch",
-                  width: 78,
-                  margin: "-5px -8px -5px 0",
                   border: 0,
                   borderLeft: "1px solid #6b5d3a",
-                  background: "linear-gradient(180deg, #2f4a3c, #1a2b22)",
+                  background: "#232d28",
                   color: "#f7efdb",
-                  fontFamily: "Georgia, serif",
-                  fontSize: 13,
+                  fontSize: 11,
                   cursor: "pointer",
                   opacity: busy ? 0.55 : 1,
                 }}
               >
-                Bust out!
+                Bust Out!
               </button>
             </div>
           );
         })}
       </div>
 
-      <p style={{ fontSize: 11, color: "#b7ad93", textAlign: "center", margin: "8px 0 0" }}>
+      <p style={{ fontSize: 10, color: "#b7ad93", textAlign: "center", margin: "6px 0 0" }}>
         Higher security means longer odds, and if you fail you end up inside yourself.
       </p>
 
       {stats && (
         <>
-          <div style={{ ...bar, marginTop: 12 }}>
+          <div style={{ ...bar, marginTop: 8 }}>
             <span style={{ flex: 1, textAlign: "center" }}>Your Statistics</span>
           </div>
           <div style={{ border: "1px solid #6b5d3a", borderTop: 0 }}>
@@ -344,26 +373,26 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
                     display: "grid",
                     gridTemplateColumns: "34% 1fr",
                     borderTop: i === 0 ? 0 : "1px solid #6b5d3a",
-                    fontSize: 13
+                    fontSize: 11
                   }}
                 >
-                  <div style={{ padding: "5px 6px", background: "#2a382f", borderRight: "1px solid #6b5d3a", color: "#f1e8d3" }}>{label}</div>
-                  <div style={{ padding: "5px 6px", background: bad ? "#523b3b" : "#222e27", color: "#f1e8d3" }}>{value}</div>
+                  <div style={{ padding: "3px 6px", background: "#2a382f", borderRight: "1px solid #6b5d3a", color: "#f1e8d3" }}>{label}</div>
+                  <div style={{ padding: "3px 6px", background: bad ? "#523b3b" : "#222e27", color: "#f1e8d3" }}>{value}</div>
                 </div>
               ));
             })()}
           </div>
 
-          <div style={{ ...bar, marginTop: 14 }}>
+          <div style={{ ...bar, marginTop: 8 }}>
             <span style={{ flex: 1, textAlign: "center" }}>Milestone Busts</span>
           </div>
-          <div style={{ border: "1px solid #6b5d3a", borderTop: 0, fontSize: 13 }}>
+          <div style={{ border: "1px solid #6b5d3a", borderTop: 0, fontSize: 11 }}>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "18% 1fr 30%",
-                padding: "5px 8px",
-                fontWeight: 700,
+                padding: "3px 8px",
+                fontWeight: 400,
                 background: "#2a382f",
                 borderBottom: "1px solid #6b5d3a"
               }}
@@ -380,7 +409,7 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
             {stats.milestones.map((m) => (
               <div
                 key={m.number}
-                style={{ display: "grid", gridTemplateColumns: "18% 1fr 30%", padding: "6px 8px", background: "#222e27", borderTop: "1px solid #2b3630" }}
+                style={{ display: "grid", gridTemplateColumns: "18% 1fr 30%", padding: "3px 8px", background: "#222e27", borderTop: "1px solid #2b3630" }}
               >
                 <span>{m.number.toLocaleString("en-GB")}</span>
                 <span style={{ textAlign: "center" }}>
