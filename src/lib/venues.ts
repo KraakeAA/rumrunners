@@ -46,7 +46,10 @@ export const HOUSE_ONLY_GAMES: string[] = ["War"];
 export const WAR_MAX_BET = 100_000;
 export const isHouseOnly = (game: string) => HOUSE_ONLY_GAMES.includes(game);
 export const houseMaxBet = (game: string) => (game === "War" ? WAR_MAX_BET : HOUSE_MAX_BET);
-export const ABSOLUTE_MAX_BET = 1_000_000;
+// An owner can set any maximum bet up to this. The top value means "no limit".
+export const ABSOLUTE_MAX_BET = 2_000_000_000;
+export const UNLIMITED_BET = ABSOLUTE_MAX_BET;
+export const betText = (n: number) => (n >= UNLIMITED_BET ? "No limit" : `£${n.toLocaleString("en-GB")}`);
 
 export const FACTORY = {
   price: 25_000, // cost to buy an unowned factory
