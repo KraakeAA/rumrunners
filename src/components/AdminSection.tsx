@@ -84,6 +84,9 @@ export default function AdminSection({ staff = 3 }: { staff?: number }) {
   const [carKey, setCarKey] = useState("");
   const [carCity, setCarCity] = useState("London");
   const [propKey, setPropKey] = useState("");
+  const [giveKey, setGiveKey] = useState("");
+  const [giveAmount, setGiveAmount] = useState("");
+  const [giveCity, setGiveCity] = useState("London");
   const [staffPick, setStaffPick] = useState("helper");
   const [subject, setSubject] = useState("");
   const [text, setText] = useState("");
@@ -141,6 +144,21 @@ export default function AdminSection({ staff = 3 }: { staff?: number }) {
 
   const n = (v: number) => v.toLocaleString("en-GB");
   const propChoices = lists ? [...lists.casinos.map((c) => ({ ...c, kind: "casino" })), ...lists.factories.map((f) => ({ ...f, kind: "factory" }))] : [];
+
+  const giveKind = giveKey.split(":")[0];
+  const giveId = giveKey.slice(giveKey.indexOf(":") + 1);
+  const giveReady =
+    giveKey !== "" && (giveKind !== "stat" || (giveAmount !== "" && giveAmount !== "-" && Number(giveAmount) !== 0));
+
+  function give() {
+    if (giveKind === "stat") {
+      act({ action: "adjust", field: giveId, mode: "add", amount: Number(giveAmount) }, () => setGiveAmount(""));
+    } else if (giveKind === "car") {
+      act({ action: "givecar", model: giveId, city: giveCity });
+    } else if (giveKind === "casino" || giveKind === "factory") {
+      act({ action: "giveproperty", kind: giveKind, propertyId: giveId });
+    }
+  }
 
   return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
@@ -219,7 +237,72 @@ export default function AdminSection({ staff = 3 }: { staff?: number }) {
             </div>
           </div>
 
-          <div style={{ ...bar, fontSize: 13, padding: "4px 8px", marginTop: 6 }}>Give or take</div>
+          <div style={{ ...bar, fontSize: 13, padding: "4px 8px", marginTop: 6 }}>Give</div>
+          <div style={box}>
+            <select value={giveKey} onChange={(e) => setGiveKey(e.target.value)} style={field}>
+              <option value="">Pick something to give…</option>
+              <optgroup label="Money and supplies">
+                <option value="stat:money">Cash</option>
+                <option value="stat:bank">Bank</option>
+                <option value="stat:gold">Gold</option>
+                <option value="stat:bullets">Bullets</option>
+              </optgroup>
+              {lists && (
+                <optgroup label="Cars">
+                  {lists.cars.map((c) => (
+                    <option key={c.key} value={`car:${c.key}`}>
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {lists && (
+                <optgroup label="Casinos">
+                  {lists.casinos
+                    .filter((c) => !c.label.startsWith("War"))
+                    .map((c) => (
+                      <option key={c.id} value={`casino:${c.id}`}>
+                        {c.label}
+                        {c.owner ? ` (now ${c.owner})` : ""}
+                      </option>
+                    ))}
+                </optgroup>
+              )}
+              {lists && (
+                <optgroup label="Bullet factories">
+                  {lists.factories.map((f) => (
+                    <option key={f.id} value={`factory:${f.id}`}>
+                      {f.label}
+                      {f.owner ? ` (now ${f.owner})` : ""}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+            {giveKind === "stat" && (
+              <input
+                value={giveAmount}
+                inputMode="numeric"
+                placeholder="Amount"
+                onChange={(e) => setGiveAmount(e.target.value.replace(/[^\d-]/g, ""))}
+                style={field}
+              />
+            )}
+            {giveKind === "car" && lists && (
+              <select value={giveCity} onChange={(e) => setGiveCity(e.target.value)} style={field}>
+                {lists.cities.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button type="button" className="button" disabled={busy || !giveReady} onClick={give} style={btn}>
+              Give {t.username}
+            </button>
+          </div>
+
+          <div style={{ ...bar, fontSize: 13, padding: "4px 8px", marginTop: 6 }}>Set or take away</div>
           <div style={box}>
             <div style={{ display: "flex", gap: 6 }}>
               <select value={field1} onChange={(e) => setField1(e.target.value)} style={{ ...field, flex: 1 }}>
