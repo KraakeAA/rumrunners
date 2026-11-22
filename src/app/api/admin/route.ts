@@ -128,7 +128,7 @@ export async function POST(req: Request) {
 
     const target = await prisma.player.findFirst({
       where: { username: { equals: username, mode: "insensitive" } },
-      select: { id: true, username: true, userId: true, user: { select: { isAdmin: true, staffRole: true } } }
+      select: { id: true, username: true, userId: true, rankLevel: true, user: { select: { isAdmin: true, staffRole: true } } }
     });
     if (!target) return NextResponse.json({ error: "No player with that name." }, { status: 404 });
 
@@ -183,6 +183,16 @@ export async function POST(req: Request) {
         where: { id: target.id },
         data: { rankLevel: level, rank: rankForLevel(level), experience: xpForLevel(level) }
       });
+      if (level > target.rankLevel) {
+        await prisma.message.create({
+          data: {
+            toId: target.id,
+            fromName: "The Underworld",
+            subject: "You were promoted",
+            body: `You were promoted to ${rankForLevel(level)}. Harder jobs and bigger rewards are open to you now, and your energy tank has grown.`
+          }
+        });
+      }
       message = `${target.username} is now ${rankForLevel(level)} (level ${level}).`;
     } else if (action === "revive") {
       await prisma.player.update({
