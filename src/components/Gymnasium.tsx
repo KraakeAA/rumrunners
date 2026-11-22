@@ -131,7 +131,7 @@ export default function GymnasiumSection({
                 : null;
           const pct = s.maxed ? 100 : Math.min(100, Math.round((s.into / Math.max(1, s.needed)) * 100));
           return (
-            <div key={s.key} style={{ border: "1px solid #6b5d3a", background: "#221a13" }}>
+            <div key={s.key} style={{ border: "1px solid #6b5d3a", background: "#1a221e" }}>
               <div style={{ ...bar, fontSize: 14, padding: "4px 8px" }}>{s.label}</div>
               <div style={{ display: "flex", alignItems: "stretch" }}>
                 <div style={{ position: "relative", width: 104, flexShrink: 0, borderRight: "1px solid #6b5d3a" }}>
@@ -158,7 +158,7 @@ export default function GymnasiumSection({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {!data.jailed && !s.maxed && (
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", padding: "3px 6px", background: "#1a130d", color: "#d9b45f", fontSize: 11, fontWeight: 600 }}>
+                      <div style={{ display: "flex", alignItems: "center", padding: "3px 6px", background: "#161d19", color: "#d9b45f", fontSize: 11, fontWeight: 600 }}>
                         <span style={{ flex: 1 }}>Exercise</span>
                         <span style={{ width: 40, textAlign: "center" }}>XP</span>
                         <span style={{ width: 34, textAlign: "center" }}>⚡</span>
@@ -192,7 +192,7 @@ export default function GymnasiumSection({
                       : `Next level: ${s.into.toLocaleString("en-GB")} / ${s.needed.toLocaleString("en-GB")} xp`}
                     {perk && <div style={{ color: "#9be39f" }}>{perk}</div>}
                   </div>
-                  <div style={{ margin: "0 6px 5px", height: 12, background: "#120d09", border: "1px solid #6b5d3a", position: "relative" }}>
+                  <div style={{ margin: "0 6px 5px", height: 12, background: "#0e1411", border: "1px solid #6b5d3a", position: "relative" }}>
                     <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(180deg, #d9b55c, ${GOLD})` }} />
                     <span
                       style={{
