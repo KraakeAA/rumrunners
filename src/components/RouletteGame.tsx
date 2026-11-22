@@ -32,14 +32,14 @@ const SPIN_MS = 3000;
 
 const CHIPS = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 100_000_000];
 const CHIP_COLOURS: Record<number, string> = {
-  1: "#7a7a72",
-  10: "#2f6fb5",
-  100: "#2a8a4a",
-  1000: "#b03030",
-  10000: "#6b3fa0",
-  100000: "#c9a227",
-  1000000: "#222222",
-  100000000: "#7a1a5a"
+  1: "#6d6a62",
+  10: "#27527a",
+  100: "#2a6b45",
+  1000: "#7d1f2b",
+  10000: "#4e3478",
+  100000: "#9a7a2a",
+  1000000: "#1b1816",
+  100000000: "#5c1a48"
 };
 
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
@@ -204,11 +204,13 @@ const pointsAttr = (pts: P[]) => pts.map((p) => `${p[0].toFixed(1)},${p[1].toFix
 const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 
 export default function RouletteGame({
+  wealth,
   limit,
   cash,
   onCash,
   onPlayed
 }: {
+  wealth?: string | null;
   limit: number;
   cash: number;
   onCash: (cash: number) => void;
@@ -250,7 +252,7 @@ export default function RouletteGame({
       return;
     }
     if (total + chip > limit) {
-      setMessage(`The maximum bet here is ${gbp(limit)}.`);
+      setMessage(`The maximum bet here is ${limit >= 2_000_000_000 ? "unlimited" : gbp(limit)}.`);
       return;
     }
     setStack((prev) => [...prev, { type, number, value: chip }]);
@@ -260,6 +262,7 @@ export default function RouletteGame({
     if (busy) return;
     setStack((prev) => prev.slice(0, -1));
   }
+
   async function spin() {
     if (busy) return;
     if (bets.length === 0) {
@@ -327,7 +330,10 @@ export default function RouletteGame({
 
   return (
     <div style={{ padding: "4px 0 10px" }}>
-      <style>{`@keyframes rg-ball { from { transform: rotate(0deg); } to { transform: rotate(-1800deg); } }`}</style>
+      <style>{`@keyframes rg-ball { from { transform: rotate(0deg); } to { transform: rotate(-1800deg); } }
+        @keyframes rg-strip { from { transform: translateX(0px); } to { transform: translateX(-3330px); } }
+        .rg-strip { animation: rg-strip 1.1s linear infinite; }
+        `}</style>
 
       <div
         style={{
@@ -428,21 +434,70 @@ export default function RouletteGame({
           aria-label="Roulette table"
           style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
         >
+          <defs>
+            <linearGradient id="rg-fade-l" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0" stopColor="#100d0c" stopOpacity="0.95" />
+              <stop offset="1" stopColor="#100d0c" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="rg-fade-r" x1="1" x2="0" y1="0" y2="0">
+              <stop offset="0" stopColor="#100d0c" stopOpacity="0.95" />
+              <stop offset="1" stopColor="#100d0c" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
           {/* Pointer above the wheel */}
           <polygon points={`${BOWL.cx - 22},${BOWL.cy - 205} ${BOWL.cx + 22},${BOWL.cy - 205} ${BOWL.cx},${BOWL.cy - 168}`} fill="#ffe08a" stroke="#5a4306" strokeWidth="4" />
 
+          {/* How much the casino holds, as a wealth rank */}
+          {wealth ? (
+            <text x={ART_W - 30} y={ART_H - 36} textAnchor="end" dominantBaseline="central" fontSize="40" fill={IVORY} style={text({ fontWeight: 700 })}>
+              Casino wealth: <tspan fill="#ffd36b">{wealth}</tspan>
+            </text>
+          ) : null}
+
           {/* Maximum and current bet */}
           <text x="1004" y="196" textAnchor="middle" dominantBaseline="central" fontSize="44" fill={IVORY} style={text({ fontWeight: 700 })}>
-            {gbp(limit)}
+            {limit >= 2_000_000_000 ? "No limit" : gbp(limit)}
           </text>
           <text x="1004" y="322" textAnchor="middle" dominantBaseline="central" fontSize="44" fill="#ffd36b" style={text({ fontWeight: 700 })}>
             {gbp(total)}
           </text>
+
           {/* Result */}
           <rect x="772" y="428" width="472" height="168" rx="6" fill={shown ? colourOf(shown.result) : "#1a1210"} stroke="#c69a48" strokeWidth="3" />
           <text x="1008" y="516" textAnchor="middle" dominantBaseline="central" fontSize="150" fill={IVORY} style={text({ fontWeight: 700 })}>
-            {busy && !shown ? "…" : shown ? shown.result : "?"}
+            {busy && !shown ? "" : shown ? shown.result : "?"}
           </text>
+          {busy && !shown && (
+            <g aria-label="Spinning">
+              <clipPath id="rg-box">
+                <rect x="775" y="431" width="466" height="162" rx="5" />
+              </clipPath>
+              <g clipPath="url(#rg-box)">
+                <g className="rg-strip">
+                  {[0, 1, 2, 3].flatMap((rep) =>
+                    WHEEL.map((n, i) => {
+                      const x = 640 + (rep * WHEEL.length + i) * 90;
+                      return (
+                        <g key={`${rep}-${i}`}>
+                          <rect x={x} y="440" width="86" height="144" rx="6" fill={colourOf(n)} stroke="#c69a48" strokeWidth="3" />
+                          <text x={x + 43} y="512" textAnchor="middle" dominantBaseline="central" fontSize="58" fill={IVORY} style={text({ fontWeight: 700 })}>
+                            {n}
+                          </text>
+                        </g>
+                      );
+                    })
+                  )}
+                </g>
+                {/* Fades at the edges so the numbers blur past */}
+                <rect x="775" y="431" width="90" height="162" fill="url(#rg-fade-l)" />
+                <rect x="1151" y="431" width="90" height="162" fill="url(#rg-fade-r)" />
+                {/* The marker the ball will stop under */}
+                <polygon points="1008,431 1024,431 1008,452 992,431" fill="#ffe08a" stroke="#5a4306" strokeWidth="2" />
+                <polygon points="1008,593 1024,593 1008,572 992,572" fill="none" />
+              </g>
+            </g>
+          )}
           <rect
             x="772"
             y="614"
@@ -529,58 +584,81 @@ export default function RouletteGame({
       )}
 
       {/* Chips */}
-      <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap", marginTop: 8, padding: "0 6px" }}>
-        {chipsAvailable.map((c) => (
-          <button
-            key={c}
-            type="button"
-            disabled={busy}
-            aria-label={`Chip of ${gbp(c)}`}
-            aria-pressed={chip === c}
-            onClick={() => setChip(c)}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              border: chip === c ? "2px solid #ffe08a" : "2px dashed rgba(255,255,255,0.7)",
-              background: CHIP_COLOURS[c],
-              color: "#fff",
-              fontFamily: "Arial, sans-serif",
-              fontSize: 10,
-              fontWeight: 700,
-              padding: 0,
-              cursor: busy ? "default" : "pointer",
-              boxShadow: chip === c ? "0 0 10px rgba(255,224,138,0.8)" : "none"
-            }}
-          >
-            {short(c)}
-          </button>
-        ))}
-      </div>
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginTop: 8, padding: "0 6px" }}>
+        {chipsAvailable.map((c) => {
+          const on = chip === c;
+          const body = CHIP_COLOURS[c];
+          return (
+            <button
+              key={c}
+              type="button"
+              disabled={busy}
+              aria-label={`Chip of ${gbp(c)}`}
+              aria-pressed={on}
+              onClick={() => setChip(c)}
+              style={{
+                position: "relative",
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                border: 0,
+                padding: 0,
+                cursor: busy ? "default" : "pointer",
+                // Ivory edge notches around a coloured body, like a casino chip seen from above.
+                background: `repeating-conic-gradient(#e8dcc0 0deg 15deg, ${body} 15deg 45deg)`,
+                boxShadow: on
+                  ? "0 0 0 2px #100d0c, 0 0 0 3.5px #c69a48, 0 3px 8px rgba(0,0,0,0.6)"
+                  : "0 2px 4px rgba(0,0,0,0.6)",
+                transform: on ? "translateY(-3px)" : "none",
+                transition: "transform 0.12s"
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  inset: 5,
+                  borderRadius: "50%",
+                  background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,0.22), rgba(0,0,0,0) 60%), ${body}`,
+                  border: "1px solid rgba(232,220,192,0.75)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#f7efdb",
+                  fontFamily: "Georgia, serif",
+                  fontSize: short(c).length > 3 ? 8 : 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.2,
+                  textShadow: "0 1px 1px rgba(0,0,0,0.7)"
+                }}
+              >
+                {short(c)}
+              </span>
+            </button>
+          );
+        })}
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 8 }}>
-        <button type="button" style={smallBtn} disabled={busy || stack.length === 0} onClick={undo}>
-          Undo chip
+        <span aria-hidden="true" style={{ width: 1, height: 22, background: "#6b5d3a", margin: "0 2px" }} />
+
+        <button type="button" aria-label="Undo last chip" title="Undo" style={roundBtn} disabled={busy || stack.length === 0} onClick={undo}>
+          ↶
         </button>
-        <button type="button" style={smallBtn} disabled={busy || stack.length === 0} onClick={() => setStack([])}>
-          Clear table
+        <button type="button" aria-label="Clear the table" title="Clear" style={roundBtn} disabled={busy || stack.length === 0} onClick={() => setStack([])}>
+          ✕
         </button>
       </div>
-
-      <p style={{ margin: "6px 10px 0", fontSize: 11, lineHeight: 1.35, textAlign: "center", color: "#b7ad93", minHeight: 15 }}>
-        {bets.map((b) => `${gbp(b.amount)} on ${labelOf(b)}`).join(" · ")}
-      </p>
     </div>
   );
 }
 
-const smallBtn: CSSProperties = {
-  minHeight: 40,
-  padding: "6px 12px",
-  border: "1px solid #b0904a",
-  borderRadius: 3,
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
-  color: "#f7efdb",
+const roundBtn: CSSProperties = {
+  width: 28,
+  height: 28,
+  borderRadius: "50%",
+  border: "1px solid #6b5d3a",
+  background: "#1a221e",
+  color: "#d9c48f",
   fontSize: 14,
+  lineHeight: 1,
+  padding: 0,
   cursor: "pointer"
 };
