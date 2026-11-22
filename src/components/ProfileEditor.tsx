@@ -21,7 +21,7 @@ const OPTIONS: { key: keyof Data; label: string }[] = [
   { key: "friendsOnlyImages", label: "Only show images in messages from friends?" },
   { key: "showOcStatus", label: "Display OC status on profile?" },
   { key: "showProfileViews", label: "Display profile views on profile?" },
-  { key: "showOrganization", label: "Display organisation on profile?" }
+  { key: "showOrganization", label: "Display crew on profile?" }
 ];
 
 const bar: CSSProperties = {
