@@ -102,8 +102,8 @@ function Layout({
     border: 0,
     outline: "none",
     background: "transparent",
-    color: "#f7efdb",
-    caretColor: "#e4c04d",
+    color: "#100D0C",
+    caretColor: "#100D0C",
     fontFamily: "Georgia, 'Times New Roman', serif",
     fontSize: "max(16px, 2.6cqw)", // 16px or more stops the iPhone zooming in on tap
     letterSpacing: 0.3
