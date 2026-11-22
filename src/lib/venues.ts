@@ -73,6 +73,7 @@ export type CasinoView = {
   label: string;
   ownerId: string | null;
   ownerName: string | null;
+  ownerCrewColor: string | null;
   ownerWealth: string | null;
   maxBet: number;
   price: number;
