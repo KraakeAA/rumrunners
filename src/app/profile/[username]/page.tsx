@@ -284,7 +284,7 @@ export default async function PlayerProfile({
           </div>
           {player.showOrganization && (
             <div style={row}>
-              <div style={label}>Organisation:</div>
+              <div style={label}>Crew:</div>
               <div style={value}>
                 {player.crew ? (
                   <Link href={`/crew/${player.crew.id}`} style={{ color: "#e4c04d" }}>
