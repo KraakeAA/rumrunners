@@ -24,7 +24,7 @@ const MOBILE: Cfg = {
   src: "/images/login/rumrunners-login-iphone.png",
   W: 426,
   H: 885,
-  fillWidth: true, // fill the phone's width; the page scrolls a little if the screen is short
+  // Fitted to the screen height as well as the width, so the page never scrolls.
   user: { x: 75, y: 548, w: 280, h: 31 },
   pass: { x: 75, y: 613, w: 280, h: 31 },
   btn: { x: 75, y: 660, w: 281, h: 48 },
@@ -115,10 +115,10 @@ function Layout({
       style={{
         minHeight: "100dvh",
         width: "100%",
-        overflow: "hidden",
+        overflow: "clip",
         background: "#050403",
         position: "relative",
-        alignItems: "center",
+        alignItems: cfg.fillWidth ? "flex-start" : "center",
         justifyContent: "center"
       }}
     >
