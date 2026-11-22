@@ -34,7 +34,7 @@ export function GameImage({
   // nothing is cropped (1150 / 300 for a banner, 1 for a square icon).
   ratio?: number;
   dim?: boolean;
-  // No frame and no backing colour, so the picture sits straight on the page.
+  // Backing colour matches the page, so no coloured edge shows around the picture.
   bare?: boolean;
 }) {
   const [attempt, setAttempt] = useState(0);
@@ -53,8 +53,8 @@ export function GameImage({
     boxSizing: "border-box",
     overflow: "hidden",
     position: "relative",
-    background: bare ? "transparent" : "#140b0b",
-    border: bare ? "0" : "1px solid #8f6f2f",
+    background: bare ? "#0b0f0d" : "#140b0b",
+    border: "1px solid #8f6f2f",
     opacity: dim ? 0.45 : 1,
     flexShrink: 0
   };
@@ -70,7 +70,7 @@ export function GameImage({
           textAlign: "center",
           border: "1px dashed #5f5535",
           background:
-            "repeating-linear-gradient(135deg, #1a130d, #1a130d 8px, #1d150e 8px, #1d150e 16px)"
+            "repeating-linear-gradient(135deg, #131b17, #131b17 8px, #161f1a 8px, #161f1a 16px)"
         }}
         title={`Add a picture at public/images/${slot}.jpg`}
       >
@@ -109,9 +109,6 @@ export function GameImage({
   );
 }
 
-const BANNER_FADE =
-  "linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 8%, #000 80%, transparent 100%)";
-
 // The wide picture across the top of a page.
 export function Banner({ slot }: { slot: string }) {
   return (
@@ -119,12 +116,7 @@ export function Banner({ slot }: { slot: string }) {
       style={{
         width: "100%",
         maxWidth: 560,
-        margin: "0 auto 6px",
-        // Soft edges so the picture melts into the page.
-        WebkitMaskImage: BANNER_FADE,
-        WebkitMaskComposite: "source-in",
-        maskImage: BANNER_FADE,
-        maskComposite: "intersect"
+        margin: "0 auto 6px"
       }}
     >
       <GameImage slot={slot} width="100%" ratio={1150 / 300} bare />
@@ -172,7 +164,7 @@ function Segments({ level, colour }: { level: number; colour: string }) {
           style={{
             width: 9,
             height: 14,
-            background: n <= level ? colour : "#3a3028",
+            background: n <= level ? colour : "#2a2f2c",
             border: "1px solid #101412"
           }}
         />
@@ -188,7 +180,7 @@ const chip: CSSProperties = {
   padding: "2px 9px",
   border: "1px solid #6b6b60",
   borderRadius: 12,
-  background: "#3a2c1f",
+  background: "#202824",
   color: "#f1e8d3",
   fontSize: 12
 };
@@ -237,7 +229,7 @@ export function JobCard({
       <div
         style={{
           border: "1px solid #6b5d3a",
-          background: "#2b2118",
+          background: "#1f2a25",
           marginBottom: 4,
           opacity: locked ? 0.7 : waiting ? 0.85 : 1,
           position: "relative"
@@ -293,7 +285,7 @@ export function JobCard({
           </div>
         </div>
         {pct !== null && (
-          <div style={{ height: 3, background: "#120d09" }}>
+          <div style={{ height: 3, background: "#0e1411" }}>
             <div style={{ height: "100%", width: `${pct}%`, background: "#5f9a2a" }} />
           </div>
         )}
@@ -312,7 +304,7 @@ export function JobCard({
       <div
         style={{
           border: "1px solid #6b5d3a",
-          background: "#2b2118",
+          background: "#1f2a25",
           opacity: locked ? 0.7 : waiting ? 0.85 : 1
         }}
       >
@@ -322,8 +314,8 @@ export function JobCard({
             gap: 8,
             padding: "6px 8px",
             alignItems: "center",
-            background: "#3a2c1f",
-            borderBottom: "1px solid #52402c"
+            background: "#2a3630",
+            borderBottom: "1px solid #3d4a41"
           }}
         >
           <GameImage slot={slot} width={44} height={44} dim={locked} />
@@ -375,7 +367,7 @@ export function JobCard({
           </button>
         </div>
         {pct !== null && (
-          <div style={{ height: 3, background: "#120d09" }}>
+          <div style={{ height: 3, background: "#0e1411" }}>
             <div style={{ height: "100%", width: `${pct}%`, background: "#5f9a2a" }} />
           </div>
         )}
@@ -401,12 +393,12 @@ export function JobCard({
     <div
       style={{
         border: "1px solid #6b5d3a",
-        background: "#2b2118",
+        background: "#1f2a25",
         marginBottom: 6,
         opacity: locked ? 0.7 : waiting ? 0.85 : 1
       }}
     >
-      <div style={{ padding: "5px 9px", background: "#3a2c1f", borderBottom: "1px solid #52402c" }}>
+      <div style={{ padding: "5px 9px", background: "#2a3630", borderBottom: "1px solid #3d4a41" }}>
         <div style={{ fontFamily: "Georgia, serif", fontSize: 15, fontWeight: 700, color: locked ? "#8a8470" : "#f7efdb" }}>
           {title}
         </div>
@@ -416,7 +408,7 @@ export function JobCard({
       {waiting && typeof waitLeft === "number" && typeof seconds === "number" && seconds > 0 && (
         <div style={{ padding: "5px 9px 0", fontSize: 11, color: "#c9bfa6" }}>
           Recovering from your previous job…
-          <div style={{ height: 8, background: "#120d09", border: "1px solid #52402c", marginTop: 3 }}>
+          <div style={{ height: 8, background: "#0e1411", border: "1px solid #34402f", marginTop: 3 }}>
             <div
               style={{
                 height: "100%",
