@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { holdBalance, releaseBalance } from "@/lib/balance-hold";
 
 type Played = { takeover: boolean; previousOwner: string | null; payout: number };
 
@@ -235,11 +236,13 @@ export default function RouletteGame({
   const [shown, setShown] = useState<Spin | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [lastStack, setLastStack] = useState<PlacedChip[]>([]);
+  const [removeMode, setRemoveMode] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
+      releaseBalance();
     },
     []
   );
@@ -257,6 +260,14 @@ export default function RouletteGame({
   function place(type: string, number?: number) {
     if (busy) return;
     setMessage("");
+    // In remove mode every tap takes the last chip off that spot instead of adding one.
+    if (removeMode) {
+      setStack((prev) => {
+        const at = prev.map((c) => keyOf(c.type, c.number)).lastIndexOf(keyOf(type, number));
+        return at < 0 ? prev : prev.filter((_, i) => i !== at);
+      });
+      return;
+    }
     const onSpot = stack.filter((c) => keyOf(c.type, c.number) === keyOf(type, number)).length;
     if (onSpot >= MAX_CHIPS_PER_SPOT) {
       setMessage(`You can only put ${MAX_CHIPS_PER_SPOT} chips on one spot.`);
@@ -267,11 +278,6 @@ export default function RouletteGame({
       return;
     }
     setStack((prev) => [...prev, { type, number, value: chip }]);
-  }
-
-  function undo() {
-    if (busy) return;
-    setStack((prev) => prev.slice(0, -1));
   }
 
   function repeatBet() {
@@ -286,6 +292,7 @@ export default function RouletteGame({
       return;
     }
     setMessage("");
+    setRemoveMode(false);
     setStack(lastStack);
   }
 
@@ -297,7 +304,10 @@ export default function RouletteGame({
     }
     setBusy(true);
     setMessage("");
+    setRemoveMode(false);
     setLastStack(stack);
+    // Keep the live balance check from showing the winnings before the wheel stops.
+    holdBalance(SPIN_MS + 4000);
     setShown(null);
     setStripIdx(null);
 
@@ -319,6 +329,7 @@ export default function RouletteGame({
     }
 
     if (!d) {
+      releaseBalance();
       setBusy(false);
       return;
     }
@@ -339,6 +350,7 @@ export default function RouletteGame({
       setShown(result);
       setHistory((h) => [result.result, ...h].slice(0, 14));
       if (typeof result.money === "number") onCash(result.money);
+      releaseBalance();
       onPlayed?.({
         takeover: Boolean(result.takeover),
         previousOwner: result.previousOwner ?? null,
@@ -618,7 +630,7 @@ export default function RouletteGame({
       {/* Chips */}
       <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginTop: 8, padding: "0 6px" }}>
         {chipsAvailable.map((c) => {
-          const on = chip === c;
+          const on = chip === c && !removeMode;
           const body = CHIP_COLOURS[c];
           return (
             <button
@@ -626,8 +638,11 @@ export default function RouletteGame({
               type="button"
               disabled={busy}
               aria-label={`Chip of ${gbp(c)}`}
-              aria-pressed={on}
-              onClick={() => setChip(c)}
+              aria-pressed={on && !removeMode}
+              onClick={() => {
+                setChip(c);
+                setRemoveMode(false);
+              }}
               style={{
                 position: "relative",
                 width: 34,
@@ -673,14 +688,28 @@ export default function RouletteGame({
 
       {/* Table buttons */}
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 8, padding: "0 6px" }}>
-        <button type="button" style={barBtn} disabled={busy || stack.length === 0} onClick={() => setStack([])}>
+        <button
+          type="button"
+          style={barBtn}
+          disabled={busy || stack.length === 0}
+          onClick={() => {
+            setStack([]);
+            setRemoveMode(false);
+          }}
+        >
           Cancel bet
         </button>
         <button type="button" style={barBtn} disabled={busy || lastStack.length === 0} onClick={repeatBet}>
           Repeat bet
         </button>
-        <button type="button" style={barBtn} disabled={busy || stack.length === 0} onClick={undo}>
-          Remove chip
+        <button
+          type="button"
+          aria-pressed={removeMode}
+          style={removeMode ? { ...barBtn, background: "#4a3820", color: "#fff3cf", borderColor: "#c69a48" } : barBtn}
+          disabled={busy}
+          onClick={() => setRemoveMode((m) => !m)}
+        >
+          {removeMode ? "Removing…" : "Remove chip"}
         </button>
       </div>
 
@@ -712,7 +741,7 @@ const barBtn: CSSProperties = {
   fontSize: 12,
   fontFamily: "Georgia, serif",
   border: "1px solid #6b5d3a",
-  background: "#17110c",
+  background: "#221a13",
   color: "#d9c48f",
   cursor: "pointer"
 };
