@@ -133,8 +133,10 @@ function clock(ms: number) {
 
 export function TravelSection({
   onArrive,
+  isAdmin = false,
 }: {
   onArrive: (city: string) => void;
+  isAdmin?: boolean;
 }) {
   const [data, setData] = useState<TravelData | null>(null);
   const [destination, setDestination] = useState("");
@@ -167,7 +169,7 @@ export function TravelSection({
   const remaining = data.cooldownUntil
     ? Math.max(0, new Date(data.cooldownUntil).getTime() - now)
     : 0;
-  const canTravel = remaining === 0;
+  const canTravel = isAdmin || remaining === 0;
   const minutes = RAIL_MINUTES;
   const story = CITY_STORIES[data.currentCity];
 
