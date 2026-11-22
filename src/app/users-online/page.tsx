@@ -106,7 +106,7 @@ export default function UsersOnlinePage() {
                     href={`/profile/${encodeURIComponent(player.username)}`}
                     title={player.isAdmin ? "Admin" : `${player.rank} (${player.rankLevel})`}
                     style={{
-                      color: player.isAdmin ? "#00ff00" : "#f1e8d3",
+                      color: player.isAdmin ? "#c0141c" : "#f1e8d3",
                       fontWeight: player.isAdmin ? 700 : 400,
                       textDecoration: "none"
                     }}
