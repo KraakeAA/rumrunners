@@ -1728,7 +1728,7 @@ export default function GameShell({
                     return (
                       <JobCard
                         key={crime.id}
-                        slot={`crimes/${crime.id}`}
+                        slot={`crimes/${slugify(currentCity)}/${crime.id}`}
                         title={crime.name}
                         description={crime.description}
                         meters={[]}
@@ -1747,7 +1747,7 @@ export default function GameShell({
                   return (
                     <JobCard
                       key={crime.id}
-                      slot={`crimes/${crime.id}`}
+                      slot={`crimes/${slugify(currentCity)}/${crime.id}`}
                       title={crime.name}
                       description={crime.description}
                       meters={[]}
@@ -1862,6 +1862,7 @@ export default function GameShell({
 
           {section === "Graveyard" && <GraveyardSection />}
 
+            
           {section === "Gymnasium" && (
             <GymnasiumSection
               onEnergy={setEnergy}
