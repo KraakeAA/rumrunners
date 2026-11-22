@@ -485,6 +485,7 @@ export default function GameShell({
     : menuGroups;
   const [section, setSection] = useState(composeTo ? "Send Letter" : sectionFromAddress(groups, startSection));
   const [letterTo, setLetterTo] = useState(composeTo);
+  const [letterQuote, setLetterQuote] = useState<{ from: string; at: string; body: string } | null>(null);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [characterOpen, setCharacterOpen] = useState(false);
@@ -813,9 +814,10 @@ export default function GameShell({
     }
   }
 
-  function openLetter(name: string) {
+  function openLetter(name: string, quote?: { from: string; at: string; body: string }) {
     navigate("Send Letter");
     setLetterTo(name);
+    setLetterQuote(quote ?? null);
   }
 
   function navigate(item: string) {
@@ -1357,16 +1359,18 @@ export default function GameShell({
                 opacity: (liveUnread ?? status.unreadMail) > 0 ? 1 : 0.75
               }}
             >
-              <rect x="6.5" y="1" width="5" height="4" rx="1" fill="#6b4a22" />
+              {/* A message in a bottle: cork, green glass, a sealed letter inside */}
+              <rect x="6.5" y="1" width="5" height="4" rx="1" fill="#b98a4e" stroke="#3a2610" strokeWidth="0.6" />
               <path
                 d="M7 5 h4 v6 c0 2 4 3 4 7 v11 c0 1.2 -0.8 2 -2 2 h-8 c-1.2 0 -2 -0.8 -2 -2 v-11 c0 -4 4 -5 4 -7 z"
-                fill={(liveUnread ?? status.unreadMail) > 0 ? "#b5651d" : "#7a5a33"}
-                stroke="#3a2610"
+                fill={(liveUnread ?? status.unreadMail) > 0 ? "#5f9a5a" : "#3f5a3c"}
+                stroke="#1e2a1a"
                 strokeWidth="1"
               />
-              <rect x="3.5" y="17" width="11" height="9" rx="1" fill="#efe2bd" stroke="#3a2610" strokeWidth="0.6" />
-              <text x="9" y="23.6" textAnchor="middle" fontSize="5" fontWeight="700" fill="#5a1a10" fontFamily="Georgia, serif">RUM</text>
-              <path d="M5.5 13 q0.5 -1.5 2 -2" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1" fill="none" />
+              <rect x="4.2" y="16.5" width="9.6" height="9" rx="1" fill="#efe2bd" stroke="#3a2610" strokeWidth="0.6" />
+              <path d="M5.8 19 h6.4 M5.8 21 h6.4 M5.8 23 h3.4" stroke="#8a6d3a" strokeWidth="0.7" fill="none" />
+              <circle cx="11.3" cy="23.4" r="1.5" fill="#8b1e1e" stroke="#3a0d0d" strokeWidth="0.4" />
+              <path d="M5.5 13 q0.5 -1.5 2 -2" stroke="#ffffff" strokeOpacity="0.45" strokeWidth="1" fill="none" />
             </svg>
             {(liveUnread ?? status.unreadMail) > 0 && (
               <span
@@ -1794,7 +1798,6 @@ export default function GameShell({
               onCash={setMoney}
             />
           )}
-
           {section === "Slot Machines" && (
             <CasinoSection
               game="Slots"
@@ -1907,7 +1910,7 @@ export default function GameShell({
           )}
 
           {section === "Send Letter" && (
-            <SendLetterSection key={letterTo} initialTo={letterTo} />
+            <SendLetterSection key={letterTo} initialTo={letterTo} quote={letterQuote} />
           )}
 
           {section === "Saved Mail" && (
