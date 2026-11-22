@@ -19,7 +19,7 @@ const tabBtn = (active: boolean): CSSProperties => ({
   padding: "3px 6px",
   fontSize: 12,
   border: `1px solid ${BORDER}`,
-  background: active ? "#4d3d1c" : "#1f2a25",
+  background: active ? "#4a3820" : "#1e1610",
   color: active ? "#f7efdb" : "#c9bfa6",
   cursor: "pointer",
   fontFamily: "inherit"
@@ -29,7 +29,7 @@ const small: CSSProperties = {
   padding: "2px 8px",
   fontSize: 11,
   border: `1px solid ${BORDER}`,
-  background: "#1f2a25",
+  background: "#1e1610",
   color: "#e4dac3",
   cursor: "pointer",
   fontFamily: "inherit"
@@ -61,7 +61,7 @@ export default function MailboxSection({
   refreshKey = ""
 }: {
   onOpenOc: () => void;
-  onReply: (name: string) => void;
+  onReply: (name: string, quote?: { from: string; at: string; body: string }) => void;
   onChanged?: () => void;
   refreshKey?: string;
 }) {
@@ -70,13 +70,20 @@ export default function MailboxSection({
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
+  // Letters that arrived unread stay lit until you leave the mailbox,
+  // even after you tap them (tapping only clears the inbox badge).
+  const [open, setOpen] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     try {
       const r = await fetch("/api/mail", { cache: "no-store" });
       if (!r.ok) return;
       const j = await r.json();
-      setMail(j.messages ?? []);
+      const list: Mail[] = j.messages ?? [];
+      setMail(list);
+      const newIds = list.filter((m) => !m.read).map((m) => m.id);
+      if (newIds.length > 0) setFresh((cur) => Array.from(new Set([...cur, ...newIds])));
     } catch {
       /* keep what is on screen */
     }
@@ -101,11 +108,11 @@ export default function MailboxSection({
     const list = mail ?? [];
     const q = search.trim().toLowerCase();
     return list.filter((m) => {
-      if (view === "unread" && m.read) return false;
+      if (view === "unread" && m.read && !fresh.includes(m.id)) return false;
       if (!q) return true;
       return m.from.toLowerCase().includes(q) || m.subject.toLowerCase().includes(q) || m.body.toLowerCase().includes(q);
     });
-  }, [mail, view, search]);
+  }, [mail, view, search, fresh]);
 
   const unread = (mail ?? []).filter((m) => !m.read).length;
 
@@ -186,90 +193,122 @@ export default function MailboxSection({
         </p>
       ) : (
         <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-          {rows.map((m) => (
-            <div
-              key={m.id}
-              onClick={() => {
-                if (!m.read) post({ action: "read", id: m.id });
-              }}
-              style={{
-                border: `1px solid ${m.read ? BORDER : "#c69a48"}`,
-                background: m.read ? "#1a221e" : "#26322c"
-              }}
-            >
+          {rows.map((m) => {
+            const lit = !m.read || fresh.includes(m.id);
+            const isOpen = open === m.id;
+            return (
               <div
+                key={m.id}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  gap: 8,
-                  padding: "2px 8px",
-                  background: "linear-gradient(180deg, #3a3524, #2a2619)",
-                  borderBottom: `1px solid ${BORDER}`
+                  border: `1px solid ${lit ? "#c69a48" : BORDER}`,
+                  background: lit ? "#2a1e14" : "#17110c"
                 }}
               >
-                <span style={{ fontSize: 13, color: m.read ? "#d4cab2" : "#fff3cf", fontWeight: m.read ? 400 : 700, overflowWrap: "anywhere" }}>
-                  {m.from}
-                  {!m.read && <span style={{ marginLeft: 6, fontSize: 9, letterSpacing: 0.6, color: "#c69a48" }}>NEW</span>}
-                </span>
-                <span style={{ fontSize: 10, fontStyle: "italic", color: "#a89f86", flexShrink: 0 }}>{stamp(m.createdAt)}</span>
-              </div>
+                <div
+                  onClick={() => {
+                    setOpen(isOpen ? null : m.id);
+                    if (!isOpen && !m.read) post({ action: "read", id: m.id });
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "4px 8px",
+                    cursor: "pointer",
+                    background: "linear-gradient(180deg, #3a2a1a, #241a10)"
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    aria-label="Select message"
+                    checked={picked.includes(m.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => toggleBox(m.id)}
+                    style={{ width: 13, height: 13, margin: 0, flexShrink: 0 }}
+                  />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: lit ? "#fff3cf" : "#d4cab2", fontWeight: lit ? 700 : 400, overflowWrap: "anywhere" }}>
+                    {m.from}
+                    {lit && <span style={{ marginLeft: 6, fontSize: 9, letterSpacing: 0.6, color: "#c69a48" }}>NEW</span>}
+                  </span>
+                  <span style={{ fontSize: 10, fontStyle: "italic", color: "#a89f86", flexShrink: 0 }}>{stamp(m.createdAt)}</span>
+                </div>
 
-              <p
-                style={{
-                  margin: 0,
-                  padding: "6px 8px",
-                  whiteSpace: "pre-wrap",
-                  overflowWrap: "anywhere",
-                  fontSize: 12,
-                  lineHeight: 1.4,
-                  color: m.read ? "#cfc6ad" : "#fbf4de"
-                }}
-              >
-                {m.body}
-              </p>
+                {!isOpen && (
+                  <p
+                    onClick={() => {
+                      setOpen(m.id);
+                      if (!m.read) post({ action: "read", id: m.id });
+                    }}
+                    style={{
+                      margin: 0,
+                      padding: "3px 8px",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      color: lit ? "#fbf4de" : "#cfc6ad"
+                    }}
+                  >
+                    {m.body}
+                  </p>
+                )}
 
-              <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "3px 8px",
-                  borderTop: `1px solid ${BORDER}`,
-                  background: "#171d1a",
-                  flexWrap: "wrap"
-                }}
-              >
-                <input
-                  type="checkbox"
-                  aria-label="Select message"
-                  checked={picked.includes(m.id)}
-                  onChange={() => toggleBox(m.id)}
-                  style={{ width: 13, height: 13, margin: 0 }}
-                />
-                <button type="button" style={linkBtn} onClick={() => post({ action: "delete", id: m.id })}>
-                  Delete
-                </button>
-                {m.from !== "The Underworld" && (
+                {isOpen && (
                   <>
-                    <span style={{ color: "#6b5d3a" }}>·</span>
-                    <button type="button" style={linkBtn} onClick={() => onReply(m.from)}>
-                      Reply
-                    </button>
+                    <p
+                      style={{
+                        margin: 0,
+                        padding: "6px 8px",
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                        fontSize: 12,
+                        lineHeight: 1.4,
+                        color: lit ? "#fbf4de" : "#cfc6ad"
+                      }}
+                    >
+                      {m.body}
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "3px 8px",
+                        borderTop: `1px solid ${BORDER}`,
+                        background: "#120d09",
+                        flexWrap: "wrap"
+                      }}
+                    >
+                      {m.from !== "The Underworld" && (
+                        <>
+                          <button
+                            type="button"
+                            style={linkBtn}
+                            onClick={() => onReply(m.from, { from: m.from, at: stamp(m.createdAt), body: m.body })}
+                          >
+                            Reply
+                          </button>
+                          <span style={{ color: "#6b5d3a" }}>·</span>
+                        </>
+                      )}
+                      <button type="button" style={linkBtn} onClick={() => post({ action: "delete", id: m.id })}>
+                        Delete
+                      </button>
+                      {m.ocId && (
+                        <>
+                          <span style={{ color: "#6b5d3a" }}>·</span>
+                          <button type="button" style={linkBtn} onClick={onOpenOc}>
+                            Organised Crime
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
-                {m.ocId && (
-                  <>
-                    <span style={{ color: "#6b5d3a" }}>·</span>
-                    <button type="button" style={linkBtn} onClick={onOpenOc}>
-                      Organised Crime
-                    </button>
-                  </>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
