@@ -11,6 +11,7 @@ type Props = {
   cash: number;
   onCash: (cash: number) => void;
   ownerName?: string | null;
+  ownerCrewColor?: string | null;
   maxBet?: number;
   onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
 };
@@ -109,7 +110,7 @@ function Row({ label, cards, total, hidden }: { label: string; cards: Card[]; to
 }
 
 
-export default function TableGames({ game, cash, onCash, ownerName, maxBet, onPlayed }: Props) {
+export default function TableGames({ game, cash, onCash, ownerName, ownerCrewColor, maxBet, onPlayed }: Props) {
   const limit = maxBet ?? 1_000_000;
   const [bet, setBet] = useState("10");
   const [busy, setBusy] = useState(false);
@@ -180,6 +181,7 @@ export default function TableGames({ game, cash, onCash, ownerName, maxBet, onPl
       setBusy(false);
     }
   }
+
   const stake = Number(bet);
   const stakeOk = Number.isSafeInteger(stake) && stake >= 1;
 
@@ -247,7 +249,7 @@ export default function TableGames({ game, cash, onCash, ownerName, maxBet, onPl
         {game}
         <InfoButton game={game} />
       </div>
-      <OwnerBar ownerName={ownerName} />
+      <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
       {game !== "Roulette" && (
         <div style={{ textAlign: "center", fontSize: 12, color: "#b7ad93", margin: "6px 0 0" }}>Max bet {gbp(limit)}</div>
       )}
