@@ -1,7 +1,7 @@
 import { isHiddenStaff } from "@/lib/staff";
 import { lockPlayerId } from "@/lib/lock";
 import { cancelLedOc } from "@/lib/oc";
-import { levelOf } from "@/lib/training";
+import { isAdminUser, strengthFor } from "@/lib/admin-bypass";
 import { rankForLevel } from "@/lib/ranks";
 import { levelFromXp } from "@/lib/game";
 import { notifyPromotion } from "@/lib/promotion";
@@ -34,7 +34,7 @@ async function view(playerId: string) {
   });
 
   const now = new Date();
-  const stats = equipmentStats(cleanEquipped(me.equipped), levelOf(me.strengthPts));
+  const stats = equipmentStats(cleanEquipped(me.equipped), strengthFor(await isAdminUser(me.userId), me.strengthPts));
 
   return {
     money: me.money,
@@ -90,7 +90,8 @@ export async function POST(req: Request) {
       if (!me) throw new Refuse("Player not found.");
       if (me.health <= 0) throw new Refuse("You are dead.");
       const now = new Date();
-      if (jailRemaining(me.jailUntil, now) > 0) throw new Refuse("You can't do that from a prison cell.");
+      const admin = await isAdminUser(userId, tx);
+      if (!admin && jailRemaining(me.jailUntil, now) > 0) throw new Refuse("You can't do that from a prison cell.");
 
       if (action === "hire") {
         const detective = DETECTIVES.find((d) => d.key === String(body.tier ?? ""));
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
         if (isHiddenStaff(targetUser)) throw new Refuse("There is nobody by that name.");
         if (target.id === me.id) throw new Refuse("You can't hire a detective to find yourself.");
         if (target.health <= 0) throw new Refuse("That man is already dead.");
-        if (isShielded(target, now)) throw new Refuse("That player is new to the city and under protection.");
+        if (!admin && isShielded(target, now)) throw new Refuse("That player is new to the city and under protection.");
 
         const open = await tx.hunt.findFirst({
           where: { hunterId: me.id, targetId: target.id, status: { in: ["searching", "found"] } }
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
             targetName: target.username,
             tier: detective.key,
             cost: detective.price,
-            foundAt: new Date(now.getTime() + detective.minutes * 60_000)
+            foundAt: admin ? now : new Date(now.getTime() + detective.minutes * 60_000)
           }
         });
         message = `The ${detective.name} is on the case. You will get a letter when ${target.username} is found.`;
@@ -142,15 +143,25 @@ export async function POST(req: Request) {
       if (action === "shoot") {
         const hunt = await tx.hunt.findUnique({ where: { id: String(body.id ?? "") } });
         if (!hunt || hunt.hunterId !== me.id) throw new Refuse("No such job.");
-        if (hunt.status !== "found" || !hunt.windowEndsAt || hunt.windowEndsAt <= now) {
+        if (admin && hunt.status === "searching") {
+          const t = await tx.player.findUnique({ where: { id: hunt.targetId }, select: { currentCity: true } });
+          await tx.hunt.update({
+            where: { id: hunt.id },
+            data: { status: "found", foundCity: t?.currentCity ?? me.currentCity, windowEndsAt: new Date(now.getTime() + WINDOW_MINUTES * 60_000) }
+          });
+          hunt.status = "found";
+          hunt.foundCity = t?.currentCity ?? me.currentCity;
+          hunt.windowEndsAt = new Date(now.getTime() + WINDOW_MINUTES * 60_000);
+        }
+        if (!admin && (hunt.status !== "found" || !hunt.windowEndsAt || hunt.windowEndsAt <= now)) {
           throw new Refuse("The trail has gone cold. You will need to hire again.");
         }
-        if (me.currentCity !== hunt.foundCity) {
+        if (!admin && me.currentCity !== hunt.foundCity) {
           throw new Refuse(`You need to be in ${hunt.foundCity} to take the shot.`);
         }
 
-        const stats = equipmentStats(cleanEquipped(me.equipped), levelOf(me.strengthPts));
-        if (stats.firepower <= 0) throw new Refuse("You need a gun in your hand. Equip one from your Character.");
+        const stats = equipmentStats(cleanEquipped(me.equipped), strengthFor(admin, me.strengthPts));
+        if (!admin && stats.firepower <= 0) throw new Refuse("You need a gun in your hand. Equip one from your Character.");
 
         // Lock the target so two shooters can't both "kill" him and both collect the bounties.
         await lockPlayerId(tx, hunt.targetId);
@@ -160,17 +171,17 @@ export async function POST(req: Request) {
           await prisma.hunt.update({ where: { id: hunt.id }, data: { status: "done" } });
           throw new Refuse("He is already dead.");
         }
-        if (target.currentCity !== hunt.foundCity) {
+        if (!admin && target.currentCity !== hunt.foundCity) {
           await prisma.hunt.update({ where: { id: hunt.id }, data: { status: "lost" } });
           throw new Refuse("He has left the city. The trail is lost.");
         }
         const shotUser = await tx.user.findUnique({ where: { id: target.userId }, select: { isAdmin: true, staffRole: true } });
         if (isHiddenStaff(shotUser)) throw new Refuse("The trail has gone cold.");
-        if (isShielded(target, now)) throw new Refuse("That player is under protection.");
+        if (!admin && isShielded(target, now)) throw new Refuse("That player is under protection.");
 
         // Let them heal first, then take the damage off what they have now.
         const healed = regenHealth(target.health, target.healthAt, now.getTime());
-        const damage = rollDamage(stats.firepower, target.protection);
+        const damage = rollDamage(admin ? Math.max(stats.firepower, 1) : stats.firepower, target.protection);
         const left = Math.max(0, healed.health - damage);
         const killed = left <= 0;
 
