@@ -32,6 +32,9 @@ async function openTable(tx: Tx, userId: string, game: string, bet: number) {
   const casino = found;
   if (casino.ownerId === player.id) throw new Error("OWN_CASINO");
 
+  // A casino nobody owns is shut: it can only be bought, never played.
+  if (!casino.ownerId) throw new Error("NO_OWNER");
+
   // A casino held by the Escrow agent is shut. If its trade has run out of time it is released first.
   if (casino.escrowId) {
     const released = await expireEscrowIfStale(tx, casino.escrowId);
@@ -150,6 +153,7 @@ async function settle(
 
   return { money: updated.money, bet, payout, net: payout - bet, takeover, previousOwner, city };
 }
+
 export function wagerError(error: unknown, game: string) {
   const message = error instanceof Error ? error.message : "";
 
@@ -159,6 +163,8 @@ export function wagerError(error: unknown, game: string) {
     return NextResponse.json({ error: "You do not have enough cash." }, { status: 400 });
   if (message === "OWN_CASINO")
     return NextResponse.json({ error: "You own this casino. Open its control page instead." }, { status: 400 });
+  if (message === "NO_OWNER")
+    return NextResponse.json({ error: "Nobody owns this casino. It is shut until someone buys it." }, { status: 400 });
   if (message === "IN_ESCROW")
     return NextResponse.json({ error: "This casino is being sold through Escrow and is closed until the trade ends." }, { status: 400 });
   if (message === "HAND_IN_PLAY")
