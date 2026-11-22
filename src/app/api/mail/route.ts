@@ -117,5 +117,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (body.action === "deleteMany") {
+    const ids = Array.isArray(body.ids) ? body.ids.map(String).slice(0, 200) : [];
+    if (ids.length > 0) await prisma.message.deleteMany({ where: { id: { in: ids }, toId: me.id } });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "deleteAll") {
+    await prisma.message.deleteMany({ where: { toId: me.id } });
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "Unknown action." }, { status: 400 });
 }
