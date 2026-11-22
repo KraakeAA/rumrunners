@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-export type ForumCategory = "OFFICIAL" | "CLASSIFIEDS" | "OFF_TOPIC" | "SUGGESTIONS";
+export type ForumCategory = "OFFICIAL" | "CLASSIFIEDS" | "OFF_TOPIC" | "SUGGESTIONS" | "CREW";
 
 type Post = {
   id: string;
@@ -271,12 +271,14 @@ export default function ForumBoard({
   category,
   title,
   isAdmin,
-  playerId
+  playerId,
+  leader = false
 }: {
   category: ForumCategory;
   title: string;
   isAdmin: boolean;
   playerId: string;
+  leader?: boolean;
 }) {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selected, setSelected] = useState<Topic | null>(null);
@@ -292,17 +294,17 @@ export default function ForumBoard({
   const [reply, setReply] = useState("");
   const [postPage, setPostPage] = useState(0);
   const topicRef = useRef<HTMLDivElement>(null);
-  const [staff, setStaff] = useState(isAdmin ? 3 : 0);
+  const [staff, setStaff] = useState(isAdmin ? 3 : leader ? 1 : 0);
 
   // Helpers, moderators and admins can pin topics, so find out who this is.
   useEffect(() => {
     fetch("/api/balance", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d && typeof d.staff === "number") setStaff(Math.max(d.staff, isAdmin ? 3 : 0));
+        if (d && typeof d.staff === "number") setStaff(Math.max(d.staff, isAdmin ? 3 : leader ? 1 : 0));
       })
       .catch(() => {});
-  }, [isAdmin]);
+  }, [isAdmin, leader]);
 
   const loadTopics = useCallback(async () => {
     setLoading(true);
@@ -721,7 +723,7 @@ export default function ForumBoard({
             </div>
           </div>
 
-          {(staff >= 1 || isAdmin || selected.authorId === playerId) && (
+          {(staff >= 1 || isAdmin || leader || selected.authorId === playerId) && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }}>
               {(staff >= 1 || isAdmin) && (
                 <button className="button secondary" style={{ padding: "4px 10px", fontSize: SIZE.name }} onClick={() => moderate({ pinned: !selected.pinned })}>
@@ -731,7 +733,7 @@ export default function ForumBoard({
               <button className="button secondary" style={{ padding: "4px 10px", fontSize: SIZE.name }} onClick={() => moderate({ locked: !selected.locked })}>
                 {selected.locked ? "Unlock" : "Lock"}
               </button>
-              {(isAdmin || selected.authorId === playerId) && (
+              {(isAdmin || leader || selected.authorId === playerId) && (
                 <button className="button secondary" style={{ padding: "4px 10px", fontSize: SIZE.name }} onClick={deleteTopic}>
                   Delete topic
                 </button>
