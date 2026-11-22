@@ -168,12 +168,13 @@ export function InfoButton({ game }: { game: InfoGame }) {
   );
 }
 
-// The "Owner: name" bar under a casino's title. The name links to their profile.
-export function OwnerBar({ ownerName }: { ownerName?: string | null }) {
-  let name: ReactNode = <span style={{ color: "#ffffff" }}>Rumrunners</span>;
+// The owner's name under a casino's title, plain on the green. The name links to their
+// profile. A small square in their crew's colour shows only if they are in a crew.
+export function OwnerBar({ ownerName, crewColor }: { ownerName?: string | null; crewColor?: string | null }) {
+  let name: ReactNode = <span style={{ color: "#f7efdb" }}>Rumrunners</span>;
   if (ownerName) {
     name = (
-      <a href={`/profile/${encodeURIComponent(ownerName)}`} style={{ color: "#ffffff", textDecoration: "underline" }}>
+      <a href={`/profile/${encodeURIComponent(ownerName)}`} style={{ color: "#f7efdb", textDecoration: "underline" }}>
         {ownerName}
       </a>
     );
@@ -181,20 +182,21 @@ export function OwnerBar({ ownerName }: { ownerName?: string | null }) {
   return (
     <div
       style={{
-        margin: "6px 0 0",
-        padding: "7px 10px",
+        margin: "3px 0 0",
+        padding: "2px 8px",
         boxSizing: "border-box",
-        textAlign: "center",
-        fontSize: 14,
-        fontWeight: 700,
-        letterSpacing: 0.5,
-        color: "#e8dcc0",
-        background: "linear-gradient(180deg, #6e1220, #590d18)",
-        borderTop: "1px solid #c69a48",
-        borderBottom: "1px solid #c69a48"
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        fontSize: 11,
+        lineHeight: 1.3
       }}
     >
-      Owner: {name}
+      {ownerName && crewColor ? (
+        <span aria-hidden="true" style={{ width: 9, height: 9, flexShrink: 0, background: crewColor }} />
+      ) : null}
+      {name}
     </div>
   );
 }
