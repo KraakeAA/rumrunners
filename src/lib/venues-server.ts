@@ -93,7 +93,7 @@ export async function loadVenueData(playerId: string): Promise<VenueData | null>
 
   const [casinos, factories] = await Promise.all([
     prisma.casino.findMany({
-      include: { owner: { select: { id: true, money: true, username: true } } }
+      include: { owner: { select: { id: true, money: true, username: true, crew: { select: { color: true } } } } }
     }),
     prisma.bulletFactory.findMany({
       include: { owner: { select: { id: true, money: true, username: true } } }
@@ -116,6 +116,7 @@ export async function loadVenueData(playerId: string): Promise<VenueData | null>
         label: def.label,
         ownerId: houseOnly ? null : c.ownerId,
         ownerName: houseOnly ? null : c.owner?.username ?? null,
+        ownerCrewColor: houseOnly ? null : c.owner?.crew?.color ?? null,
         // A casino's wealth is its chips, not the owner's cash.
         ownerWealth: !houseOnly && c.owner ? wealthLabel(c.chips) : null,
         openAt: c.openAt && c.openAt.getTime() > Date.now() ? c.openAt.toISOString() : null,
