@@ -12,6 +12,7 @@ type Props = {
   onCash: (cash: number) => void;
   ownerName?: string | null;
   ownerCrewColor?: string | null;
+  wealth?: string | null;
   maxBet?: number;
   onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
 };
@@ -110,8 +111,8 @@ function Row({ label, cards, total, hidden }: { label: string; cards: Card[]; to
 }
 
 
-export default function TableGames({ game, cash, onCash, ownerName, ownerCrewColor, maxBet, onPlayed }: Props) {
-  const limit = maxBet ?? 1_000_000;
+export default function TableGames({ game, cash, onCash, ownerName, ownerCrewColor, wealth, maxBet, onPlayed }: Props) {
+  const limit = maxBet ?? 2_000_000_000;
   const [bet, setBet] = useState("10");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -249,9 +250,9 @@ export default function TableGames({ game, cash, onCash, ownerName, ownerCrewCol
         {game}
         <InfoButton game={game} />
       </div>
-      <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
+      <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} wealth={game === "Roulette" ? null : wealth} />
       {game !== "Roulette" && (
-        <div style={{ textAlign: "center", fontSize: 12, color: "#b7ad93", margin: "6px 0 0" }}>Max bet {gbp(limit)}</div>
+        <div style={{ textAlign: "center", fontSize: 12, color: "#b7ad93", margin: "6px 0 0" }}>Max bet {limit >= 2_000_000_000 ? "No limit" : gbp(limit)}</div>
       )}
 
       {message && <p className="notice" style={{ margin: "8px 10px 0", textAlign: "center" }}>{message}</p>}
@@ -320,7 +321,7 @@ export default function TableGames({ game, cash, onCash, ownerName, ownerCrewCol
       )}
 
       {/* ------------------------------ Roulette ------------------------------ */}
-      {game === "Roulette" && <RouletteGame limit={limit} cash={cash} onCash={onCash} onPlayed={onPlayed} />}
+      {game === "Roulette" && <RouletteGame wealth={wealth} limit={limit} cash={cash} onCash={onCash} onPlayed={onPlayed} />}
     </section>
   );
 }
