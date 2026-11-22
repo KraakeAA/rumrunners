@@ -112,6 +112,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (body.action === "readAll") {
+    await prisma.message.updateMany({
+      where: { toId: me.id, readAt: null },
+      data: { readAt: new Date() }
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   if (body.action === "delete") {
     await prisma.message.deleteMany({ where: { id, toId: me.id } });
     return NextResponse.json({ ok: true });
