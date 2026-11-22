@@ -591,7 +591,7 @@ export function CitiesSection() {
                       <OwnerLine
                         owner={c.ownerName}
                         figure={c.ownerId ? betText(c.maxBet) : `Buy ${gbp(c.price)}`}
-                        figureNote={c.ownerId ? "max bet" : undefined}
+                        figureNote={undefined}
                         wealth={c.ownerWealth}
                       />
                     </CityRow>
@@ -617,7 +617,7 @@ export function CitiesSection() {
                     {casinoRow("Blackjack")}
                     {casinoRow("Keno")}
                     <CityRow label="War Owner">
-                      <OwnerLine owner="Rumrunners" figure={gbp(WAR_MAX_BET)} figureNote="max bet" wealth={null} />
+                      <OwnerLine owner="Rumrunners" figure={gbp(WAR_MAX_BET)} wealth={null} />
                     </CityRow>
                   </>
                 );
