@@ -3,7 +3,7 @@ import { lockPlayer } from "@/lib/lock";
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { carModel } from "@/lib/era";
+import { carModel, scrapFor } from "@/lib/era";
 
 // Melt a car down at the bullet factory for bullets.
 export async function POST(req: Request) {
@@ -35,11 +35,13 @@ export async function POST(req: Request) {
       const gone = await tx.car.deleteMany({ where: { id: car.id, ownerId: player.id } });
       if (gone.count !== 1) throw new Error("NO_CAR");
 
+      // Damaged cars are worth less as scrap.
+      const gained = scrapFor(model, car.damage);
       const updated = await tx.player.update({
         where: { id: player.id },
-        data: { bullets: { increment: model.scrap } },
+        data: { bullets: { increment: gained } },
       });
-      return { bullets: updated.bullets, gained: model.scrap, name: model.name };
+      return { bullets: updated.bullets, gained, name: model.name };
     });
 
     return NextResponse.json({
