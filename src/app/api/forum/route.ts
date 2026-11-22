@@ -1,10 +1,19 @@
-
 import { staffLevel } from "@/lib/staff";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 
-const categories = ["OFFICIAL", "CLASSIFIEDS", "OFF_TOPIC", "SUGGESTIONS"];
+const categories = ["OFFICIAL", "CLASSIFIEDS", "OFF_TOPIC", "SUGGESTIONS", "CREW"];
+
+// The crew forum is stored as "CREW:<crew id>", so each crew only ever sees its own board.
+async function crewCategory(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { player: { select: { crewId: true } } }
+  });
+  const crewId = user?.player?.crewId;
+  return crewId ? `CREW:${crewId}` : null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,8 +36,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    let where = category;
+    if (category === "CREW") {
+      const mine = await crewCategory(userId);
+      if (!mine) {
+        return NextResponse.json({ error: "Join a crew to use the crew forum." }, { status: 403 });
+      }
+      where = mine;
+    }
+
     const topics = await prisma.forumTopic.findMany({
-      where: { category },
+      where: { category: where },
       orderBy: [
         { pinned: "desc" },
         { updatedAt: "desc" }
@@ -128,9 +146,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Slow down. You can start 5 topics every 10 minutes." }, { status: 429 });
     }
 
+    let stored: string = category;
+    if (category === "CREW") {
+      const mine = await crewCategory(userId);
+      if (!mine) {
+        return NextResponse.json({ error: "Join a crew to use the crew forum." }, { status: 403 });
+      }
+      stored = mine;
+    }
+
     const topic = await prisma.forumTopic.create({
       data: {
-        category,
+        category: stored,
         title: title.trim(),
         body: body.trim(),
         authorId: user.player.id
