@@ -24,6 +24,7 @@ type Props = {
   cash: number;
   onCash: (cash: number) => void;
   ownerName?: string | null;
+  ownerCrewColor?: string | null;
   maxBet?: number;
   onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
 };
@@ -33,6 +34,7 @@ export default function CasinoGames({
   cash,
   onCash,
   ownerName,
+  ownerCrewColor,
   maxBet,
   onPlayed,
 }: Props) {
@@ -174,6 +176,7 @@ export default function CasinoGames({
       setBusy(false);
     }
   }
+
   if (game === "Keno") {
     const drawn = result?.drawn || [];
     const matchCount = result?.matches ?? 0;
@@ -228,7 +231,7 @@ export default function CasinoGames({
           <InfoButton game="Keno" />
         </div>
 
-        <OwnerBar ownerName={ownerName} />
+        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
 
         <div
           style={{
@@ -328,6 +331,7 @@ export default function CasinoGames({
             );
           })}
         </div>
+
         <div
           style={{
             display: "grid",
@@ -510,6 +514,7 @@ export default function CasinoGames({
       </section>
     );
   }
+
   const slotSymbols: Record<string, { src: string; alt: string }> = {
     "7": {
       src: "/seven.png",
@@ -615,7 +620,7 @@ export default function CasinoGames({
           Slot Machines
           <InfoButton game="Slots" />
         </div>
-        <OwnerBar ownerName={ownerName} />
+        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
 
         {/* Three compact reel windows */}
         <div
@@ -692,6 +697,7 @@ export default function CasinoGames({
               : "No win this time"
             : "Ready to play"}
         </div>
+
         {/* Compact bronze and gold control cabinet */}
         <div
           style={{
