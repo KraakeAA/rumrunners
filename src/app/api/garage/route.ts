@@ -12,6 +12,7 @@ import {
   effectiveMinutes,
   makePlate,
   repairCost,
+  scrapFor,
   SHIP_CITIES,
   shipCost,
 } from "@/lib/era";
@@ -54,6 +55,7 @@ export async function GET() {
         {
           id: c.id,
           ...m,
+          scrap: scrapFor(m, c.damage),
           originCity: c.originCity,
           city: c.city,
           plate: c.plate,
