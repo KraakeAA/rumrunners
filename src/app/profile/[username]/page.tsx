@@ -216,7 +216,7 @@ export default async function PlayerProfile({
               ...row,
               justifyContent: "center",
               padding: "4px 8px",
-              background: level === 3 ? "#0f5a1c" : level === 2 ? "#1e4a6b" : "#3d3a5a",
+              background: level === 3 ? "#8a0f14" : level === 2 ? "#1e4a6b" : "#3d3a5a",
               color: "#fff",
               fontWeight: 700
             }}
