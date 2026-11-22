@@ -9,6 +9,7 @@ type Item = StoreItem & { owned: boolean };
 type Data = {
   money: number;
   garageSlots: number;
+  strengthLevel: number;
   protection: number;
   protectionCap: number;
   garageCap: number;
@@ -107,7 +108,7 @@ export default function StoreSection({ onCash }: { onCash: (money: number) => vo
 
   function stat(i: Item) {
     if (i.kind === "gun") {
-      return `Attack ${i.value}${i.detail ? ` · ${i.detail}` : ""}${i.strength ? ` · Needs Strength ${i.strength}` : ""}`;
+      return `Attack ${i.value}${i.detail ? ` · ${i.detail}` : ""}`;
     }
     if (i.kind === "protection") return `+${i.value}% protection`;
     return `+${i.value} car spaces`;
@@ -160,8 +161,16 @@ export default function StoreSection({ onCash }: { onCash: (money: number) => vo
           </p>
         )}
 
-        {list.map((i) => (
-          <div key={i.key} style={box}>
+        {tab === "gun" && (
+          <div style={{ fontSize: 12, color: "#d4cab2", textAlign: "center" }}>
+            Your Strength: <strong>{data.strengthLevel}</strong>. Heavier guns need more. Train at the Gymnasium.
+          </div>
+        )}
+
+        {list.map((i) => {
+          const locked = i.kind === "gun" && data.strengthLevel < (i.strength ?? 0);
+          return (
+          <div key={i.key} style={{ ...box, opacity: locked ? 0.6 : 1 }}>
             <ItemIcon kind={i.kind} itemKey={i.key} size={56} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#f7efdb" }}>{i.name}</div>
@@ -170,6 +179,8 @@ export default function StoreSection({ onCash }: { onCash: (money: number) => vo
             </div>
             {i.owned ? (
               <span style={{ fontSize: 12, color: "#7fe08f", flexShrink: 0 }}>Owned</span>
+            ) : locked ? (
+              <span style={{ fontSize: 12, color: "#e4c04d", flexShrink: 0 }}>🔒 Strength {i.strength}</span>
             ) : (
               <button
                 className="button"
@@ -181,7 +192,8 @@ export default function StoreSection({ onCash }: { onCash: (money: number) => vo
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
