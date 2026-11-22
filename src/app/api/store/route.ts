@@ -26,6 +26,7 @@ async function view(playerId: string) {
     money: player?.money ?? 0,
     garageSlots: player?.garageSlots ?? 5,
     protection: player?.protection ?? 0,
+    strengthLevel: levelOf(player?.strengthPts ?? 0),
     protectionCap: PROTECTION_CAP,
     garageCap: GARAGE_CAP,
     items: CATALOGUE.map((i) => ({ ...i, owned: have.has(itemKey(i)) }))
@@ -67,6 +68,7 @@ export async function POST(req: Request) {
       if (already && already.quantity > 0) throw new Error("OWNED");
 
       if (item.kind === "garage" && me.garageSlots >= GARAGE_CAP) throw new Error("GARAGE_MAX");
+      if (item.kind === "gun" && levelOf(me.strengthPts) < (item.strength ?? 0)) throw new Error("TOO_WEAK");
 
       const paid = await tx.player.updateMany({
         where: { id: me.id, money: { gte: item.price } },
@@ -109,6 +111,7 @@ export async function POST(req: Request) {
       PLAYER_NOT_FOUND: ["Player not found.", 404],
       JAILED: ["The shops are closed to men in prison.", 403],
       OWNED: ["You already have that.", 400],
+      TOO_WEAK: [`You need Strength ${item.strength ?? 0} to buy that. Train at the Gymnasium.`, 400],
       GARAGE_MAX: ["Your garage can't get any bigger.", 400],
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400]
     };
