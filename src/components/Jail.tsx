@@ -62,7 +62,7 @@ const hms = (secs: number) =>
     .map((n) => String(n).padStart(2, "0"))
     .join(":");
 
-export default function JailSection({ onChanged }: { onChanged: () => void }) {
+export default function JailSection({ onChanged, onBrokeOut }: { onChanged: () => void; onBrokeOut?: () => void }) {
   const [me, setMe] = useState<Me | null>(null);
   const [inmates, setInmates] = useState<Inmate[]>([]);
   const [stats, setStats] = useState<BustStats | null>(null);
@@ -107,6 +107,7 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
       const d = await r.json();
       setGood(Boolean(d.success));
       setMessage(d.message || d.error || "");
+      if (d.success && (body as { action?: string }).action === "self") onBrokeOut?.();
     } catch {
       setGood(false);
       setMessage("Unable to connect. Please try again.");
