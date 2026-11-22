@@ -19,31 +19,31 @@ type Cfg = {
 // Everything is measured in pixels of its own picture, then turned into percentages,
 // so the fields stay on the painted boxes at any screen size.
 
-// Phone picture (portrait): 426 x 885.
+// Phone picture (portrait): 426 x 749.
 const MOBILE: Cfg = {
   src: "/images/login/rumrunners-login-iphone.png",
   W: 426,
-  H: 885,
+  H: 749,
   // Fitted to the screen height as well as the width, so the page never scrolls.
-  user: { x: 75, y: 548, w: 280, h: 31 },
-  pass: { x: 75, y: 613, w: 280, h: 31 },
-  btn: { x: 75, y: 660, w: 281, h: 48 },
-  err: { x: 75, y: 712, w: 280 },
+  user: { x: 75, y: 427, w: 280, h: 31 },
+  pass: { x: 75, y: 492, w: 280, h: 31 },
+  btn: { x: 75, y: 539, w: 281, h: 48 },
+  err: { x: 75, y: 591, w: 280 },
   links: [
-    { label: "Register", href: "/register", cx: 109, cy: 759, w: 150, h: 40 },
-    { label: "Lost Password", href: "/lost-password", cx: 315, cy: 759, w: 170, h: 40 },
-    { label: "Screenshots", href: "/screenshots", cx: 116, cy: 802, w: 160, h: 40 },
-    { label: "Reviews", href: "/reviews", cx: 317, cy: 802, w: 150, h: 40 },
-    { label: "Contact", href: "/contact", cx: 113, cy: 844, w: 150, h: 40 },
-    { label: "Full Site", href: "/", cx: 317, cy: 844, w: 150, h: 40 }
+    { label: "Register", href: "/register", cx: 109, cy: 638, w: 150, h: 40 },
+    { label: "Lost Password", href: "/lost-password", cx: 315, cy: 638, w: 170, h: 40 },
+    { label: "Screenshots", href: "/screenshots", cx: 116, cy: 681, w: 160, h: 40 },
+    { label: "Reviews", href: "/reviews", cx: 317, cy: 681, w: 150, h: 40 },
+    { label: "Contact", href: "/contact", cx: 113, cy: 723, w: 150, h: 40 },
+    { label: "Full Site", href: "/", cx: 317, cy: 723, w: 150, h: 40 }
   ]
 };
 
-// Desktop picture (landscape): 1036 x 794.
+// Desktop picture (landscape): 1036 x 786.
 const DESKTOP: Cfg = {
   src: "/images/login/rumrunners-login-desktop.png",
   W: 1036,
-  H: 794,
+  H: 786,
   user: { x: 697, y: 332, w: 290, h: 44 },
   pass: { x: 697, y: 429, w: 290, h: 43 },
   btn: { x: 697, y: 503, w: 290, h: 51 },
@@ -116,24 +116,12 @@ function Layout({
         minHeight: "100dvh",
         width: "100%",
         overflow: "clip",
-        background: "#050403",
+        background: "#020202",
         position: "relative",
         alignItems: cfg.fillWidth ? "flex-start" : "center",
         justifyContent: "center"
       }}
     >
-      {/* Soft, dimmed copy of the artwork fills any spare space around it. */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: -40,
-          backgroundImage: `url(${cfg.src})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(28px) brightness(0.45)"
-        }}
-      />
       <div
         style={{
           position: "relative",
@@ -287,7 +275,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <main style={{ background: "#050403" }}>
+    <main style={{ background: "#020202" }}>
       <style>{CSS}</style>
       <h1
         style={{
