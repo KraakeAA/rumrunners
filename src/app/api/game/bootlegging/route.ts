@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { jailRemaining } from "@/lib/jail";
+import { levelFromXp } from "@/lib/game";
+import { rankForLevel } from "@/lib/ranks";
+import { notifyPromotion } from "@/lib/promotion";
 import {
   BOOZES,
   boozeByKey,
@@ -138,10 +141,25 @@ export async function POST(req: Request) {
       }
       if (Object.keys(origin).length === 0) delete from[booze.key];
 
+      // A little experience for every sale: about 1 XP per 10 crates, at most 25.
+      const xp = Math.min(25, Math.max(1, Math.ceil(qty / 10)));
+      const newXp = me.experience + xp;
+      const newLevel = Math.max(me.rankLevel, levelFromXp(newXp));
+
       await tx.player.update({
         where: { id: me.id },
-        data: { cargo, cargoFrom: from, money: { increment: earned }, boozeSold: { increment: qty }, boozeEarned: { increment: earned } }
+        data: {
+          cargo,
+          cargoFrom: from,
+          money: { increment: earned },
+          boozeSold: { increment: qty },
+          boozeEarned: { increment: earned },
+          experience: newXp,
+          rankLevel: newLevel,
+          rank: rankForLevel(newLevel)
+        }
       });
+      await notifyPromotion(tx, me.id, me.rankLevel, newLevel);
 
       return `Sold ${qty} crate${qty === 1 ? "" : "s"} of ${booze.name} for £${earned.toLocaleString("en-GB")}.`;
     });
