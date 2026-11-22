@@ -3,13 +3,13 @@ import { lockPlayer } from "@/lib/lock";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { HOUSE_MAX_BET, OPENING_WINDOW_MS, houseMaxBet, isHouseOnly } from "@/lib/venues";
+import { ABSOLUTE_MAX_BET, HOUSE_MAX_BET, OPENING_WINDOW_MS, houseMaxBet, isHouseOnly } from "@/lib/venues";
 import { expireEscrowIfStale } from "@/lib/escrow";
 
 type Tx = Prisma.TransactionClient;
 
 export function validBet(bet: number) {
-  return Number.isSafeInteger(bet) && bet >= 1 && bet <= 1_000_000;
+  return Number.isSafeInteger(bet) && bet >= 1 && bet <= ABSOLUTE_MAX_BET;
 }
 
 // Finds (or creates) the casino in the player's city and checks they may play there.
@@ -210,7 +210,7 @@ export async function runWager(
   if (!userId) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
   if (!validBet(bet))
-    return NextResponse.json({ error: "Enter a bet between £1 and £1,000,000." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a bet of at least £1." }, { status: 400 });
   if (!Number.isFinite(multiplier) || multiplier < 0)
     return NextResponse.json({ error: "Invalid game result." }, { status: 400 });
 
