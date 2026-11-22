@@ -66,17 +66,18 @@ export default function CrimePopup({ outcome, onClose }: { outcome: CrimeOutcome
         alignItems: "center",
         justifyContent: "center",
         padding: 16,
-        background: "rgba(0, 0, 0, 0.5)"
+        background: "rgba(0, 0, 0, 0.45)"
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: 340,
-          background: "#1d2723",
-          border: `1px solid ${colour}`,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.7)",
+          maxWidth: 270,
+          background: "#1a221e",
+          border: "1px solid #6b5d3a",
+          borderTop: `2px solid ${colour}`,
+          boxShadow: "0 6px 22px rgba(0,0,0,0.7)",
           overflow: "hidden"
         }}
       >
@@ -84,24 +85,19 @@ export default function CrimePopup({ outcome, onClose }: { outcome: CrimeOutcome
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            padding: "7px 10px",
-            background: "linear-gradient(180deg, #2f3b35, #232d28)",
-            borderBottom: `1px solid ${colour}`
+            gap: 6,
+            padding: "4px 8px",
+            borderBottom: "1px solid #3a3320"
           }}
         >
-          <span style={{ fontSize: 16, lineHeight: 1, color: good ? "#4fd35a" : "#e06b5e" }}>
-            {good ? "✔" : "✖"}
-          </span>
           <span
             style={{
               flex: 1,
               fontFamily: "Georgia, serif",
-              fontSize: 15,
-              fontWeight: 700,
-              letterSpacing: 0.8,
+              fontSize: 12,
+              letterSpacing: 0.6,
               textTransform: "uppercase",
-              color: "#f7efdb"
+              color: colour
             }}
           >
             {outcome.label}
@@ -110,61 +106,46 @@ export default function CrimePopup({ outcome, onClose }: { outcome: CrimeOutcome
             type="button"
             aria-label="Close"
             onClick={onClose}
-            style={{ background: "none", border: 0, color: "#b7ad93", fontSize: 18, cursor: "pointer" }}
+            style={{ background: "none", border: 0, color: "#8f8670", fontSize: 15, lineHeight: 1, cursor: "pointer", padding: 0 }}
           >
             ×
           </button>
         </div>
 
-        <div style={{ padding: "9px 11px" }}>
-          <div
-            style={{
-              fontSize: 10,
-              color: "#9d9680",
-              textTransform: "uppercase",
-              letterSpacing: 0.6,
-              marginBottom: 3
-            }}
-          >
+        <div style={{ padding: "6px 8px" }}>
+          <div style={{ fontSize: 9, color: "#8f8670", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 }}>
             {outcome.displayName ?? outcome.crimeName}
           </div>
-          <p style={{ margin: "0 0 8px", color: "#e9e0c8", fontSize: 13, lineHeight: 1.4 }}>{outcome.result}</p>
+          <p style={{ margin: "0 0 6px", color: "#e0d7bf", fontSize: 12, lineHeight: 1.35 }}>{outcome.result}</p>
 
           <div
             style={{
               display: "flex",
               alignItems: "baseline",
               justifyContent: "space-between",
-              padding: "6px 10px",
-              border: `1px solid ${good ? "#3f7a47" : "#7a3a33"}`,
-              background: good ? "rgba(63, 122, 71, 0.25)" : "rgba(122, 58, 51, 0.25)"
+              padding: "3px 6px",
+              borderTop: "1px solid #3a3320",
+              borderBottom: "1px solid #3a3320"
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: good ? "#6fc77a" : "#d9877a" }}>
+            <span style={{ fontSize: 11, letterSpacing: 0.6, textTransform: "uppercase", color: good ? "#7fc48a" : "#d9877a" }}>
               {good ? "Successful" : "Failed"}
             </span>
             {hasMoney && (
-              <span style={{ fontFamily: "Georgia, serif", fontSize: 20, fontWeight: 700, color: fined ? "#f09a8c" : "#8ff09a" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: fined ? "#f09a8c" : "#8fdf9a" }}>
                 {fined ? `−${gbp(Math.abs(outcome.cashChange))}` : `+${gbp(outcome.cashChange)}`}
               </span>
             )}
           </div>
 
-          <div style={{ marginTop: 8, fontSize: 12, color: "#e4c04d" }}>★ +{outcome.xpGained} XP</div>
-          {outcome.leveledUp && (
-            <div style={{ marginTop: 5, fontFamily: "Georgia, serif", fontSize: 13, color: "#e4c04d" }}>
-              ★ Promoted to {outcome.rank}! New jobs may have opened up.
-            </div>
-          )}
-
           {outcome.jailSeconds > 0 && (
-            <div style={{ marginTop: 8, fontSize: 12, color: "#f09a8c" }}>
-              ⛓ Jailed {outcome.jailSeconds >= 60 ? `${Math.ceil(outcome.jailSeconds / 60)} min` : `${outcome.jailSeconds} sec`}
+            <div style={{ marginTop: 5, fontSize: 11, color: "#f09a8c" }}>
+              Jailed for {outcome.jailSeconds >= 60 ? `${Math.ceil(outcome.jailSeconds / 60)} min` : `${outcome.jailSeconds} sec`}
             </div>
           )}
         </div>
 
-        <div style={{ height: 3, background: "#0e1411" }}>
+        <div style={{ height: 2, background: "#0e1411" }}>
           <div
             style={{
               height: "100%",
