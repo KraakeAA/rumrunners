@@ -170,7 +170,15 @@ export function InfoButton({ game }: { game: InfoGame }) {
 
 // The owner's name under a casino's title, plain on the green. The name links to their
 // profile. A small square in their crew's colour shows only if they are in a crew.
-export function OwnerBar({ ownerName, crewColor }: { ownerName?: string | null; crewColor?: string | null }) {
+export function OwnerBar({
+  ownerName,
+  crewColor,
+  wealth
+}: {
+  ownerName?: string | null;
+  crewColor?: string | null;
+  wealth?: string | null;
+}) {
   let name: ReactNode = <span style={{ color: "#f7efdb" }}>Rumrunners</span>;
   if (ownerName) {
     name = (
@@ -197,6 +205,11 @@ export function OwnerBar({ ownerName, crewColor }: { ownerName?: string | null; 
         <span aria-hidden="true" style={{ width: 9, height: 9, flexShrink: 0, background: crewColor }} />
       ) : null}
       {name}
+      {wealth ? (
+        <span style={{ color: "#b7ad93" }}>
+          · Casino wealth: <span style={{ color: "#e8dcc0" }}>{wealth}</span>
+        </span>
+      ) : null}
     </div>
   );
 }
