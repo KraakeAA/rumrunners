@@ -30,6 +30,7 @@ import SearchSection from "@/components/SearchSection";
 import { crimeForCity } from "@/lib/city-crimes";
 import CrimePopup from "@/components/CrimePopup";
 import PromotionPopup from "@/components/PromotionPopup";
+import BreakoutPopup from "@/components/BreakoutPopup";
 import { Banner, JobCard, slugify } from "@/components/GameImage";
 import HospitalSection from "@/components/HospitalSection";
 import HitlistSection from "@/components/HitlistSection";
@@ -45,6 +46,7 @@ import UpdatesSection from "@/components/UpdatesSection";
 import InfoPage from "@/components/InfoPage";
 import HelpDesk from "@/components/HelpDesk";
 import { wealthStatus } from "@/lib/wealth";
+import { isBalanceHeld } from "@/lib/balance-hold";
 import {
   CRIMES,
   crimeCooldownSeconds,
@@ -527,6 +529,7 @@ export default function GameShell({
   const [rank, setRank] = useState(player.rank);
   const [rankLevel, setRankLevel] = useState(player.rankLevel);
   const [promotion, setPromotion] = useState<string | null>(null);
+  const [brokeOut, setBrokeOut] = useState(false);
   const [experience, setExperience] = useState(player.experience);
   // The highest rank level seen so far, so any rise, from any source, shows the promotion box once.
   const rankSeenRef = useRef(player.rankLevel);
@@ -551,7 +554,7 @@ export default function GameShell({
         const r = await fetch("/api/balance", { cache: "no-store" });
         if (!r.ok || !alive) return;
         const d = await r.json();
-        if (typeof d.money === "number") setMoney(d.money);
+        if (typeof d.money === "number" && !isBalanceHeld()) setMoney(d.money);
         if (typeof d.bank === "number") setBank(d.bank);
         if (typeof d.gold === "number") setGold(d.gold);
         if (typeof d.bullets === "number") setBullets(d.bullets);
@@ -1473,6 +1476,7 @@ export default function GameShell({
           jail still tells you what happened, and never turns up late. */}
       {outcome && <CrimePopup outcome={outcome} onClose={() => setOutcome(null)} />}
       {!outcome && promotion && <PromotionPopup rank={promotion} onClose={() => setPromotion(null)} />}
+      {!outcome && !promotion && brokeOut && <BreakoutPopup onClose={() => setBrokeOut(false)} />}
 
       {/* LOCATION AND TIME — ONLY WHILE THE MENU IS OPEN */}
       {menuOpen && (
@@ -1602,77 +1606,13 @@ export default function GameShell({
                 </div>
               )}
 
-              {/* STATUS INDICATORS — COMPACT, GREEN AND CLICKABLE */}
-              <div
-                className="game-status-strip"
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 4,
-                  marginTop: 12,
-                  padding: "4px 8px",
-                  background: "#000000",
-                  borderTop: "0",
-                  borderBottom: "1px solid #494033"
-                }}
-              >
-                {[
-                  {
-                    label: "Jail",
-                    status: status.jailLeft > 0 ? clock(status.jailLeft) : "Free",
-                    target: "Jail"
-                  },
-                  {
-                    label: "Organised Crime",
-                    status: "Ready",
-                    target: "Organised Crime"
-                  },
-                  { label: "Rackets", status: "Not active", target: "Rackets" }
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    aria-label={`${item.label}: ${item.status}`}
-                    title={`Go to ${item.label}`}
-                    onClick={() => navigate(item.target)}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      flex: "0 0 auto",
-                      padding: "2px 7px",
-                      border: "1px solid #3f8a4d",
-                      borderRadius: 3,
-                      background: "#1e3a22",
-                      color: "#7fe08f",
-                      fontSize: 10,
-                      lineHeight: 1.3,
-                      textAlign: "center",
-                      cursor: "pointer"
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "inline",
-                        margin: 0,
-                        color: "#a9e8b3"
-                      }}
-                    >
-                      {item.label}
-                    </span>
-                    <strong style={{ color: "#7fe08f", fontWeight: 600 }}>
-                      {item.status}
-                    </strong>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
           {!menuOpen && (
           <>
-          {status.jailLeft > 0 && JAIL_BLOCKED.has(section) ? (
-            <JailSection onChanged={status.refresh} />
+          {!isAdmin && status.jailLeft > 0 && JAIL_BLOCKED.has(section) ? (
+            <JailSection onChanged={status.refresh} onBrokeOut={() => setBrokeOut(true)} />
           ) : (
           <>
           {BANNER_PAGES.has(section) && <Banner slot={`banners/${slugify(section)}`} />}
@@ -1742,7 +1682,7 @@ export default function GameShell({
               <div style={{ display: "grid", gap: 4 }}>
                 {crimeTiers[activeTier].map((baseCrime) => {
                   const crime = crimeForCity(baseCrime, currentCity);
-                  if (crime.minRankLevel > rankLevel) {
+                  if (!isAdmin && crime.minRankLevel > rankLevel) {
                     return (
                       <JobCard
                         key={crime.id}
@@ -1759,8 +1699,8 @@ export default function GameShell({
 
                   const wait = status.crimeLeft(crime.id);
                   const crimeEnergy = energyCostFor(crime.energyCost, staminaLevel);
-                  const needsEnergy = energy < crimeEnergy;
-                  const disabled = busy || wait > 0 || needsEnergy || status.jailLeft > 0;
+                  const needsEnergy = !isAdmin && energy < crimeEnergy;
+                  const disabled = busy || (!isAdmin && (wait > 0 || needsEnergy || status.jailLeft > 0));
 
                   return (
                     <JobCard
@@ -1773,11 +1713,11 @@ export default function GameShell({
                       hideTime
                       energy={crimeEnergy}
                       tired={needsEnergy}
-                      waiting={wait > 0}
-                      waitLeft={wait}
+                      waiting={!isAdmin && wait > 0}
+                      waitLeft={isAdmin ? 0 : wait}
                       disabled={disabled}
                       buttonLabel={
-                        status.jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : needsEnergy ? "Tired" : "Commit!"
+                        !isAdmin && status.jailLeft > 0 ? "Jailed" : !isAdmin && wait > 0 ? clock(wait) : needsEnergy ? "Tired" : "Commit!"
                       }
                       onClick={() => commitCrime(crime.id)}
                     />
@@ -1798,6 +1738,7 @@ export default function GameShell({
               onCash={setMoney}
             />
           )}
+
           {section === "Slot Machines" && (
             <CasinoSection
               game="Slots"
@@ -1826,6 +1767,7 @@ export default function GameShell({
               theftLeft={status.theftLeft}
               onActed={status.refresh}
               jailLeft={status.jailLeft}
+              isAdmin={isAdmin}
               currentCity={currentCity}
               onCash={setMoney}
               onResult={(r) => {
@@ -1836,12 +1778,11 @@ export default function GameShell({
               }}
             />
           )}
-
           {section === "Bootlegging" && <BootleggingSection onCash={setMoney} />}
 
           {section === "Organised Crime" && <OrganisedCrimeSection />}
 
-          {section === "Whack" && <WhackSection onCash={setMoney} />}
+          {section === "Whack" && <WhackSection onCash={setMoney} isAdmin={isAdmin} />}
 
           {section === "Hitlist" && <HitlistSection onCash={setMoney} />}
 
@@ -1856,7 +1797,7 @@ export default function GameShell({
           )}
 
           {section === "Railway" && (
-            <TravelSection onArrive={(city) => setCurrentCity(city)} />
+            <TravelSection onArrive={(city) => setCurrentCity(city)} isAdmin={isAdmin} />
           )}
 
           {section === "Garage" && <GarageSection onCash={setMoney} />}
@@ -1871,7 +1812,7 @@ export default function GameShell({
           {section === "Escrow" && <EscrowSection onCash={setMoney} onGold={setGold} />}
 
           {section === "Jail" && (
-            <JailSection onChanged={status.refresh} />
+            <JailSection onChanged={status.refresh} onBrokeOut={() => setBrokeOut(true)} />
           )}
 
           {section === "Hospital" && <HospitalSection onCash={setMoney} />}
