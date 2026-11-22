@@ -7,7 +7,7 @@ const bar: CSSProperties = {
   fontFamily: "Georgia, serif",
   fontSize: 15,
   color: "#f7efdb",
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  background: "linear-gradient(180deg, #8a7038, #4a3820)",
   borderTop: "1px solid #b0904a",
   borderBottom: "1px solid #b0904a",
   textShadow: "0 1px 2px #000"
@@ -20,12 +20,12 @@ const field: CSSProperties = {
   padding: "6px 8px",
   border: "1px solid #a08340",
   borderRadius: 0,
-  background: "#0e1411",
+  background: "#0e0a07",
   color: "#f7efdb",
   fontSize: 16
 };
 
-export default function SendLetterSection({ initialTo = "" }: { initialTo?: string }) {
+export default function SendLetterSection({ initialTo = "", quote = null }: { initialTo?: string; quote?: { from: string; at: string; body: string } | null }) {
   const [to, setTo] = useState(initialTo);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,7 +57,7 @@ export default function SendLetterSection({ initialTo = "" }: { initialTo?: stri
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <div style={bar}>Send Letter</div>
 
-      <div style={{ border: "1px solid #6b5d3a", borderTop: 0, background: "#1f2a25", padding: 8, display: "grid", gap: 6 }}>
+      <div style={{ border: "1px solid #6b5d3a", borderTop: 0, background: "#1e1610", padding: 8, display: "grid", gap: 6 }}>
         <input
           aria-label="Player name"
           placeholder="Player name"
@@ -85,6 +85,20 @@ export default function SendLetterSection({ initialTo = "" }: { initialTo?: stri
           Send
         </button>
       </div>
+
+      {quote && (
+        <div style={{ marginTop: 6, border: "1px solid #6b5d3a", background: "#17110c" }}>
+          <div style={{ padding: "2px 8px", fontSize: 12, color: "#c9bfa6", background: "#120d09", borderBottom: "1px solid #6b5d3a" }}>
+            Last message:
+          </div>
+          <div style={{ padding: "5px 8px", fontSize: 12, lineHeight: 1.4, color: "#cfc6ad", overflowWrap: "anywhere" }}>
+            <b style={{ color: "#f7efdb" }}>
+              On {quote.at} {quote.from} wrote:
+            </b>
+            <div style={{ whiteSpace: "pre-wrap" }}>{quote.body}</div>
+          </div>
+        </div>
+      )}
 
       {message && (
         <p className="notice" style={{ margin: "6px 0", color: good ? "#7fe08f" : "#f09a8c" }}>
