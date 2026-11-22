@@ -1,4 +1,5 @@
 import { energyCostFor, levelOf } from "@/lib/training";
+import { isAdminUser } from "@/lib/admin-bypass";
 import { lockPlayer } from "@/lib/lock";
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
@@ -50,11 +51,12 @@ export async function POST(req: Request) {
       const player = await tx.player.findUnique({ where: { userId } });
       if (!player) throw new Error("PLAYER_NOT_FOUND");
 
-      if (player.rankLevel < level.minRank) throw new Error("RANK_TOO_LOW");
+      const admin = await isAdminUser(userId, tx);
+      if (!admin && player.rankLevel < level.minRank) throw new Error("RANK_TOO_LOW");
 
       const now = new Date();
 
-      if (jailRemaining(player.jailUntil, now) > 0) throw new Error("JAILED");
+      if (!admin && jailRemaining(player.jailUntil, now) > 0) throw new Error("JAILED");
 
       const times =
         player.theftTimes && typeof player.theftTimes === "object"
@@ -65,7 +67,7 @@ export async function POST(req: Request) {
         ? new Date(times[String(level.level)])
         : null;
 
-      if (lastTry && now.getTime() - lastTry.getTime() < cooldownMs) {
+      if (!admin && lastTry && now.getTime() - lastTry.getTime() < cooldownMs) {
         const remaining = Math.ceil(
           (cooldownMs - (now.getTime() - lastTry.getTime())) / 1000
         );
@@ -75,7 +77,7 @@ export async function POST(req: Request) {
       const maxEnergy = maxEnergyFor(player.rankLevel);
       const regen = energyAfterRegen(player.energy, maxEnergy, player.lastEnergyAt, now);
       const energyCost = energyCostFor(level.energy, levelOf(player.staminaPts));
-      if (regen.energy < energyCost) throw new Error("NO_ENERGY");
+      if (!admin && regen.energy < energyCost) throw new Error("NO_ENERGY");
 
       const owned = await tx.car.count({ where: { ownerId: player.id } });
       if (owned >= player.garageSlots) throw new Error(`GARAGE_FULL:${player.garageSlots}`);
@@ -105,7 +107,7 @@ export async function POST(req: Request) {
       const updated = await tx.player.update({
         where: { id: player.id },
         data: {
-          energy: regen.energy - energyCost,
+          energy: Math.max(0, regen.energy - energyCost),
           maxEnergy: maxEnergyFor(newLevel),
           // A full tank has no running clock, so start one when energy is spent.
           lastEnergyAt:
@@ -123,7 +125,7 @@ export async function POST(req: Request) {
       await notifyPromotion(tx, player.id, player.rankLevel, newLevel);
 
       let jailSeconds = 0;
-      if (!success && Math.random() < 0.4) {
+      if (!admin && !success && Math.random() < 0.4) {
         const sentence = sentenceFor(level.level + 1, player.rankLevel);
         jailSeconds = sentence.seconds;
         await sendToJail(
