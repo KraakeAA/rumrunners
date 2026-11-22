@@ -31,17 +31,17 @@ const bar: CSSProperties = {
   fontSize: 16,
   letterSpacing: 0.5,
   color: IVORY,
-  background: "linear-gradient(180deg, #6e1220, #590d18)",
-  borderTop: `1px solid ${GOLD}`,
-  borderBottom: `1px solid ${GOLD}`,
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  borderTop: "1px solid #b0904a",
+  borderBottom: "1px solid #b0904a",
   textShadow: "0 1px 2px #000"
 };
 const trainBtn: CSSProperties = {
   minWidth: 62,
   padding: "6px 10px",
-  border: `1px solid ${GOLD}`,
+  border: "1px solid #a08340",
   borderRadius: 3,
-  background: "linear-gradient(180deg, #7a1527, #590d18)",
+  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   color: IVORY,
   fontSize: 13,
   fontWeight: 700,
@@ -131,10 +131,10 @@ export default function GymnasiumSection({
                 : null;
           const pct = s.maxed ? 100 : Math.min(100, Math.round((s.into / Math.max(1, s.needed)) * 100));
           return (
-            <div key={s.key} style={{ border: `1px solid ${GOLD}`, background: "#100d0c" }}>
+            <div key={s.key} style={{ border: "1px solid #6b5d3a", background: "#221a13" }}>
               <div style={{ ...bar, fontSize: 14, padding: "4px 8px" }}>{s.label}</div>
               <div style={{ display: "flex", alignItems: "stretch" }}>
-                <div style={{ position: "relative", width: 104, flexShrink: 0, borderRight: "1px solid #5a4a2a" }}>
+                <div style={{ position: "relative", width: 104, flexShrink: 0, borderRight: "1px solid #6b5d3a" }}>
                   <GameImage slot={`gym/${s.key}`} width={104} height="100%" />
                   <div
                     style={{
@@ -158,7 +158,7 @@ export default function GymnasiumSection({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {!data.jailed && !s.maxed && (
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", padding: "3px 6px", background: "#2a0a10", color: "#d9c9a3", fontSize: 11, fontWeight: 600 }}>
+                      <div style={{ display: "flex", alignItems: "center", padding: "3px 6px", background: "#1a130d", color: "#d9b45f", fontSize: 11, fontWeight: 600 }}>
                         <span style={{ flex: 1 }}>Exercise</span>
                         <span style={{ width: 40, textAlign: "center" }}>XP</span>
                         <span style={{ width: 34, textAlign: "center" }}>⚡</span>
@@ -167,7 +167,7 @@ export default function GymnasiumSection({
                       {s.sessions.map((x) => (
                         <div
                           key={x.key}
-                          style={{ display: "flex", alignItems: "center", padding: "5px 6px", borderTop: "1px solid #3a2a1a", fontSize: 12 }}
+                          style={{ display: "flex", alignItems: "center", padding: "5px 6px", borderTop: "1px solid #6b5d3a", fontSize: 12 }}
                         >
                           <span style={{ flex: 1, minWidth: 0, color: IVORY }}>{x.name}</span>
                           <span style={{ width: 40, textAlign: "center", color: "#9be39f" }}>+{x.xp}</span>
@@ -186,13 +186,13 @@ export default function GymnasiumSection({
                       ))}
                     </div>
                   )}
-                  <div style={{ padding: "4px 6px", fontSize: 11, color: "#b7ad93", borderTop: "1px solid #3a2a1a" }}>
+                  <div style={{ padding: "4px 6px", fontSize: 11, color: "#b7ad93", borderTop: "1px solid #6b5d3a" }}>
                     {s.maxed
                       ? "Fully trained."
                       : `Next level: ${s.into.toLocaleString("en-GB")} / ${s.needed.toLocaleString("en-GB")} xp`}
                     {perk && <div style={{ color: "#9be39f" }}>{perk}</div>}
                   </div>
-                  <div style={{ margin: "0 6px 5px", height: 12, background: "#0a0807", border: "1px solid #5a4a2a", position: "relative" }}>
+                  <div style={{ margin: "0 6px 5px", height: 12, background: "#120d09", border: "1px solid #6b5d3a", position: "relative" }}>
                     <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(180deg, #d9b55c, ${GOLD})` }} />
                     <span
                       style={{
