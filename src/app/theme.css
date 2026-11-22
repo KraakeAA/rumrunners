@@ -70,7 +70,7 @@ body {
 .category-back {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.3)),
-    #25382e;
+    #3a2c1f;
   border: 2px solid #a08340;
   border-radius: 0;
   color: #f7efdb;
@@ -88,7 +88,7 @@ body {
   padding: 9px 10px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.35)),
-    #1b2822;
+    #2b2118;
 }
 
 /* Pressed look only while a finger is down. Hover is for mice only: on a phone
@@ -98,7 +98,7 @@ body {
 .category-back:active {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.2)),
-    #35503f;
+    #54402b;
   border-color: #d2b27a;
   color: #fff;
 }
@@ -109,7 +109,7 @@ body {
   .category-back:hover {
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.2)),
-      #35503f;
+      #54402b;
     border-color: #d2b27a;
     color: #fff;
   }
