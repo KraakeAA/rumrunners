@@ -1,4 +1,5 @@
 import { energyCostFor, levelOf } from "@/lib/training";
+import { isAdminUser } from "@/lib/admin-bypass";
 import { lockPlayer } from "@/lib/lock";
 import { denyIfDead } from "@/lib/alive";
 import { settleHunts } from "@/lib/whack";
@@ -140,8 +141,9 @@ export async function POST(req: Request) {
       }
 
       const now = new Date();
+      const admin = await isAdminUser(userId, tx);
 
-      if (jailRemaining(player.jailUntil, now) > 0) {
+      if (!admin && jailRemaining(player.jailUntil, now) > 0) {
         throw new Error("JAILED");
       }
 
@@ -152,7 +154,7 @@ export async function POST(req: Request) {
       });
       const cooldownMs = crimeCooldownSeconds(crime.energyCost) * 1000;
 
-      if (lastTry && now.getTime() - lastTry.createdAt.getTime() < cooldownMs) {
+      if (!admin && lastTry && now.getTime() - lastTry.createdAt.getTime() < cooldownMs) {
         const remaining = Math.ceil(
           (cooldownMs - (now.getTime() - lastTry.createdAt.getTime())) / 1000
         );
@@ -169,11 +171,11 @@ export async function POST(req: Request) {
 
       const energyCost = energyCostFor(crime.energyCost, levelOf(player.staminaPts));
 
-      if (regen.energy < energyCost) {
+      if (!admin && regen.energy < energyCost) {
         throw new Error("NO_ENERGY");
       }
 
-      if (player.rankLevel < crime.minRankLevel) {
+      if (!admin && player.rankLevel < crime.minRankLevel) {
         throw new Error("RANK_TOO_LOW");
       }
 
@@ -201,7 +203,7 @@ export async function POST(req: Request) {
       const updated = await tx.player.update({
         where: { id: player.id },
         data: {
-          energy: regen.energy - energyCost,
+          energy: Math.max(0, regen.energy - energyCost),
           maxEnergy: maxEnergyFor(newLevel),
           // A full tank has no running clock, so start one when energy is spent.
           lastEnergyAt:
@@ -217,7 +219,7 @@ export async function POST(req: Request) {
       await notifyPromotion(tx, player.id, player.rankLevel, newLevel);
 
       let jailSeconds = 0;
-      if (roll.tier === "caught") {
+      if (roll.tier === "caught" && !admin) {
         const sentence = sentenceFor(crime.energyCost / ENERGY_UNIT, player.rankLevel);
         jailSeconds = sentence.seconds;
         await sendToJail(
