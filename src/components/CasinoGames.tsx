@@ -25,6 +25,7 @@ type Props = {
   onCash: (cash: number) => void;
   ownerName?: string | null;
   ownerCrewColor?: string | null;
+  wealth?: string | null;
   maxBet?: number;
   onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
 };
@@ -35,10 +36,11 @@ export default function CasinoGames({
   onCash,
   ownerName,
   ownerCrewColor,
+  wealth,
   maxBet,
   onPlayed,
 }: Props) {
-  const limit = maxBet ?? 1000000;
+  const limit = maxBet ?? 2_000_000_000;
   const [bet, setBet] = useState("10");
   const [selected, setSelected] = useState<number[]>([]);
   const [savedSets, setSavedSets] = useState<number[][]>([]);
@@ -231,7 +233,7 @@ export default function CasinoGames({
           <InfoButton game="Keno" />
         </div>
 
-        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
+        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} wealth={wealth} />
 
         <div
           style={{
@@ -415,7 +417,7 @@ export default function CasinoGames({
 
         <div style={{ textAlign: "center", fontSize: 12, lineHeight: 1.7, color: "#f1e8d3", padding: "4px 8px 10px" }}>
           <div>
-            <b>Maximum bet:</b> £{limit.toLocaleString("en-GB")}
+            <b>Maximum bet:</b> {limit >= 2_000_000_000 ? "No limit" : `£${limit.toLocaleString("en-GB")}`}
           </div>
         </div>
 
@@ -620,7 +622,7 @@ export default function CasinoGames({
           Slot Machines
           <InfoButton game="Slots" />
         </div>
-        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
+        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} wealth={wealth} />
 
         {/* Three compact reel windows */}
         <div
@@ -739,7 +741,7 @@ export default function CasinoGames({
             <input
               type="number"
               min="1"
-              max="1000000"
+              max="2000000000"
               step="1"
               value={bet}
               onChange={(e) => setBet(e.target.value)}
@@ -823,7 +825,7 @@ export default function CasinoGames({
       </div>
 
       <div style={{ textAlign: "center", fontSize: 12, color: "#f1e8d3", marginTop: 8 }}>
-        <b>Maximum bet:</b> £{limit.toLocaleString("en-GB")}
+        <b>Maximum bet:</b> {limit >= 2_000_000_000 ? "No limit" : `£${limit.toLocaleString("en-GB")}`}
       </div>
     </section>
   );
