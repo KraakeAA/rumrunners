@@ -58,9 +58,11 @@ function span(ms: number) {
 }
 
 export default function WhackSection({
-  onCash
+  onCash,
+  isAdmin = false
 }: {
   onCash?: (money: number) => void;
+  isAdmin?: boolean;
 }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
@@ -129,7 +131,9 @@ export default function WhackSection({
   }
 
   const targets = (data?.hunts ?? []).filter(
-    (h) => h.status === "found" && h.windowEndsAt && new Date(h.windowEndsAt).getTime() > now
+    (h) => isAdmin
+      ? h.status === "found" || h.status === "searching"
+      : h.status === "found" && h.windowEndsAt && new Date(h.windowEndsAt).getTime() > now
   );
 
   return (
@@ -164,8 +168,8 @@ export default function WhackSection({
           </div>
         ) : (
           targets.map((h) => {
-            const live = h.status === "found" && h.windowEndsAt && new Date(h.windowEndsAt).getTime() > now;
-            const here = data.city === h.foundCity;
+            const live = isAdmin || (h.status === "found" && h.windowEndsAt && new Date(h.windowEndsAt).getTime() > now);
+            const here = isAdmin || data.city === h.foundCity;
             return (
               <div key={h.id} style={{ ...box, borderTop: 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
