@@ -40,7 +40,7 @@ const bar: CSSProperties = {
   fontFamily: "Georgia, serif",
   fontSize: 15,
   color: "#f7efdb",
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  background: "linear-gradient(180deg, #8a7038, #4a3820)",
   borderTop: "1px solid #b0904a",
   borderBottom: "1px solid #b0904a",
   textShadow: "0 1px 2px #000",
@@ -63,9 +63,9 @@ const slotBox = (filled: boolean, picked: boolean): CSSProperties => ({
   textAlign: "center",
   gap: 1,
   overflow: "hidden",
-  border: picked ? "1px solid #e4c04d" : "1px solid #4a463c",
+  border: picked ? "1px solid #e4c04d" : "1px solid #4a3a28",
   borderRadius: 4,
-  background: filled ? "linear-gradient(180deg, #34322c, #1d1c19)" : "linear-gradient(180deg, #232320, #151513)",
+  background: filled ? "linear-gradient(180deg, #34322c, #1d1c19)" : "linear-gradient(180deg, #232320, #120d09)",
   boxShadow: "inset 0 1px 3px rgba(0,0,0,0.7)",
   color: filled ? "#f1e8d3" : "#77746a",
   fontSize: 8,
@@ -90,7 +90,7 @@ const smallBtn: CSSProperties = {
   padding: "6px 14px",
   border: "1px solid #a08340",
   borderRadius: 3,
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  background: "linear-gradient(180deg, #8a7038, #4a3820)",
   color: "#f7efdb",
   fontFamily: "Georgia, serif",
   fontSize: 13,
@@ -116,30 +116,30 @@ function Figure({ worn }: { worn: Record<string, string | undefined> }) {
           <rect x="74" y="46" width="24" height="102" fill="#3a2f22" stroke="#6b5d3a" />
           <rect x="77" y="52" width="18" height="40" fill="#2a2118" stroke="#8a7a58" />
           <rect x="77" y="98" width="18" height="44" fill="#2a2118" stroke="#8a7a58" />
-          <rect x="74" y="70" width="24" height="3" fill="#7d8a90" />
-          <rect x="74" y="118" width="24" height="3" fill="#7d8a90" />
+          <rect x="74" y="70" width="24" height="3" fill="#a08340" />
+          <rect x="74" y="118" width="24" height="3" fill="#a08340" />
           <circle cx="79" cy="95" r="1.8" fill="#c9a74a" />
         </g>
       )}
       {motor && (
         <g>
-          <path d="M2 140 L2 130 Q10 124 24 124 L40 116 L68 116 L82 126 L98 128 L98 140 Z" fill="#14181a" stroke="#55606a" />
+          <path d="M2 140 L2 130 Q10 124 24 124 L40 116 L68 116 L82 126 L98 128 L98 140 Z" fill="#14181a" stroke="#6b5d3a" />
           <path d="M42 119 L66 119 L76 126 L38 126 Z" fill="#26323a" />
-          <circle cx="22" cy="141" r="6" fill="#0b0d0e" stroke="#55606a" />
-          <circle cx="78" cy="141" r="6" fill="#0b0d0e" stroke="#55606a" />
+          <circle cx="22" cy="141" r="6" fill="#0b0d0e" stroke="#6b5d3a" />
+          <circle cx="78" cy="141" r="6" fill="#0b0d0e" stroke="#6b5d3a" />
         </g>
       )}
 
       {/* Legs and torso */}
       <rect x="30" y="112" width="16" height="32" fill="#1d2420" />
       <rect x="54" y="112" width="16" height="32" fill="#1d2420" />
-      <path d="M26 56 Q50 44 74 56 L78 112 L22 112 Z" fill={body === "protection:plated_jacket" ? "#3a4248" : "#2c3630"} stroke="#55452e" />
+      <path d="M26 56 Q50 44 74 56 L78 112 L22 112 Z" fill={body === "protection:plated_jacket" ? "#3a4248" : "#2a1e14"} stroke="#55452e" />
       <path d="M44 48 L50 70 L56 48 Z" fill="#e8dfc8" />
       <rect x="47" y="52" width="6" height="20" fill="#7a2a22" />
 
       {/* Body armour */}
       {body === "protection:plated_jacket" && (
-        <g fill="#7d8a90" stroke="#aab6bc" strokeWidth="0.6">
+        <g fill="#a08340" stroke="#c9b48a" strokeWidth="0.6">
           <rect x="29" y="60" width="16" height="16" rx="1" />
           <rect x="55" y="60" width="16" height="16" rx="1" />
           <rect x="29" y="80" width="16" height="16" rx="1" />
@@ -161,9 +161,9 @@ function Figure({ worn }: { worn: Record<string, string | undefined> }) {
       <path d="M39 31 Q50 18 61 31 Q50 25 39 31 Z" fill="#3a2f22" />
       {hat === "protection:steel_hat" && (
         <g>
-          <ellipse cx="50" cy="26" rx="19" ry="4" fill="#59636a" stroke="#aab6bc" strokeWidth="0.6" />
-          <path d="M36 26 Q36 8 50 8 Q64 8 64 26 Z" fill="#6c777e" stroke="#aab6bc" strokeWidth="0.6" />
-          <rect x="36" y="21" width="28" height="3" fill="#1b1f21" />
+          <ellipse cx="50" cy="26" rx="19" ry="4" fill="#59636a" stroke="#c9b48a" strokeWidth="0.6" />
+          <path d="M36 26 Q36 8 50 8 Q64 8 64 26 Z" fill="#6c777e" stroke="#c9b48a" strokeWidth="0.6" />
+          <rect x="36" y="21" width="28" height="3" fill="#17110c" />
         </g>
       )}
 
@@ -182,7 +182,7 @@ function Figure({ worn }: { worn: Record<string, string | undefined> }) {
         <g fill="#1a1f1c" stroke="#55452e" strokeWidth="0.6">
           <circle cx="11" cy="64" r="7" fill="#b39d78" />
           <rect x="5" y="52" width="12" height="5" fill="#26302a" />
-          <path d="M0 76 Q11 68 22 76 L22 112 L0 112 Z" fill="#2c3630" />
+          <path d="M0 76 Q11 68 22 76 L22 112 L0 112 Z" fill="#2a1e14" />
           <rect x="2" y="112" width="8" height="34" />
           <rect x="12" y="112" width="8" height="34" />
         </g>
@@ -191,45 +191,45 @@ function Figure({ worn }: { worn: Record<string, string | undefined> }) {
       {/* Primary gun, held across the body */}
       {primary === "gun:greener" && (
         <g>
-          <line x1="30" y1="100" x2="88" y2="74" stroke="#1b1f21" strokeWidth="3" />
+          <line x1="30" y1="100" x2="88" y2="74" stroke="#17110c" strokeWidth="3" />
           <line x1="30" y1="100" x2="50" y2="91" stroke="#7a5230" strokeWidth="5" />
         </g>
       )}
       {primary === "gun:lee_enfield" && (
         <g>
-          <line x1="26" y1="102" x2="94" y2="70" stroke="#1b1f21" strokeWidth="2.4" />
+          <line x1="26" y1="102" x2="94" y2="70" stroke="#17110c" strokeWidth="2.4" />
           <line x1="26" y1="102" x2="58" y2="87" stroke="#7a5230" strokeWidth="5" />
-          <rect x="52" y="86" width="9" height="5" fill="#1b1f21" transform="rotate(-25 56 88)" />
+          <rect x="52" y="86" width="9" height="5" fill="#17110c" transform="rotate(-25 56 88)" />
         </g>
       )}
       {primary === "gun:thompson" && (
         <g>
           <line x1="28" y1="100" x2="84" y2="76" stroke="#7a5230" strokeWidth="5" />
-          <line x1="52" y1="90" x2="90" y2="74" stroke="#1b1f21" strokeWidth="4" />
-          <rect x="56" y="92" width="11" height="11" rx="5" fill="#2a2d2e" stroke="#aab6bc" strokeWidth="0.6" />
+          <line x1="52" y1="90" x2="90" y2="74" stroke="#17110c" strokeWidth="4" />
+          <rect x="56" y="92" width="11" height="11" rx="5" fill="#2a2d2e" stroke="#c9b48a" strokeWidth="0.6" />
           <rect x="70" y="82" width="4" height="9" fill="#7a5230" />
         </g>
       )}
 
       {/* Sidearm, in the right hand */}
-      {side && <line x1="72" y1="60" x2="84" y2="88" stroke="#2c3630" strokeWidth="6" strokeLinecap="round" />}
+      {side && <line x1="72" y1="60" x2="84" y2="88" stroke="#2a1e14" strokeWidth="6" strokeLinecap="round" />}
       {side && <circle cx="85" cy="90" r="3.5" fill="#c9b48a" />}
       {(side === "gun:webley" || side === "gun:enfield") && (
         <g>
-          <rect x="84" y="82" width={side === "gun:webley" ? 16 : 13} height="4" fill="#1b1f21" />
-          <circle cx="86" cy="84" r="3.5" fill="#2a2d2e" stroke="#aab6bc" strokeWidth="0.6" />
+          <rect x="84" y="82" width={side === "gun:webley" ? 16 : 13} height="4" fill="#17110c" />
+          <circle cx="86" cy="84" r="3.5" fill="#2a2d2e" stroke="#c9b48a" strokeWidth="0.6" />
           <rect x="82" y="86" width="4" height="9" fill="#5a3a22" />
         </g>
       )}
       {side === "gun:colt" && (
         <g>
-          <rect x="83" y="81" width="15" height="5" fill="#1b1f21" />
+          <rect x="83" y="81" width="15" height="5" fill="#17110c" />
           <rect x="82" y="86" width="5" height="10" fill="#222" />
         </g>
       )}
       {side === "gun:mauser" && (
         <g>
-          <rect x="83" y="80" width="17" height="3.5" fill="#1b1f21" />
+          <rect x="83" y="80" width="17" height="3.5" fill="#17110c" />
           <rect x="84" y="83" width="9" height="6" fill="#7a5230" />
           <rect x="82" y="88" width="4" height="8" fill="#222" />
         </g>
@@ -319,6 +319,7 @@ export default function CharacterPanel({
   const [message, setMessage] = useState("");
   const [picked, setPicked] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<"character" | "kit">("character");
 
   const load = useCallback(async () => {
     try {
@@ -368,8 +369,10 @@ export default function CharacterPanel({
     (data?.slots ?? []).filter((s) => s.side === side);
 
   function tapSlot(s: Slot) {
-    if (s.item) setPicked(s.item.type);
-    else setPicked("");
+    if (s.item) {
+      setPicked(s.item.type);
+      setTab("kit");
+    } else setPicked("");
   }
 
   return (
@@ -435,6 +438,34 @@ export default function CharacterPanel({
 
         {data && (
           <>
+            <div style={{ display: "flex", background: "#0f0d09" }}>
+              {([
+                { key: "character", label: "Character" },
+                { key: "kit", label: `Kit (${data.kit.length})` }
+              ] as const).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTab(t.key)}
+                  style={{
+                    flex: 1,
+                    padding: "5px 0",
+                    fontFamily: "Georgia, serif",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    color: tab === t.key ? "#f7efdb" : "#8f8873",
+                    background: tab === t.key ? "linear-gradient(180deg, #8a7038, #4a3820)" : "#120d09",
+                    border: "1px solid #6b5d3a",
+                    borderTop: 0
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tab === "character" && (
+            <>
             {/* STAGE: SLOTS AROUND THE FIGURE */}
             <div
               style={{
@@ -585,7 +616,7 @@ export default function CharacterPanel({
                 ATTRIBUTES
               </div>
               <div style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div style={{ border: "1px solid #3d3b34", background: "#151513", borderRadius: 3, padding: "6px 10px", lineHeight: 1.5, fontSize: 12 }}>
+                <div style={{ border: "1px solid #3d3b34", background: "#120d09", borderRadius: 3, padding: "6px 10px", lineHeight: 1.5, fontSize: 12 }}>
                   <div><span style={{ display: "inline-block", width: 18 }}>{data.strengthLevel}</span><span style={{ color: "#f0a030" }}>Strength</span></div>
                   <div><span style={{ display: "inline-block", width: 18 }}>{data.staminaLevel}</span><span style={{ color: "#f0a030" }}>Stamina</span></div>
                   <div><span style={{ display: "inline-block", width: 18 }}>{data.agilityLevel}</span><span style={{ color: "#f0a030" }}>Agility</span></div>
@@ -608,7 +639,7 @@ export default function CharacterPanel({
                       {data.health} / 100
                     </span>
                   </div>
-                  <div style={{ position: "relative", height: 13, marginTop: 4, background: "#151513", border: "1px solid #3d3b34", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ position: "relative", height: 13, marginTop: 4, background: "#120d09", border: "1px solid #3d3b34", borderRadius: 3, overflow: "hidden" }}>
                     <div style={{ width: `${Math.max(0, Math.min(100, data.protection))}%`, height: "100%", background: "linear-gradient(180deg, #4c8ac0, #234a70)" }} />
                     <span style={{ position: "absolute", inset: 0, fontSize: 9, lineHeight: "12px", fontWeight: 700, color: "#fff", textShadow: "0 1px 1px #000" }}>
                       {data.protection} / 100
@@ -618,10 +649,15 @@ export default function CharacterPanel({
               </div>
             </div>
 
+            </>
+            )}
+
+            {tab === "kit" && (
+            <>
             {/* SELECTED ITEM */}
             <div style={{ padding: 8 }}>
               {kitItem ? (
-                <div style={{ border: "1px solid #4a463c", background: "#232321", padding: 8 }}>
+                <div style={{ border: "1px solid #4a3a28", background: "#232321", padding: 8 }}>
                   <div style={{ float: "right", marginLeft: 8 }}>
                     <ItemIcon typeKey={kitItem.type} size={64} />
                   </div>
@@ -675,7 +711,7 @@ export default function CharacterPanel({
                         gap: 8,
                         padding: "5px 8px",
                         textAlign: "left",
-                        border: picked === k.type ? "1px solid #e4c04d" : "1px solid #4a463c",
+                        border: picked === k.type ? "1px solid #e4c04d" : "1px solid #4a3a28",
                         background: "#232321",
                         color: "#f1e8d3",
                         fontSize: 12,
@@ -695,6 +731,8 @@ export default function CharacterPanel({
                 </div>
               )}
             </div>
+            </>
+            )}
           </>
         )}
       </div>
