@@ -2,6 +2,7 @@ import { denyIfDead } from "@/lib/alive";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { splitTransfer } from "@/lib/fees";
 import { getSessionUserId } from "@/lib/session";
 import {
   CREW_COST,
@@ -320,10 +321,14 @@ export async function POST(req: Request) {
           data: { money: { decrement: amount } }
         });
         if (paid.count !== 1) throw new Refuse("You don't have that much cash.");
-        await tx.crew.update({ where: { id: crewId }, data: { bank: { increment: amount } } });
-        await tx.crewDonation.create({ data: { crewId, playerId: me.id, amount } });
+        // Money moving from one player towards another loses 10%, the same as sending cash,
+        // so the crew bank can't be used to pass money around for free.
+        const { received } = splitTransfer(amount);
+        await tx.crew.update({ where: { id: crewId }, data: { bank: { increment: received } } });
+        await tx.crewDonation.create({ data: { crewId, playerId: me.id, amount: received } });
       });
-      message = `You put ${gbp(amount)} into the crew bank.`;
+      const { received: landed, fee } = splitTransfer(amount);
+      message = `You put ${gbp(amount)} into the crew bank. ${gbp(fee)} was taken as the 10% fee, so the bank received ${gbp(landed)}.`;
     }
 
     // ------------------------------------------------------------- withdraw
@@ -430,6 +435,8 @@ export async function POST(req: Request) {
           await tx.player.update({ where: { id: me.id }, data: { money: { increment: fresh.bank } } });
         }
         await tx.player.update({ where: { id: me.id }, data: { crewId: null } });
+        // The crew's private forum goes with it.
+        await tx.forumTopic.deleteMany({ where: { category: `CREW:${crew.id}` } });
         await tx.crew.delete({ where: { id: crew.id } });
       });
       for (const o of others) {
