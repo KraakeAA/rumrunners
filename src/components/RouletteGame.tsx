@@ -741,7 +741,7 @@ const barBtn: CSSProperties = {
   fontSize: 12,
   fontFamily: "Georgia, serif",
   border: "1px solid #6b5d3a",
-  background: "#221a13",
+  background: "#1a221e",
   color: "#d9c48f",
   cursor: "pointer"
 };
