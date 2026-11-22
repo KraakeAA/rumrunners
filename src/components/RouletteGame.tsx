@@ -30,6 +30,15 @@ const WHEEL = [
 const STEP = 360 / WHEEL.length;
 const SPIN_MS = 3000;
 
+// The scrolling number strip in the result box. Each pocket is 90 wide and the strip is
+// laid out in real wheel order. It starts one lap in, runs five more laps and slows
+// down on the winning number, using the same time and easing as the wheel.
+const POCKET_W = 90;
+const STRIP_REPS = 8;
+const STRIP_START = WHEEL.length;
+const STRIP_FROM = 325 - POCKET_W * STRIP_START;
+const stripTo = (index: number) => 325 - POCKET_W * (STRIP_START + WHEEL.length * 5 + index);
+
 const CHIPS = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 100_000_000];
 const CHIP_COLOURS: Record<number, string> = {
   1: "#6d6a62",
@@ -222,8 +231,10 @@ export default function RouletteGame({
   const [message, setMessage] = useState("");
   const [rot, setRot] = useState(0);
   const [spinId, setSpinId] = useState(0);
+  const [stripIdx, setStripIdx] = useState<number | null>(null);
   const [shown, setShown] = useState<Spin | null>(null);
   const [history, setHistory] = useState<number[]>([]);
+  const [lastStack, setLastStack] = useState<PlacedChip[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -263,6 +274,21 @@ export default function RouletteGame({
     setStack((prev) => prev.slice(0, -1));
   }
 
+  function repeatBet() {
+    if (busy || lastStack.length === 0) return;
+    const again = lastStack.reduce((sum, c) => sum + c.value, 0);
+    if (again > limit) {
+      setMessage(`The maximum bet here is ${limit >= 2_000_000_000 ? "unlimited" : gbp(limit)}.`);
+      return;
+    }
+    if (again > cash) {
+      setMessage("You can't afford to repeat that bet.");
+      return;
+    }
+    setMessage("");
+    setStack(lastStack);
+  }
+
   async function spin() {
     if (busy) return;
     if (bets.length === 0) {
@@ -271,7 +297,9 @@ export default function RouletteGame({
     }
     setBusy(true);
     setMessage("");
+    setLastStack(stack);
     setShown(null);
+    setStripIdx(null);
 
     let d: (Spin & { error?: string }) | null = null;
     try {
@@ -304,6 +332,7 @@ export default function RouletteGame({
     const delta = (((want - rot) % 360) + 360) % 360;
     setRot(rot + 360 * 5 + delta);
     setSpinId((n) => n + 1);
+    setStripIdx(index);
 
     const result = d;
     timer.current = setTimeout(() => {
@@ -331,8 +360,11 @@ export default function RouletteGame({
   return (
     <div style={{ padding: "4px 0 10px" }}>
       <style>{`@keyframes rg-ball { from { transform: rotate(0deg); } to { transform: rotate(-1800deg); } }
-        @keyframes rg-strip { from { transform: translateX(0px); } to { transform: translateX(-3330px); } }
-        .rg-strip { animation: rg-strip 1.1s linear infinite; }
+        ${
+          stripIdx === null
+            ? ""
+            : `@keyframes rg-strip-${spinId} { from { transform: translateX(${STRIP_FROM}px); } to { transform: translateX(${stripTo(stripIdx)}px); } }`
+        }
         `}</style>
 
       <div
@@ -448,13 +480,6 @@ export default function RouletteGame({
           {/* Pointer above the wheel */}
           <polygon points={`${BOWL.cx - 22},${BOWL.cy - 205} ${BOWL.cx + 22},${BOWL.cy - 205} ${BOWL.cx},${BOWL.cy - 168}`} fill="#ffe08a" stroke="#5a4306" strokeWidth="4" />
 
-          {/* How much the casino holds, as a wealth rank */}
-          {wealth ? (
-            <text x={ART_W - 30} y={ART_H - 36} textAnchor="end" dominantBaseline="central" fontSize="40" fill={IVORY} style={text({ fontWeight: 700 })}>
-              Casino wealth: <tspan fill="#ffd36b">{wealth}</tspan>
-            </text>
-          ) : null}
-
           {/* Maximum and current bet */}
           <text x="1004" y="196" textAnchor="middle" dominantBaseline="central" fontSize="44" fill={IVORY} style={text({ fontWeight: 700 })}>
             {limit >= 2_000_000_000 ? "No limit" : gbp(limit)}
@@ -474,8 +499,15 @@ export default function RouletteGame({
                 <rect x="775" y="431" width="466" height="162" rx="5" />
               </clipPath>
               <g clipPath="url(#rg-box)">
-                <g className="rg-strip">
-                  {[0, 1, 2, 3].flatMap((rep) =>
+                <g
+                  key={`strip-${spinId}-${stripIdx === null ? "wait" : "go"}`}
+                  style={
+                    stripIdx === null
+                      ? { transform: `translateX(${STRIP_FROM}px)` }
+                      : { animation: `rg-strip-${spinId} ${SPIN_MS}ms cubic-bezier(0.12, 0.6, 0.1, 1) forwards` }
+                  }
+                >
+                  {Array.from({ length: STRIP_REPS }, (_, rep) => rep).flatMap((rep) =>
                     WHEEL.map((n, i) => {
                       const x = 640 + (rep * WHEEL.length + i) * 90;
                       return (
@@ -504,7 +536,7 @@ export default function RouletteGame({
             width="472"
             height="64"
             rx="6"
-            fill={shown ? (net >= 0 ? "#1f8a3a" : "#b32222") : "#2a1f1a"}
+            fill={shown ? (net > 0 ? "#1f8a3a" : net < 0 ? "#b32222" : "#8a6d1f") : "#2a1f1a"}
             stroke="#c69a48"
             strokeWidth="3"
           />
@@ -517,7 +549,7 @@ export default function RouletteGame({
             fill={shown ? "#ffffff" : "#b7ad93"}
             style={text({ fontWeight: 700, letterSpacing: 2 })}
           >
-            {shown ? `${net >= 0 ? "WIN" : "LOSS"} ${gbp(Math.abs(net))}` : "—"}
+            {shown ? (net === 0 ? "EVEN £0" : `${net > 0 ? "WIN" : "LOSS"} ${gbp(Math.abs(net))}`) : "—"}
           </text>
 
           {/* Recent numbers, newest at the top */}
@@ -637,28 +669,50 @@ export default function RouletteGame({
           );
         })}
 
-        <span aria-hidden="true" style={{ width: 1, height: 22, background: "#6b5d3a", margin: "0 2px" }} />
+      </div>
 
-        <button type="button" aria-label="Undo last chip" title="Undo" style={roundBtn} disabled={busy || stack.length === 0} onClick={undo}>
-          ↶
+      {/* Table buttons */}
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 8, padding: "0 6px" }}>
+        <button type="button" style={barBtn} disabled={busy || stack.length === 0} onClick={() => setStack([])}>
+          Cancel bet
         </button>
-        <button type="button" aria-label="Clear the table" title="Clear" style={roundBtn} disabled={busy || stack.length === 0} onClick={() => setStack([])}>
-          ✕
+        <button type="button" style={barBtn} disabled={busy || lastStack.length === 0} onClick={repeatBet}>
+          Repeat bet
+        </button>
+        <button type="button" style={barBtn} disabled={busy || stack.length === 0} onClick={undo}>
+          Remove chip
         </button>
       </div>
+
+      {wealth ? (
+        <div
+          style={{
+            margin: "8px auto 0",
+            maxWidth: 680,
+            padding: "3px 8px",
+            textAlign: "center",
+            fontFamily: "Georgia, serif",
+            fontSize: 12,
+            color: "#e8dcc0",
+            background: "rgba(16,13,12,0.35)",
+            border: "1px solid rgba(198,154,72,0.5)"
+          }}
+        >
+          Casino wealth: <b style={{ color: "#ffd36b" }}>{wealth}</b>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-const roundBtn: CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: "50%",
+const barBtn: CSSProperties = {
+  flex: 1,
+  maxWidth: 140,
+  padding: "5px 4px",
+  fontSize: 12,
+  fontFamily: "Georgia, serif",
   border: "1px solid #6b5d3a",
-  background: "#1a221e",
+  background: "#17110c",
   color: "#d9c48f",
-  fontSize: 14,
-  lineHeight: 1,
-  padding: 0,
   cursor: "pointer"
 };
