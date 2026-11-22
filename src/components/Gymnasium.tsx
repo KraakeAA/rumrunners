@@ -19,7 +19,6 @@ type Data = {
   maxLevel: number;
   stats: Stat[];
   perks: { energySaved: number; jailBonus: number };
-  guns: { name: string; strength: number; unlocked: boolean }[];
 };
 
 const GOLD = "#c69a48";
@@ -37,7 +36,6 @@ const bar: CSSProperties = {
   borderBottom: `1px solid ${GOLD}`,
   textShadow: "0 1px 2px #000"
 };
-const box: CSSProperties = { border: `1px solid ${GOLD}`, background: "#100d0c", padding: "8px 10px", fontSize: 13, color: IVORY };
 const trainBtn: CSSProperties = {
   minWidth: 62,
   padding: "6px 10px",
@@ -216,27 +214,6 @@ export default function GymnasiumSection({
             </div>
           );
         })}
-
-        <div style={{ ...bar, marginTop: 6 }}>Guns and the Strength they need</div>
-        <div style={box}>
-          {data.guns.map((g) => (
-            <div
-              key={g.name}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 8,
-                padding: "3px 0",
-                color: g.unlocked ? IVORY : "#8f8a76"
-              }}
-            >
-              <span>{g.name}</span>
-              <span style={{ color: g.unlocked ? "#9be39f" : "#e4c04d", flexShrink: 0 }}>
-                {g.unlocked ? "Can hold" : `Strength ${g.strength}`}
-              </span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
