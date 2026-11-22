@@ -1,4 +1,5 @@
 import { levelOf } from "@/lib/training";
+import { isAdminUser, strengthFor } from "@/lib/admin-bypass";
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +20,8 @@ async function view(playerId: string) {
   if (!player) return null;
 
   const ownedKeys = new Set(owned.filter((o) => o.quantity > 0).map((o) => o.itemType));
-  const strength = levelOf(player.strengthPts);
+  const adminView = await isAdminUser(player.userId);
+  const strength = strengthFor(adminView, player.strengthPts);
   let equipped: Equipped = cleanEquipped(player.equipped);
 
   // Players who bought kit before slots existed: put their best item in each empty slot, once.
@@ -68,7 +70,7 @@ async function view(playerId: string) {
     money: player.money,
     gold: player.gold,
     bullets: player.bullets,
-    strengthLevel: strength,
+    strengthLevel: adminView ? 30 : strength,
     staminaLevel: levelOf(player.staminaPts),
     agilityLevel: levelOf(player.agilityPts),
     firepower: stats.firepower,
@@ -129,7 +131,8 @@ export async function POST(req: Request) {
       if (!have || have.quantity < 1) {
         return NextResponse.json({ error: "You don't own that." }, { status: 400 });
       }
-      if (!canWield(item, levelOf(me.strengthPts))) {
+      const adminUser = await isAdminUser(userId);
+      if (!adminUser && !canWield(item, levelOf(me.strengthPts))) {
         return NextResponse.json(
           { error: `You need Strength ${item.strength} to hold that. Train at the Gymnasium.` },
           { status: 400 }
@@ -144,7 +147,7 @@ export async function POST(req: Request) {
 
     await prisma.player.update({
       where: { id: me.id },
-      data: { equipped: JSON.parse(JSON.stringify(equipped)), protection: equipmentStats(equipped, levelOf(me.strengthPts)).protection }
+      data: { equipped: JSON.parse(JSON.stringify(equipped)), protection: equipmentStats(equipped, strengthFor(await isAdminUser(userId), me.strengthPts)).protection }
     });
 
     return NextResponse.json({
