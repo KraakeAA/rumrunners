@@ -188,7 +188,7 @@ export async function POST(req: Request) {
           await notifyPromotion(tx, me.id, me.rankLevel, newLevel);
           return {
             success: true,
-            message: `You got ${target.username} out. +${xp} XP.`
+            message: `You broke ${target.username} out of prison.`
           };
         }
 
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
         );
         return {
           success: false,
-          message: `The guards were waiting. You've been locked up for ${penalty >= 60 ? Math.ceil(penalty / 60) + " minutes" : penalty + " seconds"}.`
+          message: `The guards were waiting. You have been locked up for ${penalty >= 60 ? Math.ceil(penalty / 60) + " minutes" : penalty + " seconds"}.`
         };
       }
 
