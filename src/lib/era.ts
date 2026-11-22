@@ -12,25 +12,41 @@ export type CarModel = {
   price: number; // what it is worth, £
   minutes: number; // wait before you can travel again after driving it
   tier: 1 | 2 | 3 | 4; // how hard it is to steal (4 = hardest)
-  scrap: number; // bullets from melting it down
+  scrap: number; // bullets from melting it down (worked out from scrapPct)
+  scrapPct?: number; // percent of the car's price given as bullets when melted
   note: string;
 };
 
-export const CARS: CarModel[] = [
-  { key: "austin_seven", name: "Austin Seven", maker: "Austin", year: "1922-39", speed: 50, boot: 3, price: 150, minutes: 60, tier: 1, scrap: 150, note: "Britain's people's car. Slow, tiny and everywhere." },
-  { key: "ford_model_y", name: "Ford Model Y", maker: "Ford (Dagenham)", year: "1932-37", speed: 58, boot: 5, price: 250, minutes: 55, tier: 1, scrap: 200, note: "Cheap, tidy and built in England." },
-  { key: "morris_eight", name: "Morris Eight", maker: "Morris", year: "1935-39", speed: 60, boot: 6, price: 350, minutes: 50, tier: 1, scrap: 250, note: "The family saloon nobody looks at twice." },
-  { key: "morris_commercial_van", name: "Morris-Commercial Van", maker: "Morris-Commercial", year: "1924-39", speed: 45, boot: 18, price: 550, minutes: 60, tier: 1, scrap: 300, note: "A baker's van with a false floor." },
-  { key: "wolseley_hornet", name: "Wolseley Hornet", maker: "Wolseley", year: "1930-36", speed: 68, boot: 4, price: 600, minutes: 45, tier: 2, scrap: 220, note: "A small six that punches above its weight." },
-  { key: "riley_nine", name: "Riley Nine", maker: "Riley", year: "1926-38", speed: 70, boot: 5, price: 700, minutes: 42, tier: 2, scrap: 250, note: "Light, quick and handles beautifully." },
-  { key: "bedford_wlg", name: "Bedford WLG Lorry", maker: "Bedford (Vauxhall)", year: "1931-39", speed: 38, boot: 40, price: 900, minutes: 60, tier: 2, scrap: 900, note: "Two tons of crates. Not built for getting away." },
-  { key: "ss1", name: "SS1 Coupé", maker: "SS Cars (Swallow)", year: "1932-36", speed: 75, boot: 2, price: 1_200, minutes: 35, tier: 3, scrap: 300, note: "Long, low and flashy. Hardly any room for cargo." },
-  { key: "humber_snipe", name: "Humber Snipe", maker: "Humber", year: "1930-39", speed: 75, boot: 12, price: 1_400, minutes: 38, tier: 3, scrap: 400, note: "Big, solid saloon favoured by the well-to-do." },
-  { key: "ford_v8", name: "Ford V8 Saloon", maker: "Ford", year: "1932-39", speed: 80, boot: 10, price: 1_800, minutes: 32, tier: 3, scrap: 450, note: "The fast, roomy car the gangs on both sides of the Atlantic love." },
-  { key: "bentley_35", name: "Bentley 3½ Litre", maker: "Bentley (Rolls-Royce)", year: "1933-39", speed: 90, boot: 6, price: 6_000, minutes: 25, tier: 4, scrap: 600, note: "The Silent Sports Car. Quick and quiet." },
-  { key: "bentley_blower", name: "Bentley 4½ Litre Supercharged", maker: "Bentley", year: "1929-31", speed: 100, boot: 3, price: 8_000, minutes: 20, tier: 4, scrap: 700, note: "The Blower. Fastest thing on the road, with room for little else." },
-  { key: "rolls_phantom_ii", name: "Rolls-Royce Phantom II", maker: "Rolls-Royce", year: "1929-35", speed: 90, boot: 16, price: 12_000, minutes: 28, tier: 4, scrap: 1_000, note: "Fast, enormous and nobody dares stop it." }
+const CAR_DATA: (Omit<CarModel, "scrap"> & { scrapPct: number })[] = [
+  { key: "austin_seven", name: "Austin Seven", maker: "Austin", year: "1922-39", speed: 50, boot: 3, price: 150, minutes: 60, tier: 1, scrapPct: 5, note: "Britain's people's car. Slow, tiny and everywhere." },
+  { key: "ford_model_y", name: "Ford Model Y", maker: "Ford (Dagenham)", year: "1932-37", speed: 58, boot: 5, price: 250, minutes: 55, tier: 1, scrapPct: 5, note: "Cheap, tidy and built in England." },
+  { key: "morris_eight", name: "Morris Eight", maker: "Morris", year: "1935-39", speed: 60, boot: 6, price: 350, minutes: 50, tier: 1, scrapPct: 5, note: "The family saloon nobody looks at twice." },
+  { key: "morris_commercial_van", name: "Morris-Commercial Van", maker: "Morris-Commercial", year: "1924-39", speed: 45, boot: 18, price: 550, minutes: 60, tier: 1, scrapPct: 5, note: "A baker's van with a false floor." },
+  { key: "wolseley_hornet", name: "Wolseley Hornet", maker: "Wolseley", year: "1930-36", speed: 68, boot: 4, price: 600, minutes: 45, tier: 2, scrapPct: 5.5, note: "A small six that punches above its weight." },
+  { key: "riley_nine", name: "Riley Nine", maker: "Riley", year: "1926-38", speed: 70, boot: 5, price: 700, minutes: 42, tier: 2, scrapPct: 5.5, note: "Light, quick and handles beautifully." },
+  { key: "bedford_wlg", name: "Bedford WLG Lorry", maker: "Bedford (Vauxhall)", year: "1931-39", speed: 38, boot: 40, price: 900, minutes: 60, tier: 2, scrapPct: 5.5, note: "Two tons of crates. Not built for getting away." },
+  { key: "ss1", name: "SS1 Coupé", maker: "SS Cars (Swallow)", year: "1932-36", speed: 75, boot: 2, price: 1_200, minutes: 35, tier: 3, scrapPct: 6, note: "Long, low and flashy. Hardly any room for cargo." },
+  { key: "humber_snipe", name: "Humber Snipe", maker: "Humber", year: "1930-39", speed: 75, boot: 12, price: 1_400, minutes: 38, tier: 3, scrapPct: 6, note: "Big, solid saloon favoured by the well-to-do." },
+  { key: "ford_v8", name: "Ford V8 Saloon", maker: "Ford", year: "1932-39", speed: 80, boot: 10, price: 1_800, minutes: 32, tier: 3, scrapPct: 6, note: "The fast, roomy car the gangs on both sides of the Atlantic love." },
+  { key: "bentley_35", name: "Bentley 3½ Litre", maker: "Bentley (Rolls-Royce)", year: "1933-39", speed: 90, boot: 6, price: 6_000, minutes: 25, tier: 4, scrapPct: 6.5, note: "The Silent Sports Car. Quick and quiet." },
+  { key: "bentley_blower", name: "Bentley 4½ Litre Supercharged", maker: "Bentley", year: "1929-31", speed: 100, boot: 3, price: 8_000, minutes: 20, tier: 4, scrapPct: 6.5, note: "The Blower. Fastest thing on the road, with room for little else." },
+  { key: "rolls_phantom_ii", name: "Rolls-Royce Phantom II", maker: "Rolls-Royce", year: "1929-35", speed: 90, boot: 16, price: 12_000, minutes: 28, tier: 4, scrapPct: 6.5, note: "Fast, enormous and nobody dares stop it." }
 ];
+
+// Melting a car gives a percentage of what it is worth in bullets, so cheap cars
+// give very few and the best give more. Never fewer than 7.
+export const MIN_SCRAP = 7;
+export const CARS: CarModel[] = CAR_DATA.map((c) => ({
+  ...c,
+  scrap: Math.max(MIN_SCRAP, Math.floor((c.price * c.scrapPct) / 100))
+}));
+
+// Bullets a car gives when melted: its full amount if undamaged, less the more
+// it is knocked about (damage runs 0 to 50, so a wreck gives about half). Never under 7.
+export function scrapFor(car: CarModel, damage: number): number {
+  const d = Math.max(0, Math.min(100, damage));
+  return Math.max(MIN_SCRAP, Math.floor((car.scrap * (100 - d)) / 100));
+}
 
 export function carModel(key: string): CarModel | undefined {
   return CARS.find((c) => c.key === key);
