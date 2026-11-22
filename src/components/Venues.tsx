@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import Link from "next/link";
 import CasinoGames from "@/components/CasinoGames";
 import TableGames from "@/components/TableGames";
-import { isHouseOnly, WAR_MAX_BET, type CasinoGameKey, type CasinoView, type FactoryView, type VenueData } from "@/lib/venues";
+import { betText, isHouseOnly, UNLIMITED_BET, WAR_MAX_BET, type CasinoGameKey, type CasinoView, type FactoryView, type VenueData } from "@/lib/venues";
 
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
@@ -122,6 +122,7 @@ export function CasinoSection({
   const { data, error, reload } = useVenues();
   const [msg, setMsg] = useState("");
   const [maxBetInput, setMaxBetInput] = useState("");
+  const [noLimit, setNoLimit] = useState(false);
   const [chipInput, setChipInput] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [confirmDrop, setConfirmDrop] = useState(false);
@@ -140,7 +141,11 @@ export function CasinoSection({
   }, []);
 
   useEffect(() => {
-    if (casino?.isMine) setMaxBetInput(String(casino.maxBet));
+    if (casino?.isMine) {
+      const unlimited = casino.maxBet >= UNLIMITED_BET;
+      setNoLimit(unlimited);
+      setMaxBetInput(unlimited ? "" : String(casino.maxBet));
+    }
   }, [casino?.isMine, casino?.maxBet]);
 
   async function act(payload: Record<string, unknown>) {
@@ -236,7 +241,6 @@ export function CasinoSection({
             <strong>{gbp(casino.chips ?? 0)}</strong>
           </Row>
           <Row label="Wealth">{casino.ownerWealth ?? "Bankrupt"}</Row>
-          <Row label="Your cash on hand">{gbp(cash)}</Row>
           {openLeft > 0 && (
             <div style={{ padding: "6px 8px", textAlign: "center", color: "#ddc18d", borderBottom: "1px solid #6b5d3a" }}>
               Closed to players for {Math.floor(openLeft / 60)}m {String(openLeft % 60).padStart(2, "0")}s. Stock it with chips.
@@ -281,14 +285,16 @@ export function CasinoSection({
           </div>
           <Row label="Games played">{(casino.plays ?? 0).toLocaleString("en-GB")}</Row>
           <Row label="Total wagered">{gbp(casino.wagered ?? 0)}</Row>
-          <Row label="Current maximum bet">{gbp(casino.maxBet)}</Row>
+          <Row label="Current maximum bet">{betText(casino.maxBet)}</Row>
           <div style={{ padding: 8 }}>
             <div style={{ marginBottom: 6, color: "#c9bfa6" }}>Set the maximum bet</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <input
                 style={input}
                 inputMode="numeric"
-                value={maxBetInput}
+                value={noLimit ? "" : maxBetInput}
+                placeholder={noLimit ? "No limit" : ""}
+                disabled={noLimit}
                 onChange={(e) => setMaxBetInput(e.target.value.replace(/[^0-9]/g, ""))}
               />
               <button
@@ -296,12 +302,16 @@ export function CasinoSection({
                 style={btn}
                 disabled={busy}
                 onClick={() =>
-                  act({ action: "setMaxBet", city: casino.city, game, maxBet: Number(maxBetInput) })
+                  act({ action: "setMaxBet", city: casino.city, game, maxBet: Number(maxBetInput), unlimited: noLimit })
                 }
               >
                 Save
               </button>
             </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "#c9bfa6" }}>
+              <input type="checkbox" checked={noLimit} onChange={(e) => setNoLimit(e.target.checked)} />
+              No limit
+            </label>
             <p style={{ fontSize: 12, color: "#c9bfa6", margin: "8px 0 0", lineHeight: 1.5 }}>
               Players bet with their own cash, against your chips. If a player wins more
               than the chips you hold, they only get what is left. Top prize here is{" "}
@@ -435,6 +445,7 @@ export function CasinoSection({
           onCash={onCash}
           ownerName={casino.ownerName}
           ownerCrewColor={casino.ownerCrewColor}
+          wealth={casino.ownerName ? casino.ownerWealth ?? "Bankrupt" : null}
           maxBet={casino.maxBet}
           onPlayed={onPlayed}
         />
@@ -446,6 +457,7 @@ export function CasinoSection({
           onCash={onCash}
           ownerName={casino.ownerName}
           ownerCrewColor={casino.ownerCrewColor}
+          wealth={casino.ownerName ? casino.ownerWealth ?? "Bankrupt" : null}
           maxBet={casino.maxBet}
           onPlayed={onPlayed}
         />
@@ -578,7 +590,7 @@ export function CitiesSection() {
                     <CityRow key={c.id} label={`${c.label} Owner`}>
                       <OwnerLine
                         owner={c.ownerName}
-                        figure={c.ownerId ? gbp(c.maxBet) : `Buy ${gbp(c.price)}`}
+                        figure={c.ownerId ? betText(c.maxBet) : `Buy ${gbp(c.price)}`}
                         figureNote={c.ownerId ? "max bet" : undefined}
                         wealth={c.ownerWealth}
                       />
