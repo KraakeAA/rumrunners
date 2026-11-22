@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 type Mail = {
   id: string;
@@ -14,22 +14,11 @@ type Mail = {
 
 const BORDER = "#6b5d3a";
 
-const tabBtn = (active: boolean): CSSProperties => ({
-  flex: 1,
-  padding: "3px 6px",
-  fontSize: 12,
-  border: `1px solid ${BORDER}`,
-  background: active ? "#4a3820" : "#1e1610",
-  color: active ? "#f7efdb" : "#c9bfa6",
-  cursor: "pointer",
-  fontFamily: "inherit"
-});
-
 const small: CSSProperties = {
   padding: "2px 8px",
   fontSize: 11,
   border: `1px solid ${BORDER}`,
-  background: "#1e1610",
+  background: "#1f2a25",
   color: "#e4dac3",
   cursor: "pointer",
   fontFamily: "inherit"
@@ -66,12 +55,13 @@ export default function MailboxSection({
   refreshKey?: string;
 }) {
   const [mail, setMail] = useState<Mail[] | null>(null);
-  const [view, setView] = useState<"all" | "unread">("all");
+  const onChangedRef = useRef(onChanged);
+  onChangedRef.current = onChanged;
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
-  // Letters that arrived unread stay lit until you leave the mailbox,
-  // even after you tap them (tapping only clears the inbox badge).
+  // New letters are lit while you are in the mailbox. Opening the mailbox marks
+  // them read, so once you leave they are no longer lit.
   const [open, setOpen] = useState<string | null>(null);
   const [fresh, setFresh] = useState<string[]>([]);
 
@@ -83,7 +73,16 @@ export default function MailboxSection({
       const list: Mail[] = j.messages ?? [];
       setMail(list);
       const newIds = list.filter((m) => !m.read).map((m) => m.id);
-      if (newIds.length > 0) setFresh((cur) => Array.from(new Set([...cur, ...newIds])));
+      if (newIds.length > 0) {
+        setFresh((cur) => Array.from(new Set([...cur, ...newIds])));
+        fetch("/api/mail", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "readAll" })
+        })
+          .then(() => onChangedRef.current?.())
+          .catch(() => null);
+      }
     } catch {
       /* keep what is on screen */
     }
@@ -108,13 +107,10 @@ export default function MailboxSection({
     const list = mail ?? [];
     const q = search.trim().toLowerCase();
     return list.filter((m) => {
-      if (view === "unread" && m.read && !fresh.includes(m.id)) return false;
       if (!q) return true;
       return m.from.toLowerCase().includes(q) || m.subject.toLowerCase().includes(q) || m.body.toLowerCase().includes(q);
     });
-  }, [mail, view, search, fresh]);
-
-  const unread = (mail ?? []).filter((m) => !m.read).length;
+  }, [mail, search]);
 
   function toggleBox(id: string) {
     setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -134,16 +130,7 @@ export default function MailboxSection({
 
   return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
-      <div style={{ display: "flex", gap: 4 }}>
-        <button type="button" style={tabBtn(view === "all")} onClick={() => setView("all")}>
-          Mailbox
-        </button>
-        <button type="button" style={tabBtn(view === "unread")} onClick={() => setView("unread")}>
-          Unread{unread > 0 ? ` (${unread})` : ""}
-        </button>
-      </div>
-
-      <div style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 5, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 0, flexWrap: "wrap" }}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -189,33 +176,30 @@ export default function MailboxSection({
         <p className="flavour">Loading…</p>
       ) : rows.length === 0 ? (
         <p className="flavour" style={{ fontSize: 12 }}>
-          {search ? "Nothing matches that search." : view === "unread" ? "No unread messages." : "Your mailbox is empty."}
+          {search ? "Nothing matches that search." : "Your mailbox is empty."}
         </p>
       ) : (
         <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
           {rows.map((m) => {
-            const lit = !m.read || fresh.includes(m.id);
+            const lit = fresh.includes(m.id);
             const isOpen = open === m.id;
             return (
               <div
                 key={m.id}
                 style={{
                   border: `1px solid ${lit ? "#c69a48" : BORDER}`,
-                  background: lit ? "#2a1e14" : "#17110c"
+                  background: lit ? "#26322c" : "#1a221e"
                 }}
               >
                 <div
-                  onClick={() => {
-                    setOpen(isOpen ? null : m.id);
-                    if (!isOpen && !m.read) post({ action: "read", id: m.id });
-                  }}
+                  onClick={() => setOpen(isOpen ? null : m.id)}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
                     padding: "4px 8px",
                     cursor: "pointer",
-                    background: "linear-gradient(180deg, #3a2a1a, #241a10)"
+                    background: "linear-gradient(180deg, #3a3524, #2a2619)"
                   }}
                 >
                   <input
@@ -235,10 +219,7 @@ export default function MailboxSection({
 
                 {!isOpen && (
                   <p
-                    onClick={() => {
-                      setOpen(m.id);
-                      if (!m.read) post({ action: "read", id: m.id });
-                    }}
+                    onClick={() => setOpen(m.id)}
                     style={{
                       margin: 0,
                       padding: "3px 8px",
@@ -276,7 +257,7 @@ export default function MailboxSection({
                         gap: 6,
                         padding: "3px 8px",
                         borderTop: `1px solid ${BORDER}`,
-                        background: "#120d09",
+                        background: "#171d1a",
                         flexWrap: "wrap"
                       }}
                     >
