@@ -131,12 +131,24 @@ export default function JailSection({ onChanged }: { onChanged: () => void }) {
       </div>
 
       {message && (
-        <p className="notice" style={{ color: good ? "#7fe08f" : "#f1e8d3" }}>
+        <div
+          role="status"
+          style={{
+            margin: "4px 0 0",
+            padding: "3px 8px",
+            fontSize: 12,
+            lineHeight: 1.3,
+            color: "#f1e8d3",
+            background: "#1f2a25",
+            border: "1px solid #6b5d3a",
+            borderLeft: `3px solid ${good ? "#5fae6b" : "#b0603f"}`
+          }}
+        >
           {message}
-        </p>
+        </div>
       )}
 
-      <div style={{ ...bar, marginTop: message ? 6 : 0 }}>
+      <div style={{ ...bar, marginTop: 4 }}>
         <span style={{ flex: 1, textAlign: "center" }}>Inmates ({visible.length})</span>
         <button
           type="button"
