@@ -1,3 +1,4 @@
+import { isAdminUser } from "@/lib/admin-bypass";
 
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
@@ -163,8 +164,10 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
+    const sessionUser = await getSessionUserId();
+    const admin = sessionUser ? await isAdminUser(sessionUser) : false;
 
-    if (player.jailUntil && player.jailUntil.getTime() > now.getTime()) {
+    if (!admin && player.jailUntil && player.jailUntil.getTime() > now.getTime()) {
       return NextResponse.json(
         { error: "You can't take a train from a prison cell." },
         { status: 403 }
@@ -172,6 +175,7 @@ export async function POST(request: Request) {
     }
 
     if (
+      !admin &&
       player.travelArrivesAt &&
       player.travelArrivesAt.getTime() > now.getTime()
     ) {
@@ -195,16 +199,15 @@ export async function POST(request: Request) {
       where: {
         id: player.id,
         currentCity: player.currentCity,
-        OR: [
-          { travelArrivesAt: null },
-          { travelArrivesAt: { lte: now } },
-        ],
+        ...(admin
+          ? {}
+          : { OR: [{ travelArrivesAt: null }, { travelArrivesAt: { lte: now } }] }),
       },
       data: {
         currentCity: destination,
         travelDestination: null,
         travelStartedAt: now,
-        travelArrivesAt: cooldownUntil,
+        travelArrivesAt: admin ? null : cooldownUntil,
       },
     });
 
@@ -221,13 +224,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `You can travel again in ${minutes} minutes.`,
+      message: admin ? "Admin: no travel cooldown." : `You can travel again in ${minutes} minutes.`,
       welcome: story?.welcome ?? `Welcome to ${destination}`,
       history: story?.history ?? "",
       vehicle: "the railway",
       minutes,
       currentCity: destination,
-      ...getCooldown(cooldownUntil),
+      ...getCooldown(admin ? null : cooldownUntil),
     });
   } catch (error) {
     console.error("Railway POST error:", error);
