@@ -11,7 +11,7 @@ export async function GET() {
 
   const me = await prisma.player.findUnique({
     where: { userId },
-    select: { id: true, money: true, bank: true, gold: true, bullets: true, health: true, user: { select: { isAdmin: true, staffRole: true } } }
+    select: { id: true, money: true, bank: true, gold: true, bullets: true, health: true, rank: true, rankLevel: true, experience: true, user: { select: { isAdmin: true, staffRole: true } } }
   });
   if (!me) return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
