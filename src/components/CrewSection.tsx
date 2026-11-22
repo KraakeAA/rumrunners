@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import ForumBoard from "@/components/ForumBoard";
 import { CREW_COLOURS, MAX_ANSWER_LENGTH, MAX_MOTTO_LENGTH, MAX_QUESTIONS, MAX_QUESTION_LENGTH } from "@/lib/crew";
 
 type CrewRow = { id: string; name: string; color: string; members: number };
@@ -96,7 +97,15 @@ function Swatches({ value, onPick }: { value: string; onPick: (c: string) => voi
   );
 }
 
-export default function CrewSection({ onCash }: { onCash: (money: number) => void }) {
+export default function CrewSection({
+  onCash,
+  isAdmin = false,
+  playerId = ""
+}: {
+  onCash: (money: number) => void;
+  isAdmin?: boolean;
+  playerId?: string;
+}) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -111,7 +120,7 @@ export default function CrewSection({ onCash }: { onCash: (money: number) => voi
   const [answers, setAnswers] = useState<string[]>([]);
 
   // In a crew
-  const [tab, setTab] = useState<"overview" | "bank" | "applications" | "settings">("overview");
+  const [tab, setTab] = useState<"overview" | "bank" | "forum" | "applications" | "settings">("overview");
   const [amount, setAmount] = useState("");
   const [motto, setMotto] = useState("");
   const [setColour, setSetColour] = useState("");
@@ -390,6 +399,7 @@ export default function CrewSection({ onCash }: { onCash: (money: number) => voi
   const tabs: { key: typeof tab; label: string }[] = [
     { key: "overview", label: "Crew" },
     { key: "bank", label: "Bank" },
+    { key: "forum", label: "Forum" },
     ...(crew.isLeader
       ? [
           { key: "applications" as const, label: pending > 0 ? `Applications (${pending})` : "Applications" },
@@ -431,6 +441,19 @@ export default function CrewSection({ onCash }: { onCash: (money: number) => voi
         ))}
       </div>
       {notices}
+
+      {tab === "forum" && (
+        <div style={{ marginTop: 6 }}>
+          <ForumBoard
+            key="CREW"
+            category="CREW"
+            title={`${crew.name} Forum`}
+            isAdmin={isAdmin}
+            playerId={playerId}
+            leader={crew.isLeader}
+          />
+        </div>
+      )}
 
       {tab === "overview" && (
         <>
@@ -512,6 +535,7 @@ export default function CrewSection({ onCash }: { onCash: (money: number) => voi
             <div style={sub}>Crew bank</div>
             <div style={{ fontFamily: "Georgia, serif", fontSize: 16, color: "#f7efdb" }}>{gbp(crew.bank)}</div>
             <div style={sub}>You hold {gbp(data.money)} in cash.</div>
+            <div style={sub}>Donations lose 10% as a fee.</div>
           </div>
           <div style={box}>
             <input
