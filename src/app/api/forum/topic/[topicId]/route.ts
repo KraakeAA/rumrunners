@@ -50,6 +50,16 @@ export async function GET(
       );
     }
 
+    if (topic.category.startsWith("CREW:")) {
+      const me = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { isAdmin: true, player: { select: { crewId: true } } }
+      });
+      if (!me?.isAdmin && me?.player?.crewId !== topic.category.slice(5)) {
+        return NextResponse.json({ error: "That board is for crew members only." }, { status: 403 });
+      }
+    }
+
     return NextResponse.json({ topic });
 
   } catch (error) {
