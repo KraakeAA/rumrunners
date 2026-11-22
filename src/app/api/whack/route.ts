@@ -2,6 +2,9 @@ import { isHiddenStaff } from "@/lib/staff";
 import { lockPlayerId } from "@/lib/lock";
 import { cancelLedOc } from "@/lib/oc";
 import { levelOf } from "@/lib/training";
+import { rankForLevel } from "@/lib/ranks";
+import { levelFromXp } from "@/lib/game";
+import { notifyPromotion } from "@/lib/promotion";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -199,10 +202,18 @@ export async function POST(req: Request) {
             where: { targetId: target.id, status: { in: ["searching", "found"] } },
             data: { status: "lost" }
           });
+          const newXp = me.experience + 100;
+          const newLevel = Math.max(me.rankLevel, levelFromXp(newXp));
           await tx.player.update({
             where: { id: me.id },
-            data: { kills: { increment: 1 }, experience: { increment: 100 } }
+            data: {
+              kills: { increment: 1 },
+              experience: newXp,
+              rankLevel: newLevel,
+              rank: rankForLevel(newLevel)
+            }
           });
+          await notifyPromotion(tx, me.id, me.rankLevel, newLevel);
           message = `${target.username} is dead. You shot him down in ${hunt.foundCity}.`;
 
           // Whoever kills him collects every bounty on his head.
