@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import Link from "next/link";
 import CasinoGames from "@/components/CasinoGames";
 import TableGames from "@/components/TableGames";
-import { isHouseOnly, type CasinoGameKey, type CasinoView, type FactoryView, type VenueData } from "@/lib/venues";
+import { isHouseOnly, WAR_MAX_BET, type CasinoGameKey, type CasinoView, type FactoryView, type VenueData } from "@/lib/venues";
 
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
@@ -216,6 +216,7 @@ export function CasinoSection({
       </div>
     </div>
   ) : null;
+
   if (casino.isMine) {
     const profit = casino.profit ?? 0;
     return (
@@ -377,6 +378,33 @@ export function CasinoSection({
     }
     reload();
   };
+  // Nobody owns it: only the buy screen, no game.
+  if (!casino.ownerId && !isHouseOnly(casino.game)) {
+    return (
+      <div>
+        {takeoverPopup}
+        <div style={panel}>
+          <Bar>
+            {casino.label} - {casino.city}
+          </Bar>
+          <div style={{ padding: 12, textAlign: "center", lineHeight: 1.5 }}>
+            <p style={{ margin: "0 0 10px" }}>
+              No one owns the {casino.city} {casino.label} casino, so it is shut. Buy it for{" "}
+              <strong>{gbp(casino.price)}</strong> to open it and run it yourself.
+            </p>
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: "#c9bfa6" }}>
+              Your cash on hand: {gbp(cash)}
+            </p>
+            <button type="button" style={btn} disabled={busy} onClick={() => act({ action: "buy", city: casino.city, game })}>
+              Buy this casino
+            </button>
+            {msg && <p style={{ color: "#ddc18d", margin: "8px 0 0" }}>{msg}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {takeoverPopup}
@@ -394,33 +422,19 @@ export function CasinoSection({
         </div>
       )}
 
-      {!casino.ownerId && !isHouseOnly(casino.game) && (
-        <div style={{ ...panel, padding: 8, textAlign: "center" }}>
-          <div style={{ marginBottom: 6 }}>
-            No one owns the {casino.city} {casino.label} casino. You can buy it for{" "}
-            <strong>{gbp(casino.price)}</strong> and run it yourself.
-          </div>
-          <button type="button" style={btn} disabled={busy} onClick={() => act({ action: "buy", city: casino.city, game })}>
-            Buy this casino
-          </button>
-          {msg && <p style={{ color: "#ddc18d", margin: "8px 0 0" }}>{msg}</p>}
-        </div>
-      )}
-
-      {casino.ownerId && openLeft > 0 && (
+      {casino.ownerId && openLeft > 0 ? (
         <div style={{ ...panel, padding: 10, textAlign: "center", color: "#ddc18d" }}>
           {casino.ownerName} has just taken this casino and is stocking it with chips. It opens in{" "}
           {Math.floor(openLeft / 60)}m {String(openLeft % 60).padStart(2, "0")}s.
         </div>
-      )}
-
-      {game === "Keno" || game === "Slots" ? (
+      ) : game === "Keno" || game === "Slots" ? (
         <CasinoGames
           key={gameKey}
           game={game}
           cash={cash}
           onCash={onCash}
           ownerName={casino.ownerName}
+          ownerCrewColor={casino.ownerCrewColor}
           maxBet={casino.maxBet}
           onPlayed={onPlayed}
         />
@@ -431,6 +445,7 @@ export function CasinoSection({
           cash={cash}
           onCash={onCash}
           ownerName={casino.ownerName}
+          ownerCrewColor={casino.ownerCrewColor}
           maxBet={casino.maxBet}
           onPlayed={onPlayed}
         />
@@ -438,6 +453,7 @@ export function CasinoSection({
     </div>
   );
 }
+
 /* ----------------------------- Cities page ---------------------------- */
 
 const cityRegions: Record<string, string> = {
@@ -470,12 +486,16 @@ function OwnerLine({
   return (
     <div style={{ lineHeight: 1.25 }}>
       <div style={{ fontSize: 11 }}>
-        <Link
-          href={`/profile/${encodeURIComponent(owner)}`}
-          style={{ color: "#f7efdb", textDecoration: "underline", textDecorationColor: "#6b5d3a", textUnderlineOffset: 3 }}
-        >
-          {owner}
-        </Link>
+        {owner === "Rumrunners" ? (
+          <span style={{ color: "#f7efdb" }}>{owner}</span>
+        ) : (
+          <Link
+            href={`/profile/${encodeURIComponent(owner)}`}
+            style={{ color: "#f7efdb", textDecoration: "underline", textDecorationColor: "#6b5d3a", textUnderlineOffset: 3 }}
+          >
+            {owner}
+          </Link>
+        )}
       </div>
       <div style={{ fontSize: 10, color: "#b7ad93" }}>
         {figure}
@@ -584,6 +604,9 @@ export function CitiesSection() {
                     </CityRow>
                     {casinoRow("Blackjack")}
                     {casinoRow("Keno")}
+                    <CityRow label="War Owner">
+                      <OwnerLine owner="Rumrunners" figure={gbp(WAR_MAX_BET)} figureNote="max bet" wealth={null} />
+                    </CityRow>
                   </>
                 );
               })()}
@@ -596,6 +619,7 @@ export function CitiesSection() {
     </div>
   );
 }
+
 /* --------------------------- Bullet factory --------------------------- */
 
 function countdown(iso: string | null, now: number): string {
