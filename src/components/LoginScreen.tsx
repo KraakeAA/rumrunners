@@ -8,53 +8,53 @@ type Cfg = {
   src: string;
   W: number;
   H: number;
-  fillWidth?: boolean;
   user: Rect;
   pass: Rect;
   btn: Rect;
   err: { x: number; y: number; w: number };
+  fillWidth?: boolean;
   links: { label: string; href: string; cx: number; cy: number; w: number; h: number }[];
 };
 
 // Everything is measured in pixels of its own picture, then turned into percentages,
 // so the fields stay on the painted boxes at any screen size.
 
-// Phone picture (portrait): 452 x 909.
+// Phone picture (portrait): 426 x 885.
 const MOBILE: Cfg = {
   src: "/images/login/rumrunners-login-iphone.png",
-  W: 452,
-  H: 909,
+  W: 426,
+  H: 885,
   fillWidth: true, // fill the phone's width; the page scrolls a little if the screen is short
-  user: { x: 70, y: 467, w: 314, h: 43 },
-  pass: { x: 70, y: 545, w: 314, h: 43 },
-  btn: { x: 69, y: 605, w: 320, h: 60 },
-  err: { x: 70, y: 667, w: 314 },
+  user: { x: 75, y: 548, w: 280, h: 31 },
+  pass: { x: 75, y: 613, w: 280, h: 31 },
+  btn: { x: 75, y: 660, w: 281, h: 48 },
+  err: { x: 75, y: 712, w: 280 },
   links: [
-    { label: "Register", href: "/register", cx: 135, cy: 715, w: 150, h: 40 },
-    { label: "Lost Password", href: "/lost-password", cx: 308, cy: 715, w: 170, h: 40 },
-    { label: "Screenshots", href: "/screenshots", cx: 150, cy: 757, w: 160, h: 40 },
-    { label: "Reviews", href: "/reviews", cx: 322, cy: 757, w: 150, h: 40 },
-    { label: "Contact", href: "/contact", cx: 145, cy: 800, w: 150, h: 40 },
-    { label: "Full Site", href: "/", cx: 318, cy: 800, w: 150, h: 40 }
+    { label: "Register", href: "/register", cx: 109, cy: 759, w: 150, h: 40 },
+    { label: "Lost Password", href: "/lost-password", cx: 315, cy: 759, w: 170, h: 40 },
+    { label: "Screenshots", href: "/screenshots", cx: 116, cy: 802, w: 160, h: 40 },
+    { label: "Reviews", href: "/reviews", cx: 317, cy: 802, w: 150, h: 40 },
+    { label: "Contact", href: "/contact", cx: 113, cy: 844, w: 150, h: 40 },
+    { label: "Full Site", href: "/", cx: 317, cy: 844, w: 150, h: 40 }
   ]
 };
 
-// Desktop picture (landscape): 1048 x 682.
+// Desktop picture (landscape): 1036 x 794.
 const DESKTOP: Cfg = {
   src: "/images/login/rumrunners-login-desktop.png",
-  W: 1048,
-  H: 682,
-  user: { x: 570, y: 297, w: 298, h: 44 },
-  pass: { x: 570, y: 381, w: 298, h: 44 },
-  btn: { x: 575, y: 446, w: 294, h: 58 },
-  err: { x: 570, y: 510, w: 298 },
+  W: 1036,
+  H: 794,
+  user: { x: 697, y: 332, w: 290, h: 44 },
+  pass: { x: 697, y: 429, w: 290, h: 43 },
+  btn: { x: 697, y: 503, w: 290, h: 51 },
+  err: { x: 697, y: 558, w: 290 },
   links: [
-    { label: "Register", href: "/register", cx: 167, cy: 621, w: 120, h: 40 },
-    { label: "Lost Password", href: "/lost-password", cx: 326, cy: 621, w: 190, h: 40 },
-    { label: "Screenshots", href: "/screenshots", cx: 507, cy: 621, w: 150, h: 40 },
-    { label: "Reviews", href: "/reviews", cx: 657, cy: 621, w: 110, h: 40 },
-    { label: "Contact", href: "/contact", cx: 782, cy: 621, w: 110, h: 40 },
-    { label: "Full Site", href: "/", cx: 913, cy: 621, w: 110, h: 40 }
+    { label: "Register", href: "/register", cx: 500, cy: 678, w: 110, h: 40 },
+    { label: "Lost Password", href: "/lost-password", cx: 701, cy: 678, w: 190, h: 40 },
+    { label: "Screenshots", href: "/screenshots", cx: 912, cy: 678, w: 150, h: 40 },
+    { label: "Reviews", href: "/reviews", cx: 539, cy: 735, w: 120, h: 40 },
+    { label: "Contact", href: "/contact", cx: 715, cy: 735, w: 110, h: 40 },
+    { label: "Full Site", href: "/", cx: 898, cy: 735, w: 110, h: 40 }
   ]
 };
 
