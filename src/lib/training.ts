@@ -7,7 +7,7 @@
 export type StatKey = "strength" | "stamina" | "agility";
 
 export const STATS: { key: StatKey; label: string; blurb: string }[] = [
-  { key: "strength", label: "Strength", blurb: "Unlocks heavier guns. A Tommy gun is no toy." },
+  { key: "strength", label: "Strength", blurb: "Needed to buy the heavier guns at the Store." },
   { key: "stamina", label: "Stamina", blurb: "Crimes and auto theft cost you less energy." },
   { key: "agility", label: "Agility", blurb: "Better odds of busting someone out of jail." }
 ];
