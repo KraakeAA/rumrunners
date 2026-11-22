@@ -5,7 +5,6 @@ import { getSessionUserId } from "@/lib/session";
 import { denyIfDead } from "@/lib/alive";
 import { jailRemaining } from "@/lib/jail";
 import { energyAfterRegen, maxEnergyFor } from "@/lib/game";
-import { GUNS } from "@/lib/store";
 import {
   MAX_LEVEL,
   SESSIONS,
@@ -44,7 +43,6 @@ export async function GET() {
   const me = await prisma.player.findUnique({ where: { userId } });
   if (!me) return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
-  const strength = progress(me.strengthPts).level;
   const stamina = progress(me.staminaPts).level;
   const agility = progress(me.agilityPts).level;
 
@@ -55,12 +53,7 @@ export async function GET() {
     perks: {
       energySaved: Math.round(staminaDiscount(stamina) * 100),
       jailBonus: Math.round(agilityBonus(agility) * 100)
-    },
-    guns: GUNS.map((g) => ({
-      name: g.name,
-      strength: g.strength ?? 0,
-      unlocked: strength >= (g.strength ?? 0)
-    }))
+    }
   });
 }
 
