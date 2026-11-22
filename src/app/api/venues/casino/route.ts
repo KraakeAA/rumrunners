@@ -78,12 +78,12 @@ export async function POST(req: Request) {
       if (action === "setMaxBet") {
         if (casino.ownerId !== player.id) throw new Error("NOT_OWNER");
         if (casino.escrowId) throw new Error("IN_ESCROW");
-        const maxBet = Number(body?.maxBet);
+        const maxBet = body?.unlimited === true ? ABSOLUTE_MAX_BET : Number(body?.maxBet);
         if (!Number.isSafeInteger(maxBet) || maxBet < 1 || maxBet > ABSOLUTE_MAX_BET) {
           throw new Error("BAD_MAX_BET");
         }
         await tx.casino.update({ where: { id: casino.id }, data: { maxBet } });
-        return { message: `Maximum bet set to £${maxBet.toLocaleString("en-GB")}.` };
+        return { message: maxBet >= ABSOLUTE_MAX_BET ? "There is now no limit on bets." : `Maximum bet set to £${maxBet.toLocaleString("en-GB")}.` };
       }
 
       if (action === "deposit" || action === "withdraw") {
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
       NOT_OWNER: ["You do not own this casino.", 403],
       IN_ESCROW: ["This casino is in an escrow trade and can't be changed.", 400],
       BAD_MAX_BET: [
-        `Enter a maximum bet between £1 and £${ABSOLUTE_MAX_BET.toLocaleString("en-GB")}.`,
+        "Enter a maximum bet of at least £1, or tick No limit.",
         400,
       ],
       BAD_AMOUNT: ["Enter a whole number of chips, at least 1.", 400],
