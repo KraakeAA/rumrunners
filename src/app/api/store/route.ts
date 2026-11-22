@@ -1,4 +1,5 @@
 import { levelOf } from "@/lib/training";
+import { isAdminUser, strengthFor } from "@/lib/admin-bypass";
 import { lockPlayer } from "@/lib/lock";
 import { denyIfDead } from "@/lib/alive";
 import { NextResponse } from "next/server";
@@ -21,12 +22,13 @@ async function view(playerId: string) {
   const player = await prisma.player.findUnique({ where: { id: playerId } });
   const owned = await prisma.inventoryItem.findMany({ where: { playerId } });
   const have = new Set(owned.filter((o) => o.quantity > 0).map((o) => o.itemType));
+  const adminView = player ? await isAdminUser(player.userId) : false;
 
   return {
     money: player?.money ?? 0,
     garageSlots: player?.garageSlots ?? 5,
     protection: player?.protection ?? 0,
-    strengthLevel: levelOf(player?.strengthPts ?? 0),
+    strengthLevel: adminView ? 30 : levelOf(player?.strengthPts ?? 0),
     protectionCap: PROTECTION_CAP,
     garageCap: GARAGE_CAP,
     items: CATALOGUE.map((i) => ({ ...i, owned: have.has(itemKey(i)) }))
@@ -59,7 +61,8 @@ export async function POST(req: Request) {
       await lockPlayer(tx, userId);
       const me = await tx.player.findUnique({ where: { userId } });
       if (!me) throw new Error("PLAYER_NOT_FOUND");
-      if (jailRemaining(me.jailUntil, new Date()) > 0) throw new Error("JAILED");
+      const admin = await isAdminUser(userId, tx);
+      if (!admin && jailRemaining(me.jailUntil, new Date()) > 0) throw new Error("JAILED");
 
       const type = itemKey(item);
       const already = await tx.inventoryItem.findUnique({
@@ -68,7 +71,7 @@ export async function POST(req: Request) {
       if (already && already.quantity > 0) throw new Error("OWNED");
 
       if (item.kind === "garage" && me.garageSlots >= GARAGE_CAP) throw new Error("GARAGE_MAX");
-      if (item.kind === "gun" && levelOf(me.strengthPts) < (item.strength ?? 0)) throw new Error("TOO_WEAK");
+      if (!admin && item.kind === "gun" && levelOf(me.strengthPts) < (item.strength ?? 0)) throw new Error("TOO_WEAK");
 
       const paid = await tx.player.updateMany({
         where: { id: me.id, money: { gte: item.price } },
@@ -91,7 +94,7 @@ export async function POST(req: Request) {
         // Guns and protection: put it straight on if that slot is empty.
         const slot = slotOf(type);
         const equipped = cleanEquipped(me.equipped);
-        const strong = levelOf(me.strengthPts);
+        const strong = strengthFor(admin, me.strengthPts);
         if (me.equipped !== null && slot && !equipped[slot] && canWield(item, strong)) {
           equipped[slot] = type;
           await tx.player.update({
