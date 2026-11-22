@@ -66,6 +66,7 @@ export async function GET() {
       }))
     },
     me: {
+      username: me.username,
       remaining: jailRemaining(me.jailUntil, now),
       reason: me.jailReason,
       security: me.jailSecurity,
