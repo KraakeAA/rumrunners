@@ -29,6 +29,7 @@ import WhackSection from "@/components/WhackSection";
 import SearchSection from "@/components/SearchSection";
 import { crimeForCity } from "@/lib/city-crimes";
 import CrimePopup from "@/components/CrimePopup";
+import PromotionPopup from "@/components/PromotionPopup";
 import { Banner, JobCard, slugify } from "@/components/GameImage";
 import HospitalSection from "@/components/HospitalSection";
 import HitlistSection from "@/components/HitlistSection";
@@ -522,6 +523,22 @@ export default function GameShell({
   const [liveUnread, setLiveUnread] = useState<number | null>(null);
   const [latestMailId, setLatestMailId] = useState("");
   const [jailCount, setJailCount] = useState(0);
+  const [rank, setRank] = useState(player.rank);
+  const [rankLevel, setRankLevel] = useState(player.rankLevel);
+  const [promotion, setPromotion] = useState<string | null>(null);
+  const [experience, setExperience] = useState(player.experience);
+  // The highest rank level seen so far, so any rise, from any source, shows the promotion box once.
+  const rankSeenRef = useRef(player.rankLevel);
+  function noteRank(name: string, level: number) {
+    if (level > rankSeenRef.current) {
+      rankSeenRef.current = level;
+      setPromotion(name);
+    }
+    setRank(name);
+    setRankLevel(level);
+  }
+  const noteRankRef = useRef(noteRank);
+  noteRankRef.current = noteRank;
   const checkBalanceRef = useRef<() => void>(() => {});
   useEffect(() => {
     let alive = true;
@@ -537,6 +554,8 @@ export default function GameShell({
         if (typeof d.bank === "number") setBank(d.bank);
         if (typeof d.gold === "number") setGold(d.gold);
         if (typeof d.bullets === "number") setBullets(d.bullets);
+        if (typeof d.rank === "string" && typeof d.rankLevel === "number") noteRankRef.current(d.rank, d.rankLevel);
+        if (typeof d.experience === "number") setExperience(d.experience);
         if (typeof d.unreadMail === "number") setLiveUnread(d.unreadMail);
         if (typeof d.latestMailId === "string") setLatestMailId(d.latestMailId);
         if (typeof d.jailCount === "number") setJailCount(d.jailCount);
@@ -556,9 +575,6 @@ export default function GameShell({
       document.removeEventListener("visibilitychange", check);
     };
   }, []);
-  const [rank, setRank] = useState(player.rank);
-  const [rankLevel, setRankLevel] = useState(player.rankLevel);
-  const [experience, setExperience] = useState(player.experience);
   const [busy, setBusy] = useState(false);
   const [currentCity, setCurrentCity] = useState(player.currentCity || "London");
   const [ukClock, setUkClock] = useState("--:--:--");
@@ -684,8 +700,7 @@ export default function GameShell({
       setEnergy(data.energy);
       setMoney(data.money);
       setExperience(data.experience);
-      setRank(data.rank);
-      setRankLevel(data.rankLevel);
+      noteRank(data.rank, data.rankLevel);
       status.refresh();
 
       setLocalCrimes((prev) =>
@@ -748,9 +763,7 @@ export default function GameShell({
         jailSeconds: data.jailSeconds ?? 0
       });
 
-      setNotice(
-        data.leveledUp ? `Rank up — you are now ${data.rank}.` : ""
-      );
+      setNotice("");
     } catch {
       setNotice("Unable to connect. Please try again.");
     } finally {
@@ -1455,6 +1468,7 @@ export default function GameShell({
       {/* Shown over whatever page you are on, so a failed job that sends you to
           jail still tells you what happened, and never turns up late. */}
       {outcome && <CrimePopup outcome={outcome} onClose={() => setOutcome(null)} />}
+      {!outcome && promotion && <PromotionPopup rank={promotion} onClose={() => setPromotion(null)} />}
 
       {/* LOCATION AND TIME — ONLY WHILE THE MENU IS OPEN */}
       {menuOpen && (
@@ -1815,8 +1829,7 @@ export default function GameShell({
                 setEnergy(r.energy);
                 setMoney(r.money);
                 setExperience(r.experience);
-                setRank(r.rank);
-                setRankLevel(r.rankLevel);
+                noteRank(r.rank, r.rankLevel);
               }}
             />
           )}
@@ -1862,7 +1875,6 @@ export default function GameShell({
 
           {section === "Graveyard" && <GraveyardSection />}
 
-            
           {section === "Gymnasium" && (
             <GymnasiumSection
               onEnergy={setEnergy}
@@ -1924,7 +1936,7 @@ export default function GameShell({
             />
           )}
 
-          {section === "Crew" && <CrewSection onCash={setMoney} />}
+          {section === "Crew" && <CrewSection onCash={setMoney} isAdmin={isAdmin} playerId={playerId} />}
 
           {section === "Gold" && (
             <p className="flavour">
