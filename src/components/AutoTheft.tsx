@@ -34,6 +34,7 @@ type Props = {
   staminaLevel?: number;
   theftLeft: (level: number) => number;
   jailLeft: number;
+  isAdmin?: boolean;
   onActed: () => void;
   currentCity: string;
   onCash: (cash: number) => void;
@@ -90,6 +91,7 @@ export default function AutoTheftSection({
   staminaLevel = 0,
   theftLeft,
   jailLeft,
+  isAdmin = false,
   onActed,
   currentCity,
   onCash,
@@ -234,10 +236,10 @@ export default function AutoTheftSection({
         <div style={barStyle}>Auto Theft</div>
         <div style={{ padding: 6 }}>
           {THEFT_LEVELS.filter(
-            (l, i) => rankLevel >= l.minRank || (i === 0 || rankLevel >= THEFT_LEVELS[i - 1].minRank)
+            (l, i) => isAdmin || rankLevel >= l.minRank || (i === 0 || rankLevel >= THEFT_LEVELS[i - 1].minRank)
           ).map((l) => {
             const slot = `autotheft/level-${l.level}`;
-            if (rankLevel < l.minRank) {
+            if (!isAdmin && rankLevel < l.minRank) {
               return (
                 <JobCard
                   key={l.level}
@@ -251,10 +253,10 @@ export default function AutoTheftSection({
                 />
               );
             }
-            const wait = theftLeft(l.level);
+            const wait = isAdmin ? 0 : theftLeft(l.level);
             const levelEnergy = energyCostFor(l.energy, staminaLevel);
-            const tired = energy < levelEnergy;
-            const disabled = busy || wait > 0 || tired || jailLeft > 0 || CARS.length === 0;
+            const tired = !isAdmin && energy < levelEnergy;
+            const disabled = busy || (!isAdmin && (wait > 0 || tired || jailLeft > 0)) || CARS.length === 0;
             return (
               <JobCard
                 key={l.level}
@@ -269,7 +271,7 @@ export default function AutoTheftSection({
                 waiting={wait > 0}
                 waitLeft={wait}
                 disabled={disabled}
-                buttonLabel={jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : tired ? "Tired" : "Steal!"}
+                buttonLabel={!isAdmin && jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : tired ? "Tired" : "Steal!"}
                 onClick={() => steal(l.level)}
               />
             );
