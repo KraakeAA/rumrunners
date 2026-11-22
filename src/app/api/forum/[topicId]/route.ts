@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -59,6 +58,10 @@ export async function POST(
         { error: "Topic not found." },
         { status: 404 }
       );
+    }
+
+    if (topic.category.startsWith("CREW:") && user.player.crewId !== topic.category.slice(5)) {
+      return NextResponse.json({ error: "That board is for crew members only." }, { status: 403 });
     }
 
     if (topic.locked) {
@@ -129,9 +132,9 @@ export async function PATCH(
     const [user, existing] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { isAdmin: true, staffRole: true, player: { select: { id: true } } }
+        select: { isAdmin: true, staffRole: true, player: { select: { id: true, crewId: true } } }
       }),
-      prisma.forumTopic.findUnique({ where: { id: topicId }, select: { authorId: true } })
+      prisma.forumTopic.findUnique({ where: { id: topicId }, select: { authorId: true, category: true } })
     ]);
 
     if (!user || !existing) {
@@ -140,7 +143,16 @@ export async function PATCH(
 
     // Staff (helpers, moderators, admins) can pin and lock anything.
     // Everyone else can only lock or unlock a topic they started.
-    const isStaff = staffLevel(user) >= 1;
+    let isStaff = staffLevel(user) >= 1;
+    // A crew's leader runs the crew board.
+    if (existing.category.startsWith("CREW:")) {
+      const crewId = existing.category.slice(5);
+      const crew = await prisma.crew.findUnique({ where: { id: crewId }, select: { leaderId: true } });
+      if (!isStaff && crew && crew.leaderId === user.player?.id) isStaff = true;
+      if (!isStaff && user.player?.crewId !== crewId) {
+        return NextResponse.json({ error: "That board is for crew members only." }, { status: 403 });
+      }
+    }
     const isAuthor = user.player?.id === existing.authorId;
 
     if (!isStaff && !isAuthor) {
@@ -234,8 +246,15 @@ export async function DELETE(
       );
     }
 
+    let crewLeader = false;
+    if (topic.category.startsWith("CREW:")) {
+      const crew = await prisma.crew.findUnique({ where: { id: topic.category.slice(5) }, select: { leaderId: true } });
+      crewLeader = !!crew && crew.leaderId === user.player.id;
+    }
+
     if (
       !user.isAdmin &&
+      !crewLeader &&
       topic.authorId !== user.player.id
     ) {
       return NextResponse.json(
