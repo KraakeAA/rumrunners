@@ -8,6 +8,12 @@ import { expireEscrowIfStale } from "@/lib/escrow";
 
 type Tx = Prisma.TransactionClient;
 
+// Cash and chips are stored as whole numbers that stay exact up to about 9 quadrillion. Nothing may be pushed past that.
+const INT_MAX = Number.MAX_SAFE_INTEGER;
+const INT_MIN = -Number.MAX_SAFE_INTEGER;
+const room = (current: number, add: number) =>
+  Math.max(INT_MIN - current, Math.min(INT_MAX - current, add));
+
 export function validBet(bet: number) {
   return Number.isSafeInteger(bet) && bet >= 1 && bet <= ABSOLUTE_MAX_BET;
 }
@@ -41,13 +47,13 @@ async function openTable(tx: Tx, userId: string, game: string, bet: number) {
     if (!released) throw new Error("IN_ESCROW");
   }
 
-  // A player-owned casino stays shut for a few minutes after a change of owner,
-  // and can only take bets its chips can stand behind.
+  // A player-owned casino stays shut for a few minutes after a change of owner.
+  // Any bet up to its limit is taken. If a win is bigger than its chips, the winner is
+  // paid what is left and takes the casino over (see settle).
   if (casino.ownerId) {
     if (casino.openAt && casino.openAt.getTime() > Date.now()) {
       throw new Error("CASINO_OPENING:" + Math.ceil((casino.openAt.getTime() - Date.now()) / 1000));
     }
-    if (casino.chips < bet) throw new Error("CASINO_BROKE");
   }
 
   const limit = casino.ownerId ? casino.maxBet : HOUSE_MAX_BET;
@@ -78,13 +84,24 @@ async function settle(
 ) {
   if (!prepaid) await takeBet(tx, player.id, bet);
 
-  let payout = Math.floor(bet * multiplier);
+  // A win can never push the player's cash past the largest number the game can hold.
+  const holding = await tx.player.findUnique({ where: { id: player.id }, select: { money: true } });
+  const cashRoom = Math.max(0, INT_MAX - (holding?.money ?? 0));
+
+  let payout = Math.min(Math.floor(bet * multiplier), cashRoom);
   let takeover = false;
   let previousOwner: string | null = null;
 
   if (casino.ownerId) {
     // The casino's chips are the bank. The stake goes into the chips first.
-    await tx.casino.update({ where: { id: casino.id }, data: { chips: { increment: bet } } });
+    const bank = await tx.casino.findUnique({
+      where: { id: casino.id },
+      select: { chips: true, profit: true, wagered: true }
+    });
+    await tx.casino.update({
+      where: { id: casino.id },
+      data: { chips: { increment: Math.max(0, room(bank?.chips ?? 0, bet)) } }
+    });
 
     if (payout > 0) {
       const covered = await tx.casino.updateMany({
@@ -92,10 +109,19 @@ async function settle(
         data: { chips: { decrement: payout } }
       });
 
-      if (covered.count !== 1) {
-        // The chips cannot cover the win: the player takes whatever is left.
-        const left = await tx.casino.findUnique({ where: { id: casino.id }, select: { chips: true } });
-        payout = left?.chips ?? 0;
+      // The casino is bust if it could not pay the win, or if paying it left the chips at nothing.
+      const paidInFull = covered.count === 1;
+      const chipsAfter = paidInFull
+        ? (await tx.casino.findUnique({ where: { id: casino.id }, select: { chips: true } }))?.chips ?? 0
+        : 0;
+
+      // A push (stake returned) never counts as a bust.
+      if (!paidInFull || (payout > bet && chipsAfter <= 0)) {
+        // If the chips could not cover the win, the player takes whatever is left.
+        if (!paidInFull) {
+          const left = await tx.casino.findUnique({ where: { id: casino.id }, select: { chips: true } });
+          payout = Math.min(left?.chips ?? 0, cashRoom);
+        }
 
         // The owner could not pay in full, so the player takes the casino over.
         const oldOwner = await tx.player.findUnique({ where: { id: casino.ownerId }, select: { id: true, username: true } });
@@ -121,7 +147,9 @@ async function settle(
               toId: oldOwner.id,
               fromName: winner?.username ?? "Rumrunners",
               subject: "You lost your casino",
-              body: `${winner?.username ?? "A player"} won more than your ${game} casino in ${city} could pay. You could not cover it, so they were paid what was left and now own the casino.`
+              body: paidInFull
+                ? `${winner?.username ?? "A player"} won every chip your ${game} casino in ${city} had. It was bust, so they now own the casino.`
+                : `${winner?.username ?? "A player"} won more than your ${game} casino in ${city} could pay. You could not cover it, so they were paid what was left and now own the casino.`
             }
           });
         }
@@ -132,7 +160,11 @@ async function settle(
       const net = bet - payout;
       await tx.casino.update({
         where: { id: casino.id },
-        data: { profit: { increment: net }, plays: { increment: 1 }, wagered: { increment: bet } }
+        data: {
+          profit: { increment: room(bank?.profit ?? 0, net) },
+          plays: { increment: 1 },
+          wagered: { increment: Math.max(0, room(bank?.wagered ?? 0, bet)) }
+        }
       });
     }
   } else {
