@@ -49,7 +49,7 @@ export default function GraveyardSection() {
             <span style={{ fontSize: 11, color: "#b7ad93", flexShrink: 0 }}>{g.rank}</span>
           </div>
           <div style={{ fontSize: 12, color: "#b7ad93" }}>
-            {g.killedBy === "suicide" ? "Took their own life" : g.killedBy ? `Shot by ${g.killedBy}` : "Cause unknown"} ·{" "}
+            {g.killedBy === "suicide" ? "Took their own life" : g.killedBy ? "Shot dead" : "Cause unknown"} ·{" "}
             {new Date(g.diedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             {g.revived ? " · name revived" : ""}
           </div>
