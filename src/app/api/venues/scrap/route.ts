@@ -27,6 +27,11 @@ export async function POST(req: Request) {
       const player = await tx.player.findUnique({ where: { userId } });
       if (!player) throw new Error("PLAYER_NOT_FOUND");
 
+      // The factory in the city you are standing in must have an owner, and it can't be you.
+      const factory = await tx.bulletFactory.findUnique({ where: { city: player.currentCity } });
+      if (!factory || !factory.ownerId) throw new Error("NO_OWNER");
+      if (factory.ownerId === player.id) throw new Error("OWN_FACTORY");
+
       const car = await tx.car.findFirst({ where: { id: carId, ownerId: player.id, escrowId: null } });
       const model = car ? carModel(car.model) : undefined;
       if (!car || !model) throw new Error("NO_CAR");
@@ -51,6 +56,12 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     const m = error instanceof Error ? error.message : "";
+    if (m === "NO_OWNER") {
+      return NextResponse.json({ error: "Nobody owns this factory, so it can't take your car." }, { status: 400 });
+    }
+    if (m === "OWN_FACTORY") {
+      return NextResponse.json({ error: "You can't melt cars at your own factory." }, { status: 400 });
+    }
     if (m === "NO_CAR") {
       return NextResponse.json({ error: "You do not own that car." }, { status: 400 });
     }
