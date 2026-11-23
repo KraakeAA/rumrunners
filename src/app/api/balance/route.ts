@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { staffLevel } from "@/lib/staff";
+import { settleHunts } from "@/lib/whack";
 
 // A tiny read so the top bar can keep cash, bank, gold and bullets current
 // when other people's actions change them (a gambler at your casino, a sale).
@@ -14,6 +15,9 @@ export async function GET() {
     select: { id: true, money: true, bank: true, gold: true, bullets: true, health: true, rank: true, rankLevel: true, experience: true, user: { select: { isAdmin: true, staffRole: true } } }
   });
   if (!me) return NextResponse.json({ error: "Player not found." }, { status: 404 });
+
+  // A detective's report has to land the moment he finds his man: the shooting window can be five minutes.
+  await settleHunts(me.id).catch(() => {});
 
   // Mail rides along so the inbox badge and an open mailbox update at once.
   const [unreadMail, latest, jailCount] = await Promise.all([
