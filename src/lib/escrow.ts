@@ -4,7 +4,8 @@ type Tx = Prisma.TransactionClient;
 
 export const MAX_ITEMS_PER_SIDE = 10;
 export const MAX_OPEN_ESCROWS = 5;
-export const MAX_AMOUNT = 2_000_000_000;
+export const MAX_AMOUNT = 2_000_000_000; // gold
+export const MAX_CASH_AMOUNT = 1_000_000_000_000_000; // cash
 export const ESCROW_MINUTES = 30;
 export const escrowDeadline = (from = new Date()) => new Date(from.getTime() + ESCROW_MINUTES * 60_000);
 
