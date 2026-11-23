@@ -332,7 +332,6 @@ model ForumPost {
 
   @@index([topicId, createdAt])
 }
-
 // A four-player organised crime: one leader and three role slots.
 model OrganisedCrime {
   id        String   @id @default(cuid())
@@ -557,6 +556,7 @@ model EscrowItem {
   amount    Int      @default(0)
   carId     String?
   casinoId  String?
+  statementId String?
   // What to call the item on screen: the car and its plate, or the casino and its city.
   carName   String   @default("")
   createdAt DateTime @default(now())
@@ -634,3 +634,20 @@ model BustMilestone {
 
   @@index([playerId, number])
 }
+
+// A witness statement: "you saw killerName shoot victimName in city". A tradeable item.
+// escrowId is set while the Escrow agent is holding it.
+model Statement {
+  id         String   @id @default(cuid())
+  ownerId    String
+  killerName String
+  victimName String
+  city       String
+  escrowId   String?
+  // Closed until the holder opens it. Opening shows who did it, and can't be undone.
+  opened     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([ownerId])
+}
+
