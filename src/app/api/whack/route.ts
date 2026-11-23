@@ -3,6 +3,7 @@ import { lockPlayerId } from "@/lib/lock";
 import { cancelLedOc } from "@/lib/oc";
 import { isAdminUser, strengthFor } from "@/lib/admin-bypass";
 import { rankForLevel } from "@/lib/ranks";
+import { dropCasinosOf, sendWitnessStatements } from "@/lib/death";
 import { levelFromXp } from "@/lib/game";
 import { notifyPromotion } from "@/lib/promotion";
 import { NextResponse } from "next/server";
@@ -12,11 +13,13 @@ import { jailRemaining } from "@/lib/jail";
 import { cleanEquipped, equipmentStats } from "@/lib/store";
 import {
   DETECTIVES,
-  WINDOW_MINUTES,
+  bulletsToKill,
   isShielded,
   regenHealth,
-  rollDamage,
-  settleHunts
+  rollFindMinutes,
+  rollLuck,
+  settleHunts,
+  windowMinutesFor
 } from "@/lib/whack";
 
 class Refuse extends Error {}
@@ -33,6 +36,12 @@ async function view(playerId: string) {
     take: 15
   });
 
+  const statements = await prisma.statement.findMany({
+    where: { ownerId: playerId },
+    orderBy: { createdAt: "desc" },
+    take: 50
+  });
+
   const now = new Date();
   const stats = equipmentStats(cleanEquipped(me.equipped), strengthFor(await isAdminUser(me.userId), me.strengthPts));
 
@@ -42,8 +51,18 @@ async function view(playerId: string) {
     firepower: stats.firepower,
     shielded: isShielded(me, now),
     shieldUntil: me.shieldUntil ? me.shieldUntil.toISOString() : null,
-    windowMinutes: WINDOW_MINUTES,
+    bullets: me.bullets,
     detectives: DETECTIVES,
+    statements: statements.map((x) => ({
+      id: x.id,
+      victimName: x.victimName,
+      city: x.city,
+      createdAt: x.createdAt.toISOString(),
+      inEscrow: x.escrowId !== null,
+      opened: x.opened,
+      // Who did it is only ever sent once the statement has been opened.
+      killerName: x.opened ? x.killerName : null
+    })),
     hunts: hunts.map((h) => ({
       id: h.id,
       targetName: h.targetName,
@@ -90,6 +109,17 @@ export async function POST(req: Request) {
       if (!me) throw new Refuse("Player not found.");
       if (me.health <= 0) throw new Refuse("You are dead.");
       const now = new Date();
+
+      // Opening a witness statement works from anywhere, even a cell. It can't be undone.
+      if (action === "openStatement") {
+        const st = await tx.statement.findFirst({ where: { id: String(body.id ?? ""), ownerId: me.id } });
+        if (!st) throw new Refuse("No such statement.");
+        if (st.escrowId) throw new Refuse("That statement is in an escrow trade.");
+        if (!st.opened) await tx.statement.update({ where: { id: st.id }, data: { opened: true } });
+        message = `${st.killerName} shot ${st.victimName} in ${st.city}.`;
+        return;
+      }
+
       const admin = await isAdminUser(userId, tx);
       if (!admin && jailRemaining(me.jailUntil, now) > 0) throw new Refuse("You can't do that from a prison cell.");
 
@@ -133,13 +163,12 @@ export async function POST(req: Request) {
             targetName: target.username,
             tier: detective.key,
             cost: detective.price,
-            foundAt: admin ? now : new Date(now.getTime() + detective.minutes * 60_000)
+            foundAt: admin ? now : new Date(now.getTime() + Math.round(rollFindMinutes(detective) * 60_000))
           }
         });
-        message = `The ${detective.name} is on the case. You will get a letter when ${target.username} is found.`;
+        message = `The ${detective.name} is on the case. He will report some time in the next ${Math.round(detective.minMinutes / 60 * 10) / 10}–${Math.round(detective.maxMinutes / 60 * 10) / 10} hours (it could be any moment), and you will get a letter when ${target.username} is found. You will then have ${detective.windowMinutes} minutes to take your one shot.`;
         return;
       }
-
       if (action === "shoot") {
         const hunt = await tx.hunt.findUnique({ where: { id: String(body.id ?? "") } });
         if (!hunt || hunt.hunterId !== me.id) throw new Refuse("No such job.");
@@ -147,11 +176,11 @@ export async function POST(req: Request) {
           const t = await tx.player.findUnique({ where: { id: hunt.targetId }, select: { currentCity: true } });
           await tx.hunt.update({
             where: { id: hunt.id },
-            data: { status: "found", foundCity: t?.currentCity ?? me.currentCity, windowEndsAt: new Date(now.getTime() + WINDOW_MINUTES * 60_000) }
+            data: { status: "found", foundCity: t?.currentCity ?? me.currentCity, windowEndsAt: new Date(now.getTime() + windowMinutesFor(hunt.tier) * 60_000) }
           });
           hunt.status = "found";
           hunt.foundCity = t?.currentCity ?? me.currentCity;
-          hunt.windowEndsAt = new Date(now.getTime() + WINDOW_MINUTES * 60_000);
+          hunt.windowEndsAt = new Date(now.getTime() + windowMinutesFor(hunt.tier) * 60_000);
         }
         if (!admin && (hunt.status !== "found" || !hunt.windowEndsAt || hunt.windowEndsAt <= now)) {
           throw new Refuse("The trail has gone cold. You will need to hire again.");
@@ -179,11 +208,25 @@ export async function POST(req: Request) {
         if (isHiddenStaff(shotUser)) throw new Refuse("The trail has gone cold.");
         if (!admin && isShielded(target, now)) throw new Refuse("That player is under protection.");
 
-        // Let them heal first, then take the damage off what they have now.
+        // How many bullets go into the one volley. They are spent whether he dies or not.
+        const bulletsUsed = Math.floor(Number(body.bullets));
+        if (!Number.isSafeInteger(bulletsUsed) || bulletsUsed < 1) throw new Refuse("Enter how many bullets to use.");
+        if (!admin && bulletsUsed > me.bullets) throw new Refuse(`You only have ${me.bullets.toLocaleString("en-GB")} bullets.`);
+        if (!admin) {
+          const spent = await tx.player.updateMany({
+            where: { id: me.id, bullets: { gte: bulletsUsed } },
+            data: { bullets: { decrement: bulletsUsed } }
+          });
+          if (spent.count !== 1) throw new Refuse("You do not have that many bullets.");
+        }
+
+        // Let them heal first. The volley is judged against what it takes to kill him as he is now.
         const healed = regenHealth(target.health, target.healthAt, now.getTime());
-        const damage = rollDamage(admin ? Math.max(stats.firepower, 1) : stats.firepower, target.protection);
-        const left = Math.max(0, healed.health - damage);
-        const killed = left <= 0;
+        const needed = bulletsToKill(me.rankLevel, target.rankLevel, stats.firepower, target.protection, healed.health);
+        const power = (bulletsUsed * rollLuck()) / needed;
+        const killed = power >= 1;
+        const damage = killed ? healed.health : Math.round(healed.health * power);
+        const left = killed ? 0 : Math.max(1, healed.health - damage);
 
         await tx.player.update({
           where: { id: target.id },
@@ -191,9 +234,10 @@ export async function POST(req: Request) {
             ? { health: 0, healthAt: null, diedAt: now, killedBy: me.username }
             : { health: left, healthAt: now }
         });
+        // One chance only: a miss costs you the detective.
         await tx.hunt.update({
           where: { id: hunt.id },
-          data: killed ? { status: "done", shots: { increment: 1 } } : { shots: { increment: 1 } }
+          data: { status: killed ? "done" : "failed", shots: { increment: 1 } }
         });
 
         await tx.message.create({
@@ -203,12 +247,19 @@ export async function POST(req: Request) {
             subject: killed ? "You were shot dead" : "You were shot",
             body: killed
               ? `${me.username} found you in ${hunt.foundCity} and shot you dead.`
-              : `${me.username} found you in ${hunt.foundCity} and shot you. Your health is down to ${left}%.`
+              : `${me.username} found you in ${hunt.foundCity} and shot at you, but you survived. Your health is down to ${left}%.`
           }
         });
 
         if (killed) {
           await cancelLedOc(tx, target.id, target.username);
+          await dropCasinosOf(tx, target.id);
+          await sendWitnessStatements(tx, {
+            city: hunt.foundCity ?? target.currentCity,
+            victimId: target.id,
+            victimName: target.username,
+            killer: { id: me.id, username: me.username }
+          });
           await tx.hunt.updateMany({
             where: { targetId: target.id, status: { in: ["searching", "found"] } },
             data: { status: "lost" }
@@ -244,7 +295,7 @@ export async function POST(req: Request) {
             message += ` The bounties on him paid £${reward.toLocaleString("en-GB")}.`;
           }
         } else {
-          message = `You hit ${target.username} for ${damage}. He is down to ${left}% health.`;
+          message = `You fired everything you put into it, but ${target.username} survived. The detective has gone, so you will have to hire again.`;
         }
         return;
       }
@@ -262,3 +313,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That could not be completed." }, { status: 500 });
   }
 }
+
