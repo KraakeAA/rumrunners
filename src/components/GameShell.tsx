@@ -398,6 +398,7 @@ const slugOf = (name: string) => {
 // Finds the page that matches a name or a web address. Anything unknown opens Home.
 function sectionFromAddress(groups: { items: string[] }[], value: string) {
   const wanted = slugOf(value);
+  if (wanted === "crewforum") return "Crew Forum";
   for (const g of groups) {
     for (const item of g.items) {
       if (slugOf(item) === wanted) return item;
@@ -1597,7 +1598,7 @@ export default function GameShell({
                                 ? "nav-item active"
                                 : "nav-item"
                           }
-                          onClick={() => navigate(item)}
+                          onClick={() => navigate(menuGroup === "Messaging" && item === "Crew" ? "Crew Forum" : item)}
                         >
                           {item}
                         </button>
@@ -1778,6 +1779,7 @@ export default function GameShell({
               }}
             />
           )}
+
           {section === "Bootlegging" && <BootleggingSection onCash={setMoney} />}
 
           {section === "Organised Crime" && <OrganisedCrimeSection />}
@@ -1795,7 +1797,6 @@ export default function GameShell({
           {section === "Marketplace" && (
             <GoldMarketplace onCash={setMoney} onGold={setGold} />
           )}
-
           {section === "Railway" && (
             <TravelSection onArrive={(city) => setCurrentCity(city)} isAdmin={isAdmin} />
           )}
@@ -1875,6 +1876,16 @@ export default function GameShell({
               key="OFF_TOPIC"
               category="OFF_TOPIC"
               title="Off Topic"
+              isAdmin={isAdmin}
+              playerId={playerId}
+            />
+          )}
+
+          {section === "Crew Forum" && (
+            <ForumBoard
+              key="CREW"
+              category="CREW"
+              title="Crew Forum"
               isAdmin={isAdmin}
               playerId={playerId}
             />
@@ -2030,7 +2041,7 @@ export default function GameShell({
                             ? "nav-item active"
                             : "nav-item"
                       }
-                      onClick={() => navigate(item)}
+                      onClick={() => navigate(selectedGroup === "Messaging" && item === "Crew" ? "Crew Forum" : item)}
                     >
                       {item}
                     </button>
