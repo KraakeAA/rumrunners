@@ -36,7 +36,6 @@ export default function CasinoGames({
   onCash,
   ownerName,
   ownerCrewColor,
-  wealth,
   maxBet,
   onPlayed,
 }: Props) {
@@ -59,6 +58,15 @@ export default function CasinoGames({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<Result | null>(null);
+  // Slots: how many reels have stopped, the final reels, and a ticker that makes the spinning ones flicker.
+  const [stopped, setStopped] = useState(3);
+  const [finalReels, setFinalReels] = useState<string[] | null>(null);
+  const [spinTick, setSpinTick] = useState(0);
+  useEffect(() => {
+    if (game !== "Slots" || !busy) return;
+    const t = window.setInterval(() => setSpinTick((n) => n + 1), 90);
+    return () => window.clearInterval(t);
+  }, [game, busy]);
 
   const numbers = useMemo(
     () => Array.from({ length: 80 }, (_, i) => i + 1),
@@ -139,6 +147,11 @@ export default function CasinoGames({
     }
 
     setBusy(true);
+    const startedAt = Date.now();
+    if (game === "Slots") {
+      setStopped(0);
+      setFinalReels(null);
+    }
 
     try {
       const response = await fetch(`/api/game/${game.toLowerCase()}`, {
@@ -157,7 +170,18 @@ export default function CasinoGames({
 
       if (!response.ok) {
         setMessage(data.error || "The game could not be played.");
+        setStopped(3);
       } else {
+        if (game === "Slots") {
+          // Let the reels spin for a moment, then stop them one at a time.
+          const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
+          await wait(Math.max(0, 900 - (Date.now() - startedAt)));
+          setFinalReels(data.reels || null);
+          for (let i = 1; i <= 3; i++) {
+            setStopped(i);
+            await wait(320);
+          }
+        }
         setResult(data);
 
         if (typeof data.money === "number") {
@@ -178,7 +202,6 @@ export default function CasinoGames({
       setBusy(false);
     }
   }
-
   if (game === "Keno") {
     const drawn = result?.drawn || [];
     const matchCount = result?.matches ?? 0;
@@ -233,7 +256,7 @@ export default function CasinoGames({
           <InfoButton game="Keno" />
         </div>
 
-        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} wealth={wealth} />
+        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
 
         <div
           style={{
@@ -516,7 +539,6 @@ export default function CasinoGames({
       </section>
     );
   }
-
   const slotSymbols: Record<string, { src: string; alt: string }> = {
     "7": {
       src: "/seven.png",
@@ -571,8 +593,27 @@ export default function CasinoGames({
     return slotSymbols["7"];
   }
 
-  const reels = result?.reels || ["7", "BAR", "🍒"];
-  const slotWon = Boolean(result && (result.payout || 0) > 0);
+  const SPIN_SYMBOLS = ["7", "BAR", "🍒", "🍊"];
+  const restingReels = finalReels || result?.reels || ["7", "BAR", "🍒"];
+  const reels = [0, 1, 2].map((i) =>
+    busy && i >= stopped
+      ? SPIN_SYMBOLS[(spinTick + i * 3 + (i === 1 ? 1 : 0)) % SPIN_SYMBOLS.length]
+      : restingReels[i] ?? "7"
+  );
+  const slotWon = Boolean(result && !busy && (result.payout || 0) > 0);
+  const chips: { label: string; value: number }[] = [
+    { label: "£100", value: 100 },
+    { label: "£1k", value: 1000 },
+    { label: "£10k", value: 10000 },
+    { label: "£100k", value: 100000 },
+  ];
+  const maxStake = Math.max(1, Math.min(limit, cash));
+  const prizes: { symbols: string[]; x: number }[] = [
+    { symbols: ["7", "7", "7"], x: 500 },
+    { symbols: ["BAR", "BAR", "BAR"], x: 100 },
+    { symbols: ["🍊", "🍊", "🍊"], x: 50 },
+    { symbols: ["🍒", "🍒", "🍒"], x: 20 },
+  ];
 
   return (
     <section
@@ -589,31 +630,30 @@ export default function CasinoGames({
     >
       <div
         style={{
-          width: "min(100%, 300px)",
+          width: "min(100%, 380px)",
           overflow: "hidden",
           border: "2px solid #b0904a",
-          borderRadius: 2,
-          background:
-            "linear-gradient(145deg, #665033 0%, #49351f 40%, #2c1e10 100%)",
-          boxShadow:
-            "0 3px 10px #0008, inset 0 0 0 1px #80643e",
+          borderRadius: 6,
+          background: "linear-gradient(160deg, #665033 0%, #49351f 40%, #2c1e10 100%)",
+          boxShadow: slotWon
+            ? "0 0 16px #e4c04d99, 0 3px 10px #0008, inset 0 0 0 1px #80643e"
+            : "0 3px 10px #0008, inset 0 0 0 1px #80643e",
         }}
       >
-        {/* Antique gold machine header */}
+        {/* Machine header */}
         <div
           style={{
-            minHeight: 36,
+            minHeight: 38,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "6px 8px",
             boxSizing: "border-box",
             borderBottom: "2px solid #c1a16b",
-            background:
-              "linear-gradient(180deg, #a18459 0%, #80613d 30%, #594027 68%, #382617 100%)",
+            background: "linear-gradient(180deg, #a18459 0%, #80613d 30%, #594027 68%, #382617 100%)",
             color: "#f4dfb7",
             fontFamily: "Georgia, serif",
-            fontSize: 15,
+            fontSize: 16,
             letterSpacing: 0.5,
             textShadow: "0 1px 3px #000",
             position: "relative",
@@ -622,37 +662,69 @@ export default function CasinoGames({
           Slot Machines
           <InfoButton game="Slots" />
         </div>
-        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} wealth={wealth} />
+        <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
 
-        {/* Three compact reel windows */}
+        {/* Top prizes, always on show */}
         <div
           style={{
             display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: 3,
+            padding: "4px 6px",
+            fontSize: 10,
+            textAlign: "center",
+            color: "#f4dfb7",
+          }}
+        >
+          {prizes.map((p) => (
+            <div key={p.symbols.join("")} style={{ background: "#00000040", borderRadius: 3, padding: "2px 0", lineHeight: 1.3 }}>
+              <div style={{ display: "flex", justifyContent: "center", gap: 1, height: 14 }}>
+                {p.symbols.map((sym, i) => (
+                  <img
+                    key={i}
+                    src={getSlotArtwork(sym).src}
+                    alt=""
+                    style={{ height: 14, width: 14, objectFit: "contain" }}
+                  />
+                ))}
+              </div>
+              <b style={{ color: "#ffe08a" }}>×{p.x}</b>
+            </div>
+          ))}
+        </div>
+
+        {/* Reel window */}
+        <div
+          style={{
+            position: "relative",
+            display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 2,
-            padding: 3,
-            background:
-              "linear-gradient(180deg, #c6a979, #94744b 55%, #62472b)",
+            gap: 4,
+            padding: 6,
+            background: "linear-gradient(180deg, #c6a979, #94744b 55%, #62472b)",
+            borderTop: "2px solid #b0904a",
             borderBottom: "2px solid #b0904a",
           }}
         >
           {reels.map((symbol, index) => {
             const artwork = getSlotArtwork(symbol);
-
+            const spinning = busy && index >= stopped;
             return (
               <div
-                key={`${index}-${symbol}`}
+                key={index}
                 style={{
-                  height: "clamp(66px, 20vw, 84px)",
+                  height: "clamp(96px, 30vw, 124px)",
                   minWidth: 0,
-                  background: "#fffaf0",
+                  background: spinning
+                    ? "linear-gradient(180deg, #e9dcc0, #fffaf0 50%, #e9dcc0)"
+                    : "#fffaf0",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  padding: 4,
+                  padding: 6,
                   boxSizing: "border-box",
                   border: "1px solid #d8c49f",
-                  boxShadow: "inset 0 0 5px #9b8157",
+                  boxShadow: "inset 0 0 8px #9b8157, inset 0 6px 8px -6px #0006, inset 0 -6px 8px -6px #0006",
                   overflow: "hidden",
                 }}
               >
@@ -664,18 +736,33 @@ export default function CasinoGames({
                     width: "100%",
                     height: "100%",
                     objectFit: "contain",
+                    filter: spinning ? "blur(1.5px)" : "none",
+                    transform: spinning ? "translateY(" + (spinTick % 2 === 0 ? "-3px" : "3px") + ")" : "none",
                   }}
                 />
               </div>
             );
           })}
+          {/* Pay line */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: 2,
+              right: 2,
+              top: "50%",
+              height: 2,
+              background: slotWon ? "#e4c04d" : "#8a1f1f88",
+              pointerEvents: "none",
+            }}
+          />
         </div>
 
         {/* Win or no-win message */}
         <div
           aria-live="polite"
           style={{
-            minHeight: 34,
+            minHeight: 36,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -687,57 +774,37 @@ export default function CasinoGames({
             borderBottom: "2px solid #b0904a",
             color: "#f4e6c7",
             textAlign: "center",
-            fontSize: 14,
+            fontSize: slotWon ? 16 : 14,
             fontWeight: 700,
             lineHeight: 1.3,
             textShadow: "0 1px 2px #0008",
           }}
         >
-          {result
-            ? slotWon
-              ? `You won £${(result.payout || 0).toLocaleString("en-GB")}`
-              : "No win this time"
-            : "Ready to play"}
+          {busy
+            ? "Spinning…"
+            : result
+              ? slotWon
+                ? `You won £${(result.payout || 0).toLocaleString("en-GB")}!`
+                : "No win this time"
+              : "Place your bet"}
         </div>
 
-        {/* Compact bronze and gold control cabinet */}
+        {/* Controls */}
         <div
           style={{
-            minHeight: 0,
-            padding: "10px 10px 10px",
+            padding: "10px 10px 12px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "flex-start",
             gap: 8,
             boxSizing: "border-box",
             background:
               "linear-gradient(145deg, #70583b 0%, #5b452d 25%, #493520 55%, #352516 80%, #291b10 100%)",
-            boxShadow:
-              "inset 0 2px 8px #c4a16b33, inset 0 -5px 12px #120b05aa",
+            boxShadow: "inset 0 2px 8px #c4a16b33, inset 0 -5px 12px #120b05aa",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              width: "100%",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 22,
-                lineHeight: 1,
-                fontWeight: 300,
-                color: "#f0d7a5",
-                textShadow: "0 1px 3px #000",
-              }}
-            >
-              £
-            </span>
-
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%" }}>
+            <span style={{ fontSize: 22, lineHeight: 1, color: "#f0d7a5", textShadow: "0 1px 3px #000" }}>£</span>
             <input
               type="number"
               min="1"
@@ -748,19 +815,58 @@ export default function CasinoGames({
               disabled={busy}
               aria-label="Slot machine bet amount"
               style={{
-                width: 100,
-                maxWidth: "55%",
-                height: 36,
+                width: 130,
+                maxWidth: "50%",
+                height: 38,
                 padding: "5px 8px",
                 border: "2px solid #c4a675",
                 borderRadius: 7,
                 background: "#f7f4ed",
                 color: "#17120c",
-                fontSize: 16,
+                fontSize: 17,
                 textAlign: "center",
                 boxSizing: "border-box",
               }}
             />
+          </div>
+
+          {/* Quick stakes */}
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 5 }}>
+            {chips.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                disabled={busy}
+                onClick={() => setBet(String(c.value))}
+                style={{
+                  padding: "3px 9px",
+                  border: "1px solid #c4a675",
+                  borderRadius: 12,
+                  background: bet === String(c.value) ? "#c4a675" : "#00000055",
+                  color: bet === String(c.value) ? "#17120c" : "#f4dfb7",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setBet(String(maxStake))}
+              style={{
+                padding: "3px 9px",
+                border: "1px solid #c4a675",
+                borderRadius: 12,
+                background: "#00000055",
+                color: "#f4dfb7",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Max
+            </button>
           </div>
 
           <button
@@ -768,21 +874,22 @@ export default function CasinoGames({
             onClick={play}
             disabled={busy}
             style={{
-              minWidth: 0,
-              minHeight: 28,
-              padding: "3px 16px",
+              width: "min(100%, 240px)",
+              minHeight: 42,
+              padding: "6px 16px",
               borderRadius: 24,
               border: "2px solid #c5b18c",
-              background:
-                "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
+              background: "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
               color: "#17130e",
-              fontSize: 13,
-              fontWeight: 500,
+              fontSize: 16,
+              fontWeight: 700,
+              letterSpacing: 0.5,
               boxShadow: "0 2px 3px #100d09",
               cursor: busy ? "wait" : "pointer",
+              opacity: busy ? 0.75 : 1,
             }}
           >
-            {busy ? "Pulling…" : "Pull Handle"}
+            {busy ? "Spinning…" : "Pull Handle"}
           </button>
 
           <div
@@ -791,7 +898,6 @@ export default function CasinoGames({
               alignItems: "center",
               justifyContent: "center",
               gap: 7,
-              marginTop: 3,
               fontSize: 15,
               color: "#f7efdb",
               whiteSpace: "nowrap",
@@ -807,7 +913,6 @@ export default function CasinoGames({
               role="alert"
               style={{
                 width: "100%",
-                marginTop: 5,
                 padding: 8,
                 boxSizing: "border-box",
                 background: "#382522",
@@ -830,3 +935,5 @@ export default function CasinoGames({
     </section>
   );
 }
+
+
