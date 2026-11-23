@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { dropCasinosOf } from "@/lib/death";
 import { cancelLedOc } from "@/lib/oc";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -122,6 +123,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "You are already dead." }, { status: 400 });
     }
     await cancelLedOc(prisma, me.id, me.username);
+    await dropCasinosOf(prisma, me.id);
     return NextResponse.json({ ok: true, message: "You are dead." });
   }
 
