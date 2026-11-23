@@ -40,12 +40,12 @@ model Player {
   username     String   @unique
   rank         String   @default("Scum")
   rankLevel    Int      @default(1)
-  money        Int      @default(500)
-  bank         Int      @default(0)
+  money        Float      @default(500)
+  bank         Float      @default(0)
   // When the bank balance last changed; interest is paid 24 hours after this.
   bankSince    DateTime?
   gold         Int      @default(0)
-  bullets      Int      @default(0)
+  bullets      Float      @default(0)
   health       Int      @default(100)
   protection   Int      @default(0)
   // What the player is wearing or carrying: slot name -> store item key (e.g. {"hat":"protection:steel_hat"}).
@@ -93,11 +93,11 @@ model Player {
   theftFails    Int @default(0)
   boozeBought   Int @default(0) // crates
   boozeSold     Int @default(0) // crates
-  boozeSpent    Int @default(0)
-  boozeEarned   Int @default(0)
+  boozeSpent    Float @default(0)
+  boozeEarned   Float @default(0)
   ocsDone       Int @default(0)
   ocsLed        Int @default(0)
-  ocEarned      Int @default(0)
+  ocEarned      Float @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -166,7 +166,7 @@ model Crew {
   motto     String?  @db.Text
   // The questions an applicant must answer, set by the leader: a list of strings.
   questions Json?
-  bank      Int      @default(0)
+  bank      Float      @default(0)
   leaderId  String   @unique
   createdAt DateTime @default(now())
 
@@ -195,7 +195,7 @@ model CrewDonation {
   id        String   @id @default(cuid())
   crewId    String
   playerId  String
-  amount    Int
+  amount    Float
   createdAt DateTime @default(now())
 
   crew   Crew   @relation(fields: [crewId], references: [id], onDelete: Cascade)
@@ -232,13 +232,13 @@ model Casino {
   city       String
   game       String
   ownerId    String?
-  maxBet     Int       @default(5000)
-  profit     Int       @default(0)
+  maxBet     Float       @default(5000)
+  profit     Float       @default(0)
   plays      Int       @default(0)
-  wagered    Int       @default(0)
+  wagered    Float       @default(0)
   ownedSince DateTime?
   // The casino bankroll, held as chips. Players bet against these, not the owner's cash.
-  chips      Int       @default(0)
+  chips      Float       @default(0)
   // A new owner gets a few minutes to stock the casino before anyone may play.
   openAt     DateTime?
   // Set while the casino is held by the Escrow agent: nobody can gamble at it or change it.
@@ -256,11 +256,11 @@ model BulletFactory {
   id             String   @id @default(cuid())
   city           String   @unique
   ownerId        String?
-  stock          Int      @default(0)
-  pricePerBullet Int      @default(3)
+  stock          Float      @default(0)
+  pricePerBullet Float      @default(3)
   lastProducedAt DateTime @default(now())
-  totalProduced  Int      @default(0)
-  revenue        Int      @default(0)
+  totalProduced  Float      @default(0)
+  revenue        Float      @default(0)
 
   owner Player? @relation("BulletFactoryOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
@@ -283,7 +283,7 @@ model CrimeLog {
   playerId   String
   crimeType  String
   success    Boolean
-  cashChange Int
+  cashChange Float
   createdAt  DateTime @default(now())
 
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -293,8 +293,8 @@ model CasinoLog {
   id        String   @id @default(cuid())
   playerId  String
   game      String
-  bet       Int
-  payout    Int
+  bet       Float
+  payout    Float
   outcome   Json
   createdAt DateTime @default(now())
 
@@ -332,6 +332,7 @@ model ForumPost {
 
   @@index([topicId, createdAt])
 }
+
 // A four-player organised crime: one leader and three role slots.
 model OrganisedCrime {
   id        String   @id @default(cuid())
@@ -384,7 +385,7 @@ model BlackjackHand {
   id        String   @id @default(cuid())
   playerId  String   @unique
   city      String
-  bet       Int
+  bet       Float
   deck      Json
   player    Json
   dealer    Json
@@ -411,8 +412,8 @@ model LotteryDraw {
   id         String   @id @default(cuid())
   drawAt     DateTime @unique
   tickets    Int
-  pot        Int
-  prize      Int
+  pot        Float
+  prize      Float
   winnerName String?
   drawnAt    DateTime @default(now())
 }
@@ -439,7 +440,7 @@ model Hunt {
   targetId    String
   targetName  String
   tier        String
-  cost        Int
+  cost        Float
   createdAt   DateTime  @default(now())
   foundAt     DateTime
   status      String    @default("searching")
@@ -458,7 +459,7 @@ model Bounty {
   targetName String
   placerId   String
   placerName String
-  amount     Int
+  amount     Float
   reason     String    @default("")
   anonymous  Boolean   @default(false)
   status     String    @default("active")
@@ -478,9 +479,9 @@ model Transfer {
   fromName   String
   toId       String
   toName     String
-  amount     Int
-  fee        Int
-  received   Int
+  amount     Float
+  fee        Float
+  received   Float
   reference  String   @default("")
   kind       String   @default("player")
   createdAt  DateTime @default(now())
@@ -553,7 +554,7 @@ model EscrowItem {
   escrowId  String
   ownerId   String
   kind      String
-  amount    Int      @default(0)
+  amount    Float      @default(0)
   carId     String?
   casinoId  String?
   statementId String?
@@ -605,12 +606,12 @@ model StatRetired {
   theftWins   Int    @default(0)
   theftFails  Int    @default(0)
   ocsLed      Int    @default(0)
-  ocEarned    Int    @default(0)
+  ocEarned    Float    @default(0)
   kills       Int    @default(0)
   boozeSold   Int    @default(0)
   crimesTotal Int    @default(0)
   crimesWon   Int    @default(0)
-  crimeCash   Int    @default(0)
+  crimeCash   Float    @default(0)
 }
 
 // The game-wide statistics page, worked out once an hour and kept so it survives restarts.
@@ -650,4 +651,3 @@ model Statement {
 
   @@index([ownerId])
 }
-
