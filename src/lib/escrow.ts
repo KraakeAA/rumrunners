@@ -20,6 +20,8 @@ export async function releaseItems(tx: Tx, escrowId: string) {
       await tx.car.updateMany({ where: { id: item.carId }, data: { escrowId: null } });
     } else if (item.kind === "casino" && item.casinoId) {
       await tx.casino.updateMany({ where: { id: item.casinoId }, data: { escrowId: null } });
+    } else if (item.kind === "statement" && item.statementId) {
+      await tx.statement.updateMany({ where: { id: item.statementId }, data: { escrowId: null } });
     }
   }
   await tx.escrowItem.deleteMany({ where: { escrowId } });
