@@ -179,7 +179,7 @@ export default function MailboxSection({
           {search ? "Nothing matches that search." : "Your mailbox is empty."}
         </p>
       ) : (
-        <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 6, marginTop: 6 }}>
           {rows.map((m) => {
             const lit = fresh.includes(m.id);
             const isOpen = open === m.id;
@@ -187,6 +187,8 @@ export default function MailboxSection({
               <div
                 key={m.id}
                 style={{
+                  minWidth: 0,
+                  overflow: "hidden",
                   border: `1px solid ${lit ? "#c69a48" : BORDER}`,
                   background: lit ? "#26322c" : "#1a221e"
                 }}
@@ -228,6 +230,9 @@ export default function MailboxSection({
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
+                      minWidth: 0,
+                      maxWidth: "100%",
+                      boxSizing: "border-box",
                       color: lit ? "#fbf4de" : "#cfc6ad"
                     }}
                   >
