@@ -305,7 +305,6 @@ export async function POST(req: Request) {
         message = `${app.player.username} has joined the crew.`;
       }
     }
-
     // --------------------------------------------------------------- donate
     else if (action === "donate") {
       const amount = Number(body.amount);
@@ -321,14 +320,11 @@ export async function POST(req: Request) {
           data: { money: { decrement: amount } }
         });
         if (paid.count !== 1) throw new Refuse("You don't have that much cash.");
-        // Money moving from one player towards another loses 10%, the same as sending cash,
-        // so the crew bank can't be used to pass money around for free.
-        const { received } = splitTransfer(amount);
-        await tx.crew.update({ where: { id: crewId }, data: { bank: { increment: received } } });
-        await tx.crewDonation.create({ data: { crewId, playerId: me.id, amount: received } });
+        // Donations go in whole. The 10% fee is taken when the leader withdraws.
+        await tx.crew.update({ where: { id: crewId }, data: { bank: { increment: amount } } });
+        await tx.crewDonation.create({ data: { crewId, playerId: me.id, amount } });
       });
-      const { received: landed, fee } = splitTransfer(amount);
-      message = `You put ${gbp(amount)} into the crew bank. ${gbp(fee)} was taken as the 10% fee, so the bank received ${gbp(landed)}.`;
+      message = `You put ${gbp(amount)} into the crew bank.`;
     }
 
     // ------------------------------------------------------------- withdraw
@@ -350,9 +346,12 @@ export async function POST(req: Request) {
           data: { bank: { decrement: amount } }
         });
         if (taken.count !== 1) throw new Refuse("The crew bank doesn't hold that much.");
-        await tx.player.update({ where: { id: me.id }, data: { money: { increment: amount } } });
+        // The leader takes the money out less the 10% fee.
+        const { received } = splitTransfer(amount);
+        await tx.player.update({ where: { id: me.id }, data: { money: { increment: received } } });
       });
-      message = `You took ${gbp(amount)} out of the crew bank.`;
+      const { received: landed, fee } = splitTransfer(amount);
+      message = `You took ${gbp(amount)} out of the crew bank. ${gbp(fee)} was taken as the 10% fee, so you received ${gbp(landed)}.`;
     }
 
     // ----------------------------------------------------------------- edit
@@ -456,3 +455,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That could not be completed." }, { status: 500 });
   }
 }
+
