@@ -92,7 +92,7 @@ export async function POST(req: Request) {
     if (action === "deal") {
       const bet = Number(body.bet);
       if (!validBet(bet)) {
-        return NextResponse.json({ error: "Enter a bet between £1 and £1,000,000." }, { status: 400 });
+        return NextResponse.json({ error: "Enter a whole-number bet of at least £1." }, { status: 400 });
       }
 
       const started = await prisma.$transaction(async (tx) => {
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
 
       // A natural on either side ends the hand straight away.
       if (isBlackjack(started.player) || isBlackjack(started.dealer)) {
-        return finish(who.userId, started.hand, started.player, started.dealer, started.deck, true);
+        return await finish(who.userId, started.hand, started.player, started.dealer, started.deck, true);
       }
 
       const fresh = await prisma.player.findUnique({ where: { id: who.player.id }, select: { money: true } });
@@ -150,10 +150,10 @@ export async function POST(req: Request) {
           return NextResponse.json({ done: false, ...view({ bet: h.bet, player, dealer }, false) });
         }
         // 21 or bust: the hand is over (21 stands automatically).
-        return finish(who.userId, h, player, dealer, deck, handValue(player) === 21);
+        return await finish(who.userId, h, player, dealer, deck, handValue(player) === 21);
       }
 
-      return finish(who.userId, h, player, dealer, deck, true);
+      return await finish(who.userId, h, player, dealer, deck, true);
     }
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });
