@@ -8,6 +8,7 @@ import { carModel } from "@/lib/era";
 import { casinoDef, OPENING_WINDOW_MS } from "@/lib/venues";
 import {
   MAX_AMOUNT,
+  MAX_CASH_AMOUNT,
   MAX_ITEMS_PER_SIDE,
   MAX_OPEN_ESCROWS,
   cancelEscrow,
@@ -165,6 +166,7 @@ async function complete(tx: Tx, escrowId: string) {
     data: { status: "completed", completedAt: new Date() }
   });
 }
+
 // ---------- actions ----------
 
 export async function POST(req: Request) {
@@ -267,7 +269,7 @@ export async function POST(req: Request) {
 
         if (kind === "cash" || kind === "gold") {
           const amount = Math.floor(Number(body.amount));
-          if (!Number.isSafeInteger(amount) || amount < 1 || amount > MAX_AMOUNT) {
+          if (!Number.isSafeInteger(amount) || amount < 1 || amount > (kind === "cash" ? MAX_CASH_AMOUNT : MAX_AMOUNT)) {
             throw new Refuse("Enter a whole amount.");
           }
           const taken =
@@ -383,4 +385,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That could not be completed." }, { status: 500 });
   }
 }
-
