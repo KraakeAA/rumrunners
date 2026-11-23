@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { CARS, PLATE_COST, PLATE_HEAT_DROP, THEFT_COOLDOWNS, THEFT_LEVELS } from "@/lib/era";
+import { CARS, PLATE_COST, PLATE_HEAT_DROP, SHIP_CITIES, THEFT_COOLDOWNS, THEFT_LEVELS } from "@/lib/era";
 import { GameImage, JobCard, slugify } from "@/components/GameImage";
 import { clock } from "@/components/EnergyBar";
 import { rankForLevel } from "@/lib/ranks";
@@ -79,10 +79,12 @@ type WorkshopCar = {
   id: string;
   name: string;
   plate: string;
+  originCity: string;
   city: string;
   heat: number;
   damage: number;
   repairCost: number;
+  shipCost: number;
 };
 
 export default function AutoTheftSection({
@@ -139,13 +141,39 @@ export default function AutoTheftSection({
     }
   }
 
+  const [shipTo, setShipTo] = useState<Record<string, string>>({});
+
+  async function ship(carId: string) {
+    const destination = shipTo[carId];
+    if (!destination || busy) return;
+    setBusy(true);
+    setShopMsg("");
+    try {
+      const response = await fetch("/api/garage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "ship", carId, destination }),
+      });
+      const data = await response.json();
+      setShopMsg(data.error || data.message || "");
+      if (response.ok) {
+        if (typeof data.money === "number") onCash(data.money);
+        setShipTo({ ...shipTo, [carId]: "" });
+        loadCars();
+      }
+    } catch {
+      setShopMsg("Unable to connect. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const picked = cars.find((c) => c.id === selected);
   const pickedHere = !!picked;
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TheftResult | null>(null);
-
   async function steal(level: number) {
     setBusy(true);
     setError("");
@@ -283,36 +311,69 @@ export default function AutoTheftSection({
       </div>
 
       <div style={panel}>
-        <div style={barStyle}>Your cars: number plates and repairs</div>
+        <div style={barStyle}>Your cars</div>
         {cars.length === 0 ? (
           <div style={{ padding: 8, ...sub }}>You have no cars yet.</div>
         ) : (
           <>
             {cars.map((c) => (
-              <label
+              <div
                 key={c.id}
                 style={{
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "center",
-                  padding: "5px 8px",
+                  padding: "6px 8px",
                   borderBottom: "1px solid #6b5d3a",
-                  background: selected === c.id ? "#3a2f20" : "transparent",
-                  cursor: "pointer",
+                  background: selected === c.id ? "#2c3a32" : "transparent",
                 }}
               >
-                <input
-                  type="radio"
-                  name="workshop-car"
-                  checked={selected === c.id}
-                  onChange={() => setSelected(c.id)}
-                />
-                <span style={{ flex: 1 }}>
-                  <strong>{c.name}</strong> <span style={sub}>[{c.plate}]</span>
-                  <HeatBar heat={c.heat} />
-                  <DamageBar damage={c.damage} />
-                </span>
-              </label>
+                <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="workshop-car"
+                    checked={selected === c.id}
+                    onChange={() => setSelected(c.id)}
+                    style={{ marginTop: 3 }}
+                  />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <strong>{c.name}</strong> <span style={sub}>[{c.plate}]</span>
+                    <div style={sub}>
+                      Origin: {c.originCity} · Now in: <strong style={{ color: "#f7efdb" }}>{c.city}</strong>
+                    </div>
+                    <HeatBar heat={c.heat} />
+                    <DamageBar damage={c.damage} />
+                  </span>
+                </label>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 5, marginLeft: 22 }}>
+                  <select
+                    value={shipTo[c.id] ?? ""}
+                    onChange={(e) => setShipTo({ ...shipTo, [c.id]: e.target.value })}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      padding: "4px 6px",
+                      border: "1px solid #a08340",
+                      borderRadius: 0,
+                      background: "#0e1411",
+                      color: "#f7efdb",
+                      fontSize: 16,
+                    }}
+                  >
+                    <option value="">Send to…</option>
+                    {SHIP_CITIES.filter((x) => x !== c.city).map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!shipTo[c.id] || busy}
+                    onClick={() => ship(c.id)}
+                    style={{ ...btn, padding: "5px 10px", fontSize: 12, flexShrink: 0, opacity: !shipTo[c.id] || busy ? 0.5 : 1 }}
+                  >
+                    Ship (£{c.shipCost.toLocaleString("en-GB")})
+                  </button>
+                </div>
+              </div>
             ))}
             <div style={{ padding: 8 }}>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -339,7 +400,8 @@ export default function AutoTheftSection({
                 </button>
               </div>
               <div style={{ ...sub, marginTop: 6 }}>
-                A new plate takes {PLATE_HEAT_DROP} points off the car&apos;s heat. Damaged cars are
+                A new plate takes {PLATE_HEAT_DROP} points off the car&apos;s heat. Shipping sends a car by
+                rail freight to another city; the plate still shows where it was stolen. Damaged cars are
                 slower: up to 50% longer waits between journeys. Repairs cost more for finer cars.
               </div>
               {shopMsg && <p style={{ color: "#ddc18d", margin: "6px 0 0" }}>{shopMsg}</p>}
@@ -351,3 +413,4 @@ export default function AutoTheftSection({
     </div>
   );
 }
+
