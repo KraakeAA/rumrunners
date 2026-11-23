@@ -23,6 +23,7 @@ type Data = {
   maxItems: number;
   cars: { id: string; name: string; plate: string; city: string }[];
   casinos: { id: string; name: string }[];
+  statements: { id: string; name: string }[];
   escrows: Escrow[];
 };
 
@@ -56,7 +57,7 @@ const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 function itemText(i: Item) {
   if (i.kind === "cash") return gbp(i.amount);
   if (i.kind === "gold") return `${i.amount.toLocaleString("en-GB")} gold`;
-  return i.carName; // a car or a casino
+  return i.carName; // a car, a casino or a witness statement
 }
 
 function timeLeft(iso: string | null, now: number): string {
@@ -354,6 +355,20 @@ export default function EscrowSection({
                 </div>
               ))}
 
+              {(data.statements ?? []).map((st) => (
+                <div key={st.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 6, alignItems: "center" }}>
+                  <span style={{ color: "#f7efdb", minWidth: 0, overflowWrap: "anywhere" }}>{st.name}</span>
+                  <button
+                    className="button"
+                    style={{ ...small, opacity: busy ? 0.55 : 1 }}
+                    disabled={busy}
+                    onClick={() => act({ action: "add", id: current.id, kind: "statement", statementId: st.id })}
+                  >
+                    Add
+                  </button>
+                </div>
+              ))}
+
               <div style={{ fontSize: 11, color: "#b7ad93" }}>
                 You have {gbp(data.money)} cash and {data.gold.toLocaleString("en-GB")} gold. You can add as many
                 things as you like. Guns, protection and bullets can&apos;t be traded. A casino you add is closed to gamblers while it is in escrow. What you add is taken from
@@ -387,7 +402,6 @@ export default function EscrowSection({
       </div>
     );
   }
-
   // ---------------- The office ----------------
   const invites = data.escrows.filter((e) => e.status === "invited" && !e.fromMe);
   const waiting = data.escrows.filter((e) => e.status === "invited" && e.fromMe);
@@ -400,7 +414,7 @@ export default function EscrowSection({
         <div style={{ ...box, color: "#c9bfa6", fontSize: 12, lineHeight: 1.5 }}>
           Trade safely with another player. Once they accept your invitation, an agent takes possession of the
           goods each of you adds. When you have both locked your offers and agreed to the trade, the agent hands
-          everything over. Cash, gold, cars and casinos can be traded, and the agent charges {data.feePercent}% on all cash. An escrow is cancelled automatically after 30 minutes if you haven&apos;t both agreed.
+          everything over. Cash, gold, cars, casinos and witness statements can be traded, and the agent charges {data.feePercent}% on all cash. An escrow is cancelled automatically after 30 minutes if you haven&apos;t both agreed.
         </div>
 
         {notice}
@@ -505,3 +519,4 @@ export default function EscrowSection({
     </div>
   );
 }
+
