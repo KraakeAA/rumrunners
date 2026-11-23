@@ -31,7 +31,7 @@ export async function GET() {
         name: l.username,
         rank: l.rank,
         diedAt: l.diedAt.toISOString(),
-        killedBy: l.killedBy,
+        killedBy: l.killedBy === "suicide" ? "suicide" : l.killedBy ? "shot" : null,
         revived: l.revivedAt !== null
       });
     }
@@ -42,7 +42,7 @@ export async function GET() {
           name: p.username,
           rank: p.rank,
           diedAt: (p.diedAt ?? new Date()).toISOString(),
-          killedBy: p.killedBy,
+          killedBy: p.killedBy === "suicide" ? "suicide" : p.killedBy ? "shot" : null,
           revived: false
         });
       }
