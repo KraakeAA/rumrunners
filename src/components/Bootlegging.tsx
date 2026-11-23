@@ -45,45 +45,40 @@ const subBar: CSSProperties = {
   borderBottom: "1px solid #3d4a41"
 };
 
-const list: CSSProperties = {
+const grid: CSSProperties = {
   display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
   gap: 4,
   padding: 4,
-  background: "#171d1a"
+  background: "#1f2a25"
 };
 
-const card: CSSProperties = {
+const tile: CSSProperties = {
+  minWidth: 0,
   display: "grid",
-  gridTemplateColumns: "64px minmax(0, 1fr)",
-  gap: 8,
-  padding: 6,
-  background: "#1f2a25",
-  border: "1px solid #3d4a41"
+  gap: 3,
+  justifyItems: "center",
+  textAlign: "center"
 };
 
-const fieldLabel: CSSProperties = {
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: 0.4,
-  marginBottom: 2
-};
-
-const confirmBtn: CSSProperties = {
-  width: "100%",
-  padding: "10px 12px",
-  border: "1px solid #ffffff",
-  borderRadius: 3,
-  background: "#ffffff",
+// The same light pill as the Search! button on the forum.
+const pillBtn: CSSProperties = {
+  padding: "7px 16px",
+  border: "1px solid #d6d6d6",
+  borderRadius: 999,
+  background: "#f2f2f2",
   color: "#111111",
   fontSize: 14,
-  fontWeight: 700,
-  cursor: "pointer"
+  lineHeight: 1.2,
+  whiteSpace: "nowrap",
+  cursor: "pointer",
+  WebkitAppearance: "none"
 };
 
 const input: CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
-  height: 30,
+  height: 28,
   padding: "0 2px",
   border: "1px solid #a08340",
   borderRadius: 0,
@@ -234,74 +229,72 @@ export default function BootleggingSection({ onCash }: { onCash: (money: number)
         </div>
 
         <div style={subBar}>Buy and sell</div>
-        <div style={list}>
+        <div style={grid}>
           {data.market.map((m) => (
-            <div key={m.key} style={card}>
-              <GameImage slot={`booze/${m.key}`} width="100%" ratio={1} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
-                  <span style={{ fontSize: 13, color: "#f7efdb", fontFamily: "Georgia, serif" }}>{m.name}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#f7efdb", whiteSpace: "nowrap" }}>
-                    {gbp(m.price)}{" "}
-                    <span style={{ fontSize: 10, fontWeight: 400, color: tagColour[m.tag] }}>{tagLabel[m.tag]}</span>
-                  </span>
-                </div>
-                <div style={{ fontSize: 10, color: "#b7ad93", margin: "1px 0 4px" }}>
-                  You hold {m.held}
-                  {m.held > 0 && m.sellable < m.held
-                    ? ` · ${m.sellable > 0 ? `${m.sellable} sellable here` : "can't sell here"}`
-                    : ""}
-                </div>
-
-                {!data.jailed && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                    <div>
-                      <div style={{ ...fieldLabel, color: "#7fe08f" }}>BUY</div>
-                      <input
-                        aria-label={`Buy crates of ${m.name}`}
-                        inputMode="numeric"
-                        placeholder="0"
-                        value={buy[m.key] ?? ""}
-                        onChange={(e) => setBuy({ ...buy, [m.key]: e.target.value.replace(/\D/g, "") })}
-                        style={input}
-                      />
-                    </div>
-                    <div>
-                      <div style={{ ...fieldLabel, color: "#e4c04d" }}>SELL</div>
-                      <input
-                        aria-label={`Sell crates of ${m.name}`}
-                        inputMode="numeric"
-                        placeholder="0"
-                        disabled={m.sellable === 0}
-                        value={sell[m.key] ?? ""}
-                        onChange={(e) => setSell({ ...sell, [m.key]: e.target.value.replace(/\D/g, "") })}
-                        style={{ ...input, opacity: m.sellable === 0 ? 0.35 : 1 }}
-                      />
-                    </div>
-                  </div>
-                )}
+            <div key={m.key} style={tile}>
+              <GameImage slot={`booze/${m.key}`} width="100%" height={58} />
+              <div style={{ fontSize: 11, lineHeight: 1.2, color: "#f7efdb", minHeight: 26 }}>
+                {m.name}
               </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#f7efdb" }}>{gbp(m.price)}</div>
+              <div style={{ fontSize: 10, color: tagColour[m.tag] }}>{tagLabel[m.tag]}</div>
+
+              {!data.jailed && (
+                <>
+                  <div style={{ fontSize: 10, color: "#7fe08f", fontWeight: 700, marginTop: 2 }}>BUY</div>
+                  <input
+                    aria-label={`Buy crates of ${m.name}`}
+                    inputMode="numeric"
+                    value={buy[m.key] ?? ""}
+                    onChange={(e) => setBuy({ ...buy, [m.key]: e.target.value.replace(/\D/g, "") })}
+                    style={input}
+                  />
+
+                  <div style={{ fontSize: 10, color: "#e4c04d", fontWeight: 700, marginTop: 2 }}>
+                    SELL · {m.held} held
+                  </div>
+                  <input
+                    aria-label={`Sell crates of ${m.name}`}
+                    inputMode="numeric"
+                    disabled={m.sellable === 0}
+                    value={sell[m.key] ?? ""}
+                    onChange={(e) => setSell({ ...sell, [m.key]: e.target.value.replace(/\D/g, "") })}
+                    style={{ ...input, opacity: m.sellable === 0 ? 0.35 : 1 }}
+                  />
+                  {m.held > 0 && m.sellable < m.held && (
+                    <div style={{ fontSize: 9, lineHeight: 1.2, color: "#e4c04d" }}>
+                      {m.sellable > 0 ? `${m.sellable} sellable here` : "can't sell here"}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           ))}
         </div>
 
-        <div style={{ padding: "8px 10px", borderTop: "1px solid #3d4a41" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#d4cab2", marginBottom: 8 }}>
-            <span>
-              Buying: <strong style={{ color: "#f7efdb" }}>{gbp(buyTotal)}</strong>
-            </span>
-            <span>
-              Selling: <strong style={{ color: "#7fe08f" }}>{gbp(sellTotal)}</strong>
-            </span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            padding: "8px 10px",
+            borderTop: "1px solid #3d4a41"
+          }}
+        >
+          <div style={{ fontSize: 12, lineHeight: 1.5, color: "#d4cab2" }}>
+            Buying: <strong style={{ color: "#f7efdb" }}>{gbp(buyTotal)}</strong>
+            <br />
+            Selling: <strong style={{ color: "#7fe08f" }}>{gbp(sellTotal)}</strong>
           </div>
           {!data.jailed && (
             <button
               type="button"
-              style={{ ...confirmBtn, opacity: busy ? 0.55 : 1 }}
+              style={{ ...pillBtn, opacity: busy ? 0.55 : 1 }}
               disabled={busy}
               onClick={complete}
             >
-              Confirm
+              Complete transaction!
             </button>
           )}
         </div>
