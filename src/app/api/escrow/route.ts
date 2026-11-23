@@ -20,7 +20,7 @@ class Refuse extends Error {}
 type Tx = Prisma.TransactionClient;
 
 const kindLabel = (kind: string) =>
-  kind === "cash" ? "Cash" : kind === "gold" ? "Gold" : kind === "casino" ? "Casino" : "Car";
+  kind === "cash" ? "Cash" : kind === "gold" ? "Gold" : kind === "casino" ? "Casino" : kind === "statement" ? "Statement" : "Car";
 
 // ---------- reading ----------
 
@@ -34,7 +34,7 @@ export async function GET() {
     const me = await prisma.player.findUnique({ where: { userId } });
     if (!me) return NextResponse.json({ error: "Player not found." }, { status: 404 });
 
-    const [escrows, carRows, committed, casinoRows] = await Promise.all([
+    const [escrows, carRows, committed, casinoRows, statementRows] = await Promise.all([
       prisma.escrow.findMany({
         where: { status: { in: ["invited", "active"] }, OR: [{ aId: me.id }, { bId: me.id }] },
         include: { items: { orderBy: { createdAt: "asc" } } },
@@ -42,7 +42,8 @@ export async function GET() {
       }),
       prisma.car.findMany({ where: { ownerId: me.id, escrowId: null }, orderBy: { createdAt: "asc" } }),
       prisma.ocSlot.findMany({ where: { playerId: me.id, carId: { not: null } }, select: { carId: true } }),
-      prisma.casino.findMany({ where: { ownerId: me.id, escrowId: null, game: { not: "War" } }, orderBy: { city: "asc" } })
+      prisma.casino.findMany({ where: { ownerId: me.id, escrowId: null, game: { not: "War" } }, orderBy: { city: "asc" } }),
+      prisma.statement.findMany({ where: { ownerId: me.id, escrowId: null }, orderBy: { createdAt: "asc" } })
     ]);
     const busyCars = new Set(committed.map((c) => c.carId as string));
 
@@ -59,6 +60,7 @@ export async function GET() {
           return m ? [{ id: c.id, name: m.name, plate: c.plate, city: c.city }] : [];
         }),
       casinos: casinoRows.map((c) => ({ id: c.id, name: `${casinoDef(c.game).label} in ${c.city}` })),
+      statements: statementRows.map((x) => ({ id: x.id, name: `Witness statement (${x.opened ? "opened" : "closed"}): ${x.victimName}, ${x.city}` })),
       escrows: escrows.map((e) => {
         const mineIsA = e.aId === me.id;
         return {
@@ -132,6 +134,9 @@ async function complete(tx: Tx, escrowId: string) {
       await tx.player.update({ where: { id: to.id }, data: { gold: { increment: item.amount } } });
     } else if (item.kind === "car" && item.carId) {
       await tx.car.update({ where: { id: item.carId }, data: { ownerId: to.id, escrowId: null } });
+    } else if (item.kind === "statement" && item.statementId) {
+      // It arrives as it was sold: closed stays closed, opened stays opened.
+      await tx.statement.update({ where: { id: item.statementId }, data: { ownerId: to.id, escrowId: null } });
     } else if (item.kind === "casino" && item.casinoId) {
       // The chips inside go back to the seller as cash. The buyer starts with an
       // empty casino and a five minute window to stock it.
@@ -160,7 +165,6 @@ async function complete(tx: Tx, escrowId: string) {
     data: { status: "completed", completedAt: new Date() }
   });
 }
-
 // ---------- actions ----------
 
 export async function POST(req: Request) {
@@ -322,8 +326,25 @@ export async function POST(req: Request) {
               carName: `${casinoDef(casino.game).label} in ${casino.city}`
             }
           });
+        } else if (kind === "statement") {
+          if (mine >= MAX_ITEMS_PER_SIDE) throw new Refuse(`You can offer at most ${MAX_ITEMS_PER_SIDE} things.`);
+          const statementId = String(body.statementId ?? "");
+          const st = await tx.statement.findFirst({ where: { id: statementId, ownerId: me.id, escrowId: null } });
+          if (!st) throw new Refuse("Choose one of your witness statements.");
+          const held = await tx.statement.updateMany({ where: { id: st.id, ownerId: me.id, escrowId: null }, data: { escrowId: id } });
+          if (held.count !== 1) throw new Refuse("That statement is already in a trade.");
+          // The other player sees whether it is opened or closed, never who the killer is.
+          await tx.escrowItem.create({
+            data: {
+              escrowId: id,
+              ownerId: me.id,
+              kind: "statement",
+              statementId: st.id,
+              carName: `Witness statement (${st.opened ? "opened" : "closed"}): ${st.victimName}, ${st.city}`
+            }
+          });
         } else {
-          throw new Refuse("You can only trade cash, gold, cars and casinos.");
+          throw new Refuse("You can only trade cash, gold, cars, casinos and witness statements.");
         }
 
         return `${kindLabel(kind)} added.`;
