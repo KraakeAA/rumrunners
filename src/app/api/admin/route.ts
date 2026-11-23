@@ -10,7 +10,9 @@ import { OPENING_WINDOW_MS } from "@/lib/venues";
 class Refuse extends Error {}
 
 const FIELDS = ["money", "bank", "gold", "bullets"] as const;
-const MAX_VALUE = 2_000_000_000;
+// Gold is still a normal 32-bit number; cash, bank and bullets can go far higher.
+const MAX_GOLD = 2_000_000_000;
+const MAX_VALUE = 1_000_000_000_000_000;
 
 // Moderators (level 2) can look players up and use the safe tools; the rest is for admins (level 3).
 async function requireStaff(min: number) {
@@ -172,7 +174,7 @@ export async function POST(req: Request) {
         const row = await tx.player.findUnique({ where: { id: target.id }, select: { [field]: true } });
         if (!row) throw new Refuse("No player with that name.");
         const current = (row as unknown as Record<string, number>)[field];
-        const next = Math.max(0, Math.min(MAX_VALUE, mode === "set" ? amount : current + amount));
+        const next = Math.max(0, Math.min(field === "gold" ? MAX_GOLD : MAX_VALUE, mode === "set" ? amount : current + amount));
         await tx.player.update({ where: { id: target.id }, data: { [field]: next } });
         message = `${target.username}'s ${field} is now ${next.toLocaleString("en-GB")}.`;
       });
