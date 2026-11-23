@@ -376,7 +376,6 @@ export function CasinoSection({
       </div>
     );
   }
-
   // Everyone else: the game, with the owner and max bet shown.
   const gameKey = `${casino.id}-${casino.ownerId ?? "house"}`;
   const onPlayed = (info: { takeover: boolean; previousOwner: string | null; payout: number }) => {
@@ -631,7 +630,6 @@ export function CitiesSection() {
     </div>
   );
 }
-
 /* --------------------------- Bullet factory --------------------------- */
 
 function countdown(iso: string | null, now: number): string {
@@ -854,6 +852,7 @@ export function BulletFactorySection({
         </div>
       )}
 
+      {factory.ownerId && !mine && (
       <div style={panel}>
         <Bar>Melt a car for bullets</Bar>
         {garage.length === 0 ? (
@@ -886,8 +885,11 @@ export function BulletFactorySection({
           ))
         )}
       </div>
+      )}
 
       {msg && <p style={{ color: "#ddc18d", textAlign: "center" }}>{msg}</p>}
     </div>
   );
 }
+
+
