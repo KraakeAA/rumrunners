@@ -229,7 +229,6 @@ export default function CrewSection({
       )}
     </>
   );
-
   // ------------------------------------------------------------- not in a crew
   if (!data.mine) {
     const full = data.crewCount >= data.maxCrews;
@@ -392,7 +391,6 @@ export default function CrewSection({
       </div>
     );
   }
-
   // --------------------------------------------------------------- in a crew
   const crew = data.mine;
   const pending = crew.applications.length;
@@ -535,7 +533,6 @@ export default function CrewSection({
             <div style={sub}>Crew bank</div>
             <div style={{ fontFamily: "Georgia, serif", fontSize: 16, color: "#f7efdb" }}>{gbp(crew.bank)}</div>
             <div style={sub}>You hold {gbp(data.money)} in cash.</div>
-            <div style={sub}>Donations lose 10% as a fee.</div>
           </div>
           <div style={box}>
             <input
@@ -690,3 +687,5 @@ export default function CrewSection({
     </div>
   );
 }
+
+
