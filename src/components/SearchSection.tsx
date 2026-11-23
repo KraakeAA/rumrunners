@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { GameImage } from "@/components/GameImage";
 
-type Detective = { key: string; name: string; note: string; price: number; minutes: number };
+type Detective = { key: string; name: string; note: string; price: number; minMinutes: number; maxMinutes: number; windowMinutes: number };
 type Hunt = {
   id: string;
   targetName: string;
@@ -20,7 +20,6 @@ type Data = {
   firepower: number;
   shielded: boolean;
   shieldUntil: string | null;
-  windowMinutes: number;
   detectives: Detective[];
   hunts: Hunt[];
 };
@@ -67,7 +66,9 @@ function span(ms: number) {
   return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const minutesText = (m: number) => (m >= 60 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`);
+const minutesText = (m: number) => (m >= 60 ? `${Math.round((m / 60) * 10) / 10} hour${m === 60 ? "" : "s"}` : `${m} minutes`);
+const rangeText = (lo: number, hi: number) =>
+  lo >= 60 ? `${Math.round((lo / 60) * 10) / 10}-${Math.round((hi / 60) * 10) / 10} hours` : `${lo}-${hi} minutes`;
 
 export default function SearchSection({
   onCash
@@ -141,6 +142,7 @@ export default function SearchSection({
       return left > 0 ? `Found in ${h.foundCity}. ${span(left)} left to take the shot.` : "The trail went cold.";
     }
     if (h.status === "done") return "Finished.";
+    if (h.status === "failed") return "You took your shot and missed. The detective has gone.";
     if (h.status === "lost") return "The trail was lost.";
     return "The trail went cold.";
   }
@@ -149,8 +151,8 @@ export default function SearchSection({
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <div style={bar}>Search</div>
       <div style={{ ...box, borderTop: 0, color: "#c9bfa6", fontSize: 12 }}>
-        Hire a detective to find a man. When he reports, you will have {data ? minutesText(data.windowMinutes) : "a few hours"} to
-        get to that city and take the shot from the Whack page.
+        Hire a detective to find a man. He will report at a random moment inside his time range. When he does, you get a
+        short window to reach that city and take one shot from the Whack page. Miss, and the detective is gone.
       </div>
 
       {data && data.shielded && (
@@ -204,7 +206,7 @@ export default function SearchSection({
                     <span style={{ color: "#f7efdb" }}>{d.name}</span>{" "}
                     <span style={{ color: "#e4c04d" }}>{gbp(d.price)}</span>
                     <div style={{ fontSize: 11, color: "#b7ad93" }}>
-                      {d.note} Reports in {minutesText(d.minutes)}.
+                      {d.note} Reports any time in {rangeText(d.minMinutes, d.maxMinutes)}. Then {minutesText(d.windowMinutes)} to shoot.
                     </div>
                   </span>
                 </label>
@@ -212,8 +214,8 @@ export default function SearchSection({
             </div>
             <div style={sectionHead}>Information:</div>
             <div style={{ padding: "4px 8px", fontSize: 11, color: "#c9bfa6", lineHeight: 1.35 }}>
-              Once your man is found you will have {data ? minutesText(data.windowMinutes) : "a few hours"} to
-              reach his city and take the shot. Finer detectives report sooner.
+              You will get a letter the moment he is found. You then have a short window to reach his city and take
+              your one shot. The dearest detectives report sooner but leave the shortest window.
             </div>
           </div>
         </div>
