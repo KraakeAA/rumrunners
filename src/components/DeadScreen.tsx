@@ -74,7 +74,7 @@ export default function DeadScreen({
       <div style={{ ...box, borderTop: 0, textAlign: "center" }}>
         <p style={{ margin: "0 0 6px", fontSize: 14 }}>
           <strong>{name}</strong>, {rank}, is gone.
-          {killedBy === "suicide" ? " Took their own life." : killedBy ? ` Shot down by ${killedBy}.` : ""}
+          {killedBy === "suicide" ? " Took their own life." : killedBy ? " Shot down." : ""}
         </p>
         <p style={{ margin: 0, fontSize: 13, color: "#c9bfa6" }}>
           Everything is lost: rank, cash, cars, kit and all. Only your gold survives
