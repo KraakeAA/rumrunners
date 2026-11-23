@@ -149,7 +149,7 @@ export default async function Home({
       username: l.username,
       rank: l.rank,
       diedAt: l.diedAt.toISOString(),
-      killedBy: l.killedBy
+      killedBy: l.killedBy === "suicide" ? "suicide" : l.killedBy ? "shot" : null
     }));
 
     return (
@@ -157,7 +157,7 @@ export default async function Home({
         name={player.username}
         rank={player.rank}
         gold={player.gold}
-        killedBy={player.killedBy}
+        killedBy={player.killedBy === "suicide" ? "suicide" : player.killedBy ? "shot" : null}
         lives={lives}
       />
     );
