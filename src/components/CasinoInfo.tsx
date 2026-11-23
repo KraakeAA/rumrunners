@@ -14,12 +14,12 @@ const RULES: Record<InfoGame, { title: string; intro: string[]; lines?: string[]
       "To play, select 10 numbers from a chart of 80. The game will draw 20 random numbers. The more numbers you match the more you win. You must match at least 5 numbers to win."
     ],
     lines: [
-      "Matching 5 numbers will pay out your bet x 5",
-      "Matching 6 numbers will pay out your bet x 24",
-      "Matching 7 numbers will pay out your bet x 142",
-      "Matching 8 numbers will pay out your bet x 1,000",
-      "Matching 9 numbers will pay out your bet x 4,500",
-      "Matching 10 numbers will pay out your bet x 10,000"
+      "Matching 5 numbers (about 1 in 19) will pay out your bet x 5",
+      "Matching 6 numbers (about 1 in 87) will pay out your bet x 24",
+      "Matching 7 numbers (about 1 in 621) will pay out your bet x 142",
+      "Matching 8 numbers (about 1 in 7,385) will pay out your bet x 1,000",
+      "Matching 9 numbers (about 1 in 163,381) will pay out your bet x 4,500",
+      "Matching 10 numbers (about 1 in 8,911,711) will pay out your bet x 10,000"
     ]
   },
   Slots: {
