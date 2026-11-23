@@ -36,6 +36,7 @@ export default function CasinoGames({
   onCash,
   ownerName,
   ownerCrewColor,
+  wealth,
   maxBet,
   onPlayed,
 }: Props) {
@@ -260,9 +261,10 @@ export default function CasinoGames({
 
         <div
           style={{
-            margin: "10px 10px 8px",
-            minHeight: 46,
-            padding: "10px 8px",
+            margin: "8px auto 6px",
+            width: "88%",
+            minHeight: 32,
+            padding: "5px 8px",
             borderRadius: 6,
             background: "#242926",
             textAlign: "center",
@@ -297,7 +299,7 @@ export default function CasinoGames({
             gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
             gap: 0,
             margin: "0 auto",
-            width: "calc(100% - 20px)",
+            width: "88%",
             border: "1px solid #8a8a80",
             boxSizing: "border-box",
           }}
@@ -340,7 +342,7 @@ export default function CasinoGames({
                   border: "1px solid #8a8a80",
                   background,
                   color,
-                  fontSize: "clamp(12px, 4.4vw, 20px)",
+                  fontSize: "clamp(11px, 3.9vw, 17px)",
                   fontWeight: 400,
                   lineHeight: 1,
                   display: "grid",
@@ -363,7 +365,8 @@ export default function CasinoGames({
             gridTemplateColumns: "1fr auto 1fr",
             alignItems: "start",
             gap: 5,
-            margin: "10px 10px 0",
+            margin: "6px auto 0",
+            width: "88%",
           }}
         >
           <div style={{ justifySelf: "start" }}>
@@ -389,7 +392,7 @@ export default function CasinoGames({
             justifyContent: "center",
             alignItems: "center",
             gap: 6,
-            padding: "14px 8px 6px",
+            padding: "8px 8px 2px",
             boxSizing: "border-box",
           }}
         >
@@ -438,17 +441,24 @@ export default function CasinoGames({
           </button>
         </div>
 
-        <div style={{ textAlign: "center", fontSize: 12, lineHeight: 1.7, color: "#f1e8d3", padding: "4px 8px 10px" }}>
+        <div style={{ textAlign: "center", fontSize: 12, lineHeight: 1.5, color: "#f1e8d3", padding: "2px 8px 8px" }}>
           <div>
             <b>Maximum bet:</b> {limit >= 2_000_000_000 ? "No limit" : `£${limit.toLocaleString("en-GB")}`}
           </div>
+          {wealth ? (
+            <div>
+              <b>Wealth:</b> {wealth}
+            </div>
+          ) : null}
         </div>
 
         {message && (
           <div
             style={{
-              margin: "0 10px 10px",
-              padding: "6px 8px",
+              margin: "0 auto 8px",
+              width: "88%",
+              boxSizing: "border-box",
+              padding: "5px 8px",
               background: "#382522",
               border: "1px solid #805044",
               color: "#e6b9a7",
@@ -461,7 +471,7 @@ export default function CasinoGames({
           </div>
         )}
 
-        <div style={{ margin: "0 10px 12px", padding: "8px 8px 10px", borderRadius: 6, background: "#242926" }}>
+        <div style={{ margin: "0 auto 10px", width: "88%", boxSizing: "border-box", padding: "6px 8px 8px", borderRadius: 6, background: "#242926" }}>
           <div style={{ fontSize: 12, marginBottom: 8 }}>
             <b>Saved Sets</b>{" "}
             <button
@@ -608,12 +618,6 @@ export default function CasinoGames({
     { label: "£100k", value: 100000 },
   ];
   const maxStake = Math.max(1, Math.min(limit, cash));
-  const prizes: { symbols: string[]; x: number }[] = [
-    { symbols: ["7", "7", "7"], x: 500 },
-    { symbols: ["BAR", "BAR", "BAR"], x: 100 },
-    { symbols: ["🍊", "🍊", "🍊"], x: 50 },
-    { symbols: ["🍒", "🍒", "🍒"], x: 20 },
-  ];
 
   return (
     <section
@@ -622,7 +626,7 @@ export default function CasinoGames({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "6px 0 12px",
+        padding: "4px 0 8px",
         boxSizing: "border-box",
         background: "transparent",
         color: "#f2eadb",
@@ -643,17 +647,17 @@ export default function CasinoGames({
         {/* Machine header */}
         <div
           style={{
-            minHeight: 38,
+            minHeight: 30,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "6px 8px",
+            padding: "4px 8px",
             boxSizing: "border-box",
             borderBottom: "2px solid #c1a16b",
             background: "linear-gradient(180deg, #a18459 0%, #80613d 30%, #594027 68%, #382617 100%)",
             color: "#f4dfb7",
             fontFamily: "Georgia, serif",
-            fontSize: 16,
+            fontSize: 15,
             letterSpacing: 0.5,
             textShadow: "0 1px 3px #000",
             position: "relative",
@@ -664,35 +668,6 @@ export default function CasinoGames({
         </div>
         <OwnerBar ownerName={ownerName} crewColor={ownerCrewColor} />
 
-        {/* Top prizes, always on show */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-            gap: 3,
-            padding: "4px 6px",
-            fontSize: 10,
-            textAlign: "center",
-            color: "#f4dfb7",
-          }}
-        >
-          {prizes.map((p) => (
-            <div key={p.symbols.join("")} style={{ background: "#00000040", borderRadius: 3, padding: "2px 0", lineHeight: 1.3 }}>
-              <div style={{ display: "flex", justifyContent: "center", gap: 1, height: 14 }}>
-                {p.symbols.map((sym, i) => (
-                  <img
-                    key={i}
-                    src={getSlotArtwork(sym).src}
-                    alt=""
-                    style={{ height: 14, width: 14, objectFit: "contain" }}
-                  />
-                ))}
-              </div>
-              <b style={{ color: "#ffe08a" }}>×{p.x}</b>
-            </div>
-          ))}
-        </div>
-
         {/* Reel window */}
         <div
           style={{
@@ -700,7 +675,7 @@ export default function CasinoGames({
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             gap: 4,
-            padding: 6,
+            padding: 4,
             background: "linear-gradient(180deg, #c6a979, #94744b 55%, #62472b)",
             borderTop: "2px solid #b0904a",
             borderBottom: "2px solid #b0904a",
@@ -713,7 +688,7 @@ export default function CasinoGames({
               <div
                 key={index}
                 style={{
-                  height: "clamp(96px, 30vw, 124px)",
+                  height: "clamp(70px, 22vw, 92px)",
                   minWidth: 0,
                   background: spinning
                     ? "linear-gradient(180deg, #e9dcc0, #fffaf0 50%, #e9dcc0)"
@@ -721,7 +696,7 @@ export default function CasinoGames({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  padding: 6,
+                  padding: 4,
                   boxSizing: "border-box",
                   border: "1px solid #d8c49f",
                   boxShadow: "inset 0 0 8px #9b8157, inset 0 6px 8px -6px #0006, inset 0 -6px 8px -6px #0006",
@@ -762,11 +737,11 @@ export default function CasinoGames({
         <div
           aria-live="polite"
           style={{
-            minHeight: 36,
+            minHeight: 26,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "6px 5px",
+            padding: "3px 5px",
             boxSizing: "border-box",
             background: slotWon
               ? "linear-gradient(180deg, #61764f, #405638)"
@@ -774,7 +749,7 @@ export default function CasinoGames({
             borderBottom: "2px solid #b0904a",
             color: "#f4e6c7",
             textAlign: "center",
-            fontSize: slotWon ? 16 : 14,
+            fontSize: slotWon ? 15 : 13,
             fontWeight: 700,
             lineHeight: 1.3,
             textShadow: "0 1px 2px #0008",
@@ -792,11 +767,11 @@ export default function CasinoGames({
         {/* Controls */}
         <div
           style={{
-            padding: "10px 10px 12px",
+            padding: "8px 10px 10px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 8,
+            gap: 6,
             boxSizing: "border-box",
             background:
               "linear-gradient(145deg, #70583b 0%, #5b452d 25%, #493520 55%, #352516 80%, #291b10 100%)",
@@ -817,13 +792,13 @@ export default function CasinoGames({
               style={{
                 width: 130,
                 maxWidth: "50%",
-                height: 38,
+                height: 32,
                 padding: "5px 8px",
                 border: "2px solid #c4a675",
                 borderRadius: 7,
                 background: "#f7f4ed",
                 color: "#17120c",
-                fontSize: 17,
+                fontSize: 16,
                 textAlign: "center",
                 boxSizing: "border-box",
               }}
@@ -875,8 +850,8 @@ export default function CasinoGames({
             disabled={busy}
             style={{
               width: "min(100%, 240px)",
-              minHeight: 42,
-              padding: "6px 16px",
+              minHeight: 36,
+              padding: "4px 16px",
               borderRadius: 24,
               border: "2px solid #c5b18c",
               background: "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
@@ -897,8 +872,8 @@ export default function CasinoGames({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 7,
-              fontSize: 15,
+              gap: 6,
+              fontSize: 13,
               color: "#f7efdb",
               whiteSpace: "nowrap",
               textShadow: "0 1px 2px #000",
@@ -929,8 +904,15 @@ export default function CasinoGames({
         </div>
       </div>
 
-      <div style={{ textAlign: "center", fontSize: 12, color: "#f1e8d3", marginTop: 8 }}>
-        <b>Maximum bet:</b> {limit >= 2_000_000_000 ? "No limit" : `£${limit.toLocaleString("en-GB")}`}
+      <div style={{ textAlign: "center", fontSize: 12, lineHeight: 1.5, color: "#f1e8d3", marginTop: 6 }}>
+        <div>
+          <b>Maximum bet:</b> {limit >= 2_000_000_000 ? "No limit" : `£${limit.toLocaleString("en-GB")}`}
+        </div>
+        {wealth ? (
+          <div>
+            <b>Wealth:</b> {wealth}
+          </div>
+        ) : null}
       </div>
     </section>
   );
