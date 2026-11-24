@@ -143,7 +143,17 @@ export default function GymnasiumSection({
       </div>
 
       {message && (
-        <p className="notice" style={{ margin: "6px 0 0", color: good ? "#7fe08f" : "#f09a8c" }}>
+        <p
+          style={{
+            margin: "6px 0 0",
+            padding: "6px 8px",
+            fontSize: 12,
+            textAlign: "center",
+            border: `1px solid ${good ? "#6b5d3a" : "#6b3a33"}`,
+            background: good ? "#171d1a" : "#2e1d1a",
+            color: good ? "#e3d3a8" : "#f09a8c"
+          }}
+        >
           {message}
         </p>
       )}
@@ -196,7 +206,7 @@ export default function GymnasiumSection({
               {pct}%
             </span>
           </div>
-          <div style={{ marginTop: 4, fontSize: 11, color: "#9be39f", textAlign: "center" }}>{perk}</div>
+          <div style={{ marginTop: 4, fontSize: 11, color: "#b7ad93", textAlign: "center", fontStyle: "italic" }}>{perk}</div>
         </div>
 
         {/* The four sessions as cards */}
@@ -209,9 +219,9 @@ export default function GymnasiumSection({
               >
                 <div style={{ fontSize: 12, color: IVORY, marginBottom: 2 }}>{x.name}</div>
                 <div style={{ fontSize: 11, marginBottom: 4 }}>
-                  <span style={{ color: "#9be39f" }}>+{x.xp} xp</span>
+                  <span style={{ color: "#e3d3a8" }}>+{x.xp} xp</span>
                   <span style={{ color: "#6b5d3a" }}> · </span>
-                  <span style={{ color: "#e4c04d" }}>⚡ {x.energy}</span>
+                  <span style={{ color: "#b7ad93" }}>{x.energy} energy</span>
                 </div>
                 <button
                   type="button"
