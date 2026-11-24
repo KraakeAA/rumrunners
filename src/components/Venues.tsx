@@ -128,7 +128,7 @@ export function CasinoSection({
   const [confirmDrop, setConfirmDrop] = useState(false);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState<{ text: string; good: boolean } | null>(null);
-  const [takenOver, setTakenOver] = useState<{ previousOwner: string | null; payout: number } | null>(null);
+  const [takenOver, setTakenOver] = useState<{ previousOwner: string | null; payout: number; win: number } | null>(null);
 
   const casino: CasinoView | undefined = data?.casinos.find(
     (c) => c.city === data.currentCity && c.game === game
@@ -177,33 +177,76 @@ export function CasinoSection({
     <div
       role="status"
       style={{
-        ...panel,
-        textAlign: "center",
+        marginBottom: 8,
         border: "2px solid #b0904a",
         background: "linear-gradient(180deg, #1f2a25, #171d1a)",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.6), inset 0 0 0 1px #4d3d1c"
+        color: "#f1e8d3",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.6), inset 0 0 0 1px #4d3d1c"
       }}
     >
       <div
         style={{
-          padding: "5px 8px",
+          padding: "6px 8px",
+          textAlign: "center",
           background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
           borderBottom: "1px solid #b0904a",
           color: "#f7efdb",
           fontFamily: "Georgia, serif",
           fontWeight: 700,
-          fontSize: 14,
+          fontSize: 13,
+          letterSpacing: 2,
+          textTransform: "uppercase",
           textShadow: "0 1px 2px #000"
         }}
       >
-        Casino Won!
+        Casino Takeover
       </div>
-      <div style={{ padding: "8px 10px", lineHeight: 1.45, fontSize: 13 }}>
-        <div style={{ color: "#d4cab2" }}>
-          <strong style={{ color: "#ffffff" }}>{takenOver.previousOwner ?? "The owner"}</strong> couldn&apos;t afford to
-          pay. You were paid <strong style={{ color: "#7fe08f" }}>{gbp(takenOver.payout)}</strong>.
+      <div style={{ padding: "10px 10px 6px", textAlign: "center" }}>
+        <div style={{ fontSize: 11, color: "#b7ad93", letterSpacing: 1, textTransform: "uppercase" }}>Your winnings</div>
+        <div style={{ fontFamily: "Georgia, serif", fontSize: 26, fontWeight: 700, color: "#7fe08f", lineHeight: 1.2 }}>
+          {gbp(takenOver.win)}
         </div>
-        <div style={{ marginTop: 6, fontWeight: 700, fontSize: 14, color: "#ffe08a" }}>You now own this casino!</div>
+      </div>
+      <div style={{ margin: "4px 10px 0", border: "1px solid #6b5d3a", background: "#171d1a", fontSize: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 8px", borderBottom: "1px solid #3a3a2c" }}>
+          <span style={{ color: "#c9bfa6" }}>Previous owner</span>
+          <span>
+            {takenOver.previousOwner ? (
+              <Link
+                href={`/profile/${encodeURIComponent(takenOver.previousOwner)}`}
+                style={{ fontWeight: 700, color: "#ffe08a", textDecoration: "underline", textDecorationColor: "#6b5d3a", textUnderlineOffset: 3 }}
+              >
+                {takenOver.previousOwner}
+              </Link>
+            ) : (
+              <strong>The house</strong>
+            )}
+          </span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 8px", borderBottom: "1px solid #3a3a2c" }}>
+          <span style={{ color: "#c9bfa6" }}>Paid from the casino</span>
+          <strong style={{ color: "#7fe08f" }}>{gbp(takenOver.payout)}</strong>
+        </div>
+        <div style={{ padding: "5px 8px", color: "#b7ad93", lineHeight: 1.4 }}>
+          {takenOver.win > takenOver.payout
+            ? "The casino could not cover the full win, so you were paid everything it had left."
+            : "Your win took every chip the casino had, so it is now yours."}
+        </div>
+      </div>
+      <div
+        style={{
+          margin: "8px 10px 10px",
+          padding: "7px 8px",
+          textAlign: "center",
+          border: "1px solid #b0904a",
+          background: "linear-gradient(180deg, #3a3524, #2a2619)",
+          color: "#ffe08a",
+          fontFamily: "Georgia, serif",
+          fontWeight: 700,
+          fontSize: 14
+        }}
+      >
+        You now own this casino
       </div>
     </div>
   ) : null;
@@ -365,10 +408,10 @@ export function CasinoSection({
 
   // Everyone else: the game, with the owner and max bet shown.
   const gameKey = `${casino.id}-${casino.ownerId ?? "house"}`;
-  const onPlayed = (info: { takeover: boolean; previousOwner: string | null; payout: number }) => {
+  const onPlayed = (info: { takeover: boolean; previousOwner: string | null; payout: number; win?: number }) => {
     if (info.takeover) {
       // Stay on the game and show a notice; the owner view appears on the next refresh.
-      setTakenOver({ previousOwner: info.previousOwner, payout: info.payout });
+      setTakenOver({ previousOwner: info.previousOwner, payout: info.payout, win: info.win ?? info.payout });
       setBanner(null);
       return;
     }
