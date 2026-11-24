@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { userTag } from "@/lib/mailtext";
 
 type Db = Pick<Prisma.TransactionClient, "casino" | "player" | "message" | "statement">;
 
@@ -48,7 +49,7 @@ export async function sendWitnessStatements(
         toId: w.id,
         fromName: "A Witness",
         subject: `You witnessed a shooting in ${opts.city}`,
-        body: `You witnessed ${opts.victimName} get gunned down in ${opts.city}. See who it was: your witness statement is under Whack, in the Witness Statements tab. You can open it, leave it closed, or trade it through Escrow.`
+        body: `You witnessed ${userTag(opts.victimName)} get gunned down in ${opts.city}. See who it was: your witness statement is under Whack, in the Witness Statements tab. You can open it, leave it closed, or trade it through Escrow.`
       }
     });
   }
