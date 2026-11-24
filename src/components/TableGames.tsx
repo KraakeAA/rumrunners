@@ -14,10 +14,10 @@ type Props = {
   ownerCrewColor?: string | null;
   wealth?: string | null;
   maxBet?: number;
-  onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
+  onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number; win?: number }) => void;
 };
 
-type Played = { takeover?: boolean; previousOwner?: string | null; payout?: number; money?: number };
+type Played = { takeover?: boolean; previousOwner?: string | null; payout?: number; fullPayout?: number; money?: number };
 
 const SUITS = ["♠", "♥", "♦", "♣"];
 const RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
@@ -128,6 +128,7 @@ export default function TableGames({ game, cash, onCash, ownerName, ownerCrewCol
     hidden: boolean;
     label?: string;
     payout?: number;
+    fullPayout?: number;
   } | null>(null);
 
   // War
@@ -139,11 +140,12 @@ export default function TableGames({ game, cash, onCash, ownerName, ownerCrewCol
     warDealer: Card | null;
     win: boolean;
     payout: number;
+    fullPayout?: number;
   } | null>(null);
 
   function report(d: Played) {
     if (typeof d.money === "number") onCash(d.money);
-    onPlayed?.({ takeover: Boolean(d.takeover), previousOwner: d.previousOwner ?? null, payout: d.payout ?? 0 });
+    onPlayed?.({ takeover: Boolean(d.takeover), previousOwner: d.previousOwner ?? null, payout: d.payout ?? 0, win: d.fullPayout ?? d.payout ?? 0 });
   }
 
   // Pick up a blackjack hand left in play (e.g. after a refresh).
@@ -266,8 +268,8 @@ export default function TableGames({ game, cash, onCash, ownerName, ownerCrewCol
               <Row label="Dealer" cards={bj.dealer} total={bj.dealerTotal} hidden={bj.hidden} />
               <Row label="You" cards={bj.player} total={bj.playerTotal} />
               {bj.done && resultBox(
-                `${bj.label ?? "Hand over"}${bj.payout ? ` · you get back ${gbp(bj.payout)}` : ""}`,
-                (bj.payout ?? 0) >= bj.bet && (bj.payout ?? 0) > 0
+                `${bj.label ?? "Hand over"}${(bj.fullPayout ?? bj.payout) ? ` · you get back ${gbp(bj.fullPayout ?? bj.payout ?? 0)}` : ""}`,
+                (bj.fullPayout ?? bj.payout ?? 0) >= bj.bet && (bj.fullPayout ?? bj.payout ?? 0) > 0
               )}
             </>
           )}
@@ -304,7 +306,7 @@ export default function TableGames({ game, cash, onCash, ownerName, ownerCrewCol
               <Row label="You" cards={war.war && war.warPlayer ? [war.player, war.warPlayer] : [war.player]} />
               {resultBox(
                 war.win
-                  ? `${war.war ? "You won the war" : "You win"}! You get back ${gbp(war.payout)}.`
+                  ? `${war.war ? "You won the war" : "You win"}! You get back ${gbp(war.fullPayout ?? war.payout)}.`
                   : `${war.war ? "You lost the war." : "Dealer wins."}`,
                 war.win
               )}
