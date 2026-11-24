@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { userTag } from "@/lib/mailtext";
 import { SHIELD_BREAK_WEALTH } from "@/lib/wealth";
 
 export type DetectiveKey = "slow" | "medium" | "fast";
@@ -115,7 +116,7 @@ export async function settleHunts(hunterId: string) {
             toId: hunterId,
             fromName: "The Detective Agency",
             subject: "The trail has gone cold",
-            body: `${h.targetName} can no longer be found. Your fee is not refunded.`
+            body: `${userTag(h.targetName)} can no longer be found. Your fee is not refunded.`
           }
         });
       }
@@ -132,8 +133,8 @@ export async function settleHunts(hunterId: string) {
         data: {
           toId: hunterId,
           fromName: "The Detective Agency",
-          subject: `${h.targetName} has been found`,
-          body: `Our man has tracked ${h.targetName} to ${target.currentCity}. You have until ${when(endsAt)} (${windowMinutesFor(h.tier)} minutes) to get to ${target.currentCity} and take your one shot. If they leave the city or the time runs out, you will have to hire again.`
+          subject: `${userTag(h.targetName)} has been found`,
+          body: `Our man has tracked ${userTag(h.targetName)} to ${target.currentCity}. You have until ${when(endsAt)} (${windowMinutesFor(h.tier)} minutes) to get to ${target.currentCity} and take your one shot. If they leave the city or the time runs out, you will have to hire again.`
         }
       });
     }
