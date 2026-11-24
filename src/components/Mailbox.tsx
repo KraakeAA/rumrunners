@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
+import { SYSTEM_SENDERS } from "@/lib/mailtext";
 
 type Mail = {
   id: string;
@@ -42,6 +44,31 @@ const stamp = (iso: string) =>
     hour: "2-digit",
     minute: "2-digit"
   });
+
+// In letters from the game itself, [[u:Name]] becomes a bold link to that player.
+function renderText(text: string, system: boolean): ReactNode {
+  if (!system) return text;
+  const parts: ReactNode[] = [];
+  const re = /\[\[u:([^\]]+)\]\]/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    const name = match[1];
+    parts.push(
+      <Link
+        key={`${match.index}-${name}`}
+        href={`/profile/${encodeURIComponent(name)}`}
+        style={{ fontWeight: 700, color: "#ffe08a", textDecoration: "underline", textDecorationColor: "#6b5d3a", textUnderlineOffset: 3 }}
+      >
+        {name}
+      </Link>
+    );
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
 
 export default function MailboxSection({
   onOpenOc,
@@ -181,6 +208,7 @@ export default function MailboxSection({
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8, marginTop: 8 }}>
           {rows.map((m) => {
             const lit = fresh.includes(m.id);
+            const system = SYSTEM_SENDERS.includes(m.from);
             return (
               <div
                 key={m.id}
@@ -218,10 +246,15 @@ export default function MailboxSection({
                   <span style={{ fontSize: 10, fontStyle: "italic", color: "#efe3c3", flexShrink: 0 }}>{stamp(m.createdAt)}</span>
                 </div>
 
+                {system && (
+                  <div style={{ padding: "7px 8px 0", fontSize: 13, fontWeight: 700, color: "#ffe08a", overflowWrap: "anywhere" }}>
+                    {renderText(m.subject, true)}
+                  </div>
+                )}
                 <p
                   style={{
                     margin: 0,
-                    padding: "7px 8px",
+                    padding: system ? "4px 8px 8px" : "7px 8px",
                     whiteSpace: "pre-wrap",
                     overflowWrap: "anywhere",
                     fontSize: 13,
@@ -229,7 +262,7 @@ export default function MailboxSection({
                     color: lit ? "#fbf4de" : "#e0d7c0"
                   }}
                 >
-                  {m.body}
+                  {renderText(m.body, system)}
                 </p>
 
                 <div
@@ -253,7 +286,7 @@ export default function MailboxSection({
                   <button type="button" style={linkBtn} onClick={() => post({ action: "delete", id: m.id })}>
                     Delete
                   </button>
-                  {m.from !== "The Underworld" && (
+                  {!system && (
                     <>
                       <span style={{ color: BORDER }}>·</span>
                       <button
