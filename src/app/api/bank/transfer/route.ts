@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { userTag } from "@/lib/mailtext";
 import { lockPlayer } from "@/lib/lock";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -97,17 +98,16 @@ export async function POST(req: Request) {
 
       const { received, fee } = splitTransfer(amount);
 
-      const now = new Date();
-      await settleInterest(tx, me.id, now);
-      await settleInterest(tx, to.id, now);
+      // Money moves from the sender's cash on hand to the receiver's cash on hand.
+      if (to.money + received > Number.MAX_SAFE_INTEGER) throw new Refuse("That player cannot carry that much cash.");
 
       const paid = await tx.player.updateMany({
-        where: { id: me.id, bank: { gte: amount } },
-        data: { bank: { decrement: amount }, bankSince: now }
+        where: { id: me.id, money: { gte: amount } },
+        data: { money: { decrement: amount } }
       });
-      if (paid.count !== 1) throw new Refuse("You do not have that much in the bank.");
+      if (paid.count !== 1) throw new Refuse("You do not have that much cash on hand.");
 
-      await tx.player.update({ where: { id: to.id }, data: { bank: { increment: received }, ...(to.bank <= 0 ? { bankSince: now } : {}) } });
+      await tx.player.update({ where: { id: to.id }, data: { money: { increment: received } } });
 
       await tx.transfer.create({
         data: {
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
           toId: to.id,
           fromName: "The Bank",
           subject: "Money received",
-          body: `${me.username} sent you £${amount.toLocaleString("en-GB")}. After the £${fee.toLocaleString("en-GB")} fee, £${received.toLocaleString("en-GB")} was paid into your bank account.${reference ? `\n\nReference: ${reference}` : ""}`
+          body: `${userTag(me.username)} sent you £${amount.toLocaleString("en-GB")}. After the £${fee.toLocaleString("en-GB")} fee, £${received.toLocaleString("en-GB")} was paid to you in cash.${reference ? `\n\nReference: ${reference}` : ""}`
         }
       });
 
