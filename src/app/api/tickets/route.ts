@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { userTag } from "@/lib/mailtext";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { STAFF_NAMES, TICKET_CATEGORIES, staffLevel } from "@/lib/staff";
@@ -157,7 +158,7 @@ export async function POST(req: Request) {
                 toId: t.playerId,
                 fromName: "Help Desk",
                 subject: `Your ticket has a reply: ${t.subject}`.slice(0, 100),
-                body: `${who.username} has replied to your ${labelOf(t.category)} ticket. Open the Help Desk to read it.`
+                body: `${userTag(who.username)} has replied to your ${labelOf(t.category)} ticket. Open the Help Desk to read it.`
               }
             });
           } catch {
