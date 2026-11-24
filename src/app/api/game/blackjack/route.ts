@@ -49,6 +49,7 @@ async function finish(userId: string, hand: Hand, player: Card[], dealerStart: C
     label,
     money: paid.money,
     payout: paid.payout,
+    fullPayout: paid.fullPayout,
     net: paid.net,
     takeover: paid.takeover,
     previousOwner: paid.previousOwner,
