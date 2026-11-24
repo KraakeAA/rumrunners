@@ -8,6 +8,7 @@ type Result = {
   money?: number;
   bet?: number;
   payout?: number;
+  fullPayout?: number;
   net?: number;
   drawn?: number[];
   matches?: number;
@@ -27,7 +28,7 @@ type Props = {
   ownerCrewColor?: string | null;
   wealth?: string | null;
   maxBet?: number;
-  onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number }) => void;
+  onPlayed?: (info: { takeover: boolean; previousOwner: string | null; payout: number; win?: number }) => void;
 };
 
 export default function CasinoGames({
@@ -194,6 +195,7 @@ export default function CasinoGames({
             takeover: Boolean(data.takeover),
             previousOwner: data.previousOwner ?? null,
             payout: data.payout || 0,
+            win: data.fullPayout ?? data.payout ?? 0,
           });
         }
       }
@@ -203,6 +205,7 @@ export default function CasinoGames({
       setBusy(false);
     }
   }
+
   if (game === "Keno") {
     const drawn = result?.drawn || [];
     const matchCount = result?.matches ?? 0;
@@ -278,10 +281,10 @@ export default function CasinoGames({
           }}
         >
           {result ? (
-            (result.payout || 0) > 0 ? (
+            (result.fullPayout ?? result.payout ?? 0) > 0 ? (
               <span>
                 You matched <b>{matchCount}</b> numbers and won{" "}
-                <b>£{(result.payout || 0).toLocaleString("en-GB")}</b>!
+                <b>£{(result.fullPayout ?? result.payout ?? 0).toLocaleString("en-GB")}</b>!
               </span>
             ) : (
               <span>
@@ -549,6 +552,7 @@ export default function CasinoGames({
       </section>
     );
   }
+
   const slotSymbols: Record<string, { src: string; alt: string }> = {
     "7": {
       src: "/seven.png",
@@ -610,7 +614,8 @@ export default function CasinoGames({
       ? SPIN_SYMBOLS[(spinTick + i * 3 + (i === 1 ? 1 : 0)) % SPIN_SYMBOLS.length]
       : restingReels[i] ?? "7"
   );
-  const slotWon = Boolean(result && !busy && (result.payout || 0) > 0);
+  const slotWin = result?.fullPayout ?? result?.payout ?? 0;
+  const slotWon = Boolean(result && !busy && slotWin > 0);
   const chips: { label: string; value: number }[] = [
     { label: "£100", value: 100 },
     { label: "£1k", value: 1000 },
@@ -759,7 +764,7 @@ export default function CasinoGames({
             ? "Spinning…"
             : result
               ? slotWon
-                ? `You won £${(result.payout || 0).toLocaleString("en-GB")}!`
+                ? `You won £${slotWin.toLocaleString("en-GB")}!`
                 : `You lost £${(result.bet ?? (Number(bet) || 0)).toLocaleString("en-GB")}`
               : "Place your bet"}
         </div>
@@ -917,5 +922,3 @@ export default function CasinoGames({
     </section>
   );
 }
-
-
