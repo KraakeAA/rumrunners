@@ -7,7 +7,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 // and it appears. Until then a tidy placeholder shows its file name.
 // ---------------------------------------------------------------------------
 
-const EXTENSIONS = ["jpg", "png", "webp"];
+const EXTENSIONS = ["png", "jpg", "webp"];
 
 export function slugify(name: string) {
   return name
@@ -451,4 +451,3 @@ export function JobCard({
     </div>
   );
 }
-
