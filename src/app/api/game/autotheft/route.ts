@@ -100,7 +100,7 @@ export async function POST(req: Request) {
       const place = pick(STREETS[player.currentCity] ?? STREETS.London);
 
       const xp = success ? level.xp + (model.tier - 1) * 4 : 3;
-      const fine = success ? 0 : Math.min(level.fine, player.money);
+      const fine = 0; // no fines for failing
       const newXp = player.experience + xp;
       const newLevel = Math.max(player.rankLevel, levelFromXp(newXp));
 
@@ -112,7 +112,6 @@ export async function POST(req: Request) {
           // A full tank has no running clock, so start one when energy is spent.
           lastEnergyAt:
             regen.energy >= maxEnergy ? now : regen.lastEnergyAt,
-          money: { decrement: fine },
           experience: newXp,
           rankLevel: newLevel,
           rank: rankForLevel(newLevel),
