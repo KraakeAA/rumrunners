@@ -29,7 +29,7 @@ const linkBtn: CSSProperties = {
   border: 0,
   padding: 0,
   color: "#d9c48f",
-  fontSize: 11,
+  fontSize: 12,
   cursor: "pointer",
   fontFamily: "inherit"
 };
@@ -62,7 +62,6 @@ export default function MailboxSection({
   const [picked, setPicked] = useState<string[]>([]);
   // New letters are lit while you are in the mailbox. Opening the mailbox marks
   // them read, so once you leave they are no longer lit.
-  const [open, setOpen] = useState<string | null>(null);
   const [fresh, setFresh] = useState<string[]>([]);
 
   const load = useCallback(async () => {
@@ -179,119 +178,102 @@ export default function MailboxSection({
           {search ? "Nothing matches that search." : "Your mailbox is empty."}
         </p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 6, marginTop: 6 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8, marginTop: 8 }}>
           {rows.map((m) => {
             const lit = fresh.includes(m.id);
-            const isOpen = open === m.id;
             return (
               <div
                 key={m.id}
                 style={{
                   minWidth: 0,
                   overflow: "hidden",
-                  border: `1px solid ${lit ? "#c69a48" : BORDER}`,
-                  background: lit ? "#26322c" : "#1a221e"
+                  border: `1px solid ${lit ? "#b0904a" : BORDER}`,
+                  background: lit ? "#26322c" : "#1f2a25"
                 }}
               >
                 <div
-                  onClick={() => setOpen(isOpen ? null : m.id)}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
                     padding: "4px 8px",
-                    cursor: "pointer",
-                    background: "linear-gradient(180deg, #3a3524, #2a2619)"
+                    background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+                    borderBottom: "1px solid #b0904a"
+                  }}
+                >
+                  <span
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      fontSize: 13,
+                      color: "#f7efdb",
+                      fontWeight: 700,
+                      textShadow: "0 1px 2px #000",
+                      overflowWrap: "anywhere"
+                    }}
+                  >
+                    {m.from}
+                    {lit && <span style={{ marginLeft: 6, fontSize: 9, letterSpacing: 0.6, color: "#ffe08a" }}>NEW</span>}
+                  </span>
+                  <span style={{ fontSize: 10, fontStyle: "italic", color: "#efe3c3", flexShrink: 0 }}>{stamp(m.createdAt)}</span>
+                </div>
+
+                <p
+                  style={{
+                    margin: 0,
+                    padding: "7px 8px",
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                    fontSize: 13,
+                    lineHeight: 1.45,
+                    color: lit ? "#fbf4de" : "#e0d7c0"
+                  }}
+                >
+                  {m.body}
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    padding: "4px 8px",
+                    borderTop: `1px solid ${BORDER}`,
+                    background: "#171d1a",
+                    flexWrap: "wrap"
                   }}
                 >
                   <input
                     type="checkbox"
                     aria-label="Select message"
                     checked={picked.includes(m.id)}
-                    onClick={(e) => e.stopPropagation()}
                     onChange={() => toggleBox(m.id)}
-                    style={{ width: 13, height: 13, margin: 0, flexShrink: 0 }}
+                    style={{ width: 14, height: 14, margin: 0, flexShrink: 0 }}
                   />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: lit ? "#fff3cf" : "#d4cab2", fontWeight: lit ? 700 : 400, overflowWrap: "anywhere" }}>
-                    {m.from}
-                    {lit && <span style={{ marginLeft: 6, fontSize: 9, letterSpacing: 0.6, color: "#c69a48" }}>NEW</span>}
-                  </span>
-                  <span style={{ fontSize: 10, fontStyle: "italic", color: "#a89f86", flexShrink: 0 }}>{stamp(m.createdAt)}</span>
-                </div>
-
-                {!isOpen && (
-                  <p
-                    onClick={() => setOpen(m.id)}
-                    style={{
-                      margin: 0,
-                      padding: "3px 8px",
-                      fontSize: 12,
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      minWidth: 0,
-                      maxWidth: "100%",
-                      boxSizing: "border-box",
-                      color: lit ? "#fbf4de" : "#cfc6ad"
-                    }}
-                  >
-                    {m.body}
-                  </p>
-                )}
-
-                {isOpen && (
-                  <>
-                    <p
-                      style={{
-                        margin: 0,
-                        padding: "6px 8px",
-                        whiteSpace: "pre-wrap",
-                        overflowWrap: "anywhere",
-                        fontSize: 12,
-                        lineHeight: 1.4,
-                        color: lit ? "#fbf4de" : "#cfc6ad"
-                      }}
-                    >
-                      {m.body}
-                    </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "3px 8px",
-                        borderTop: `1px solid ${BORDER}`,
-                        background: "#171d1a",
-                        flexWrap: "wrap"
-                      }}
-                    >
-                      {m.from !== "The Underworld" && (
-                        <>
-                          <button
-                            type="button"
-                            style={linkBtn}
-                            onClick={() => onReply(m.from, { from: m.from, at: stamp(m.createdAt), body: m.body })}
-                          >
-                            Reply
-                          </button>
-                          <span style={{ color: "#6b5d3a" }}>·</span>
-                        </>
-                      )}
-                      <button type="button" style={linkBtn} onClick={() => post({ action: "delete", id: m.id })}>
-                        Delete
+                  <button type="button" style={linkBtn} onClick={() => post({ action: "delete", id: m.id })}>
+                    Delete
+                  </button>
+                  {m.from !== "The Underworld" && (
+                    <>
+                      <span style={{ color: BORDER }}>·</span>
+                      <button
+                        type="button"
+                        style={linkBtn}
+                        onClick={() => onReply(m.from, { from: m.from, at: stamp(m.createdAt), body: m.body })}
+                      >
+                        Reply
                       </button>
-                      {m.ocId && (
-                        <>
-                          <span style={{ color: "#6b5d3a" }}>·</span>
-                          <button type="button" style={linkBtn} onClick={onOpenOc}>
-                            Organised Crime
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                  {m.ocId && (
+                    <>
+                      <span style={{ color: BORDER }}>·</span>
+                      <button type="button" style={linkBtn} onClick={onOpenOc}>
+                        Organised Crime
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             );
           })}
