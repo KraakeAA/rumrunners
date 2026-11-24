@@ -634,7 +634,7 @@ export default function CasinoGames({
     >
       <div
         style={{
-          width: "min(100%, 380px)",
+          width: "min(100%, 300px)",
           overflow: "hidden",
           border: "2px solid #b0904a",
           borderRadius: 6,
@@ -647,17 +647,17 @@ export default function CasinoGames({
         {/* Machine header */}
         <div
           style={{
-            minHeight: 30,
+            minHeight: 24,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "4px 8px",
+            padding: "2px 8px",
             boxSizing: "border-box",
             borderBottom: "2px solid #c1a16b",
             background: "linear-gradient(180deg, #a18459 0%, #80613d 30%, #594027 68%, #382617 100%)",
             color: "#f4dfb7",
             fontFamily: "Georgia, serif",
-            fontSize: 15,
+            fontSize: 13,
             letterSpacing: 0.5,
             textShadow: "0 1px 3px #000",
             position: "relative",
@@ -674,8 +674,8 @@ export default function CasinoGames({
             position: "relative",
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 4,
-            padding: 4,
+            gap: 3,
+            padding: 3,
             background: "linear-gradient(180deg, #c6a979, #94744b 55%, #62472b)",
             borderTop: "2px solid #b0904a",
             borderBottom: "2px solid #b0904a",
@@ -688,7 +688,7 @@ export default function CasinoGames({
               <div
                 key={index}
                 style={{
-                  height: "clamp(70px, 22vw, 92px)",
+                  height: "clamp(46px, 14vw, 60px)",
                   minWidth: 0,
                   background: spinning
                     ? "linear-gradient(180deg, #e9dcc0, #fffaf0 50%, #e9dcc0)"
@@ -696,7 +696,7 @@ export default function CasinoGames({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  padding: 4,
+                  padding: 3,
                   boxSizing: "border-box",
                   border: "1px solid #d8c49f",
                   boxShadow: "inset 0 0 8px #9b8157, inset 0 6px 8px -6px #0006, inset 0 -6px 8px -6px #0006",
@@ -737,7 +737,7 @@ export default function CasinoGames({
         <div
           aria-live="polite"
           style={{
-            minHeight: 26,
+            minHeight: 22,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -749,7 +749,7 @@ export default function CasinoGames({
             borderBottom: "2px solid #b0904a",
             color: "#f4e6c7",
             textAlign: "center",
-            fontSize: slotWon ? 15 : 13,
+            fontSize: slotWon ? 13 : 12,
             fontWeight: 700,
             lineHeight: 1.3,
             textShadow: "0 1px 2px #0008",
@@ -760,18 +760,18 @@ export default function CasinoGames({
             : result
               ? slotWon
                 ? `You won £${(result.payout || 0).toLocaleString("en-GB")}!`
-                : "No win this time"
+                : `You lost £${(result.bet ?? (Number(bet) || 0)).toLocaleString("en-GB")}`
               : "Place your bet"}
         </div>
 
         {/* Controls */}
         <div
           style={{
-            padding: "8px 10px 10px",
+            padding: "6px 8px 8px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 6,
+            gap: 5,
             boxSizing: "border-box",
             background:
               "linear-gradient(145deg, #70583b 0%, #5b452d 25%, #493520 55%, #352516 80%, #291b10 100%)",
@@ -779,7 +779,7 @@ export default function CasinoGames({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%" }}>
-            <span style={{ fontSize: 22, lineHeight: 1, color: "#f0d7a5", textShadow: "0 1px 3px #000" }}>£</span>
+            <span style={{ fontSize: 18, lineHeight: 1, color: "#f0d7a5", textShadow: "0 1px 3px #000" }}>£</span>
             <input
               type="number"
               min="1"
@@ -790,9 +790,9 @@ export default function CasinoGames({
               disabled={busy}
               aria-label="Slot machine bet amount"
               style={{
-                width: 130,
+                width: 110,
                 maxWidth: "50%",
-                height: 32,
+                height: 28,
                 padding: "5px 8px",
                 border: "2px solid #c4a675",
                 borderRadius: 7,
@@ -814,7 +814,7 @@ export default function CasinoGames({
                 disabled={busy}
                 onClick={() => setBet(String(c.value))}
                 style={{
-                  padding: "3px 9px",
+                  padding: "2px 8px",
                   border: "1px solid #c4a675",
                   borderRadius: 12,
                   background: bet === String(c.value) ? "#c4a675" : "#00000055",
@@ -831,7 +831,7 @@ export default function CasinoGames({
               disabled={busy}
               onClick={() => setBet(String(maxStake))}
               style={{
-                padding: "3px 9px",
+                padding: "2px 8px",
                 border: "1px solid #c4a675",
                 borderRadius: 12,
                 background: "#00000055",
@@ -849,14 +849,14 @@ export default function CasinoGames({
             onClick={play}
             disabled={busy}
             style={{
-              width: "min(100%, 240px)",
-              minHeight: 36,
-              padding: "4px 16px",
+              width: "min(100%, 200px)",
+              minHeight: 30,
+              padding: "3px 14px",
               borderRadius: 24,
               border: "2px solid #c5b18c",
               background: "linear-gradient(180deg, #f1f1ed 0%, #c9c5bc 52%, #99958d 100%)",
               color: "#17130e",
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 700,
               letterSpacing: 0.5,
               boxShadow: "0 2px 3px #100d09",
@@ -873,7 +873,7 @@ export default function CasinoGames({
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
-              fontSize: 13,
+              fontSize: 12,
               color: "#f7efdb",
               whiteSpace: "nowrap",
               textShadow: "0 1px 2px #000",
