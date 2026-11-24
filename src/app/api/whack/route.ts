@@ -1,4 +1,5 @@
 import { isHiddenStaff } from "@/lib/staff";
+import { userTag } from "@/lib/mailtext";
 import { lockPlayerId } from "@/lib/lock";
 import { cancelLedOc } from "@/lib/oc";
 import { isAdminUser, strengthFor } from "@/lib/admin-bypass";
@@ -169,6 +170,7 @@ export async function POST(req: Request) {
         message = `The ${detective.name} is on the case. He will report some time in the next ${Math.round(detective.minMinutes / 60 * 10) / 10}–${Math.round(detective.maxMinutes / 60 * 10) / 10} hours (it could be any moment), and you will get a letter when ${target.username} is found. You will then have ${detective.windowMinutes} minutes to take your one shot.`;
         return;
       }
+
       if (action === "shoot") {
         const hunt = await tx.hunt.findUnique({ where: { id: String(body.id ?? "") } });
         if (!hunt || hunt.hunterId !== me.id) throw new Refuse("No such job.");
@@ -246,8 +248,8 @@ export async function POST(req: Request) {
             fromName: "The Evening Standard",
             subject: killed ? "You were shot dead" : "You were shot",
             body: killed
-              ? `${me.username} found you in ${hunt.foundCity} and shot you dead.`
-              : `${me.username} found you in ${hunt.foundCity} and shot at you, but you survived. Your health is down to ${left}%.`
+              ? `${userTag(me.username)} found you in ${hunt.foundCity} and shot you dead.`
+              : `${userTag(me.username)} found you in ${hunt.foundCity} and shot at you, but you survived. Your health is down to ${left}%.`
           }
         });
 
@@ -313,4 +315,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That could not be completed." }, { status: 500 });
   }
 }
-
