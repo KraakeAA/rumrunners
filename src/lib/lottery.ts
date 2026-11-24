@@ -1,4 +1,5 @@
 import { randomInt } from "crypto";
+import { userTag } from "@/lib/mailtext";
 import { prisma } from "@/lib/prisma";
 
 export const TICKET_PRICE = 10;
@@ -99,7 +100,7 @@ export async function settleLotteries(now = new Date()) {
                   toId: playerId,
                   fromName: "The Lottery",
                   subject: "Lottery result",
-                  body: `The draw for ${when} has been made. ${winner.player.username} won £${prize.toLocaleString("en-GB")}. You held ${count} ticket${count === 1 ? "" : "s"}. Better luck next Wednesday.`
+                  body: `The draw for ${when} has been made. ${userTag(winner.player.username)} won £${prize.toLocaleString("en-GB")}. You held ${count} ticket${count === 1 ? "" : "s"}. Better luck next Wednesday.`
                 }
           )
         });
