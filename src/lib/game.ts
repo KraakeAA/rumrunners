@@ -644,7 +644,7 @@ export type CrimeOutcome = {
   success: boolean;
   tier: CrimeTier;
   label: string;
-  cash: number; // payout, or a negative number for a fine
+  cash: number; // payout (0 when the crime fails)
   xp: number;
   heat: number;
   sceneTitle: string;
@@ -659,8 +659,6 @@ const PERFECT_CHANCE = 0.07;
 const MESSY_CHANCE = 0.2;
 const CAUGHT_SHARE = 0.35; // share of failures that are "caught"
 const BACKED_OFF_SHARE = 0.25; // share of failures where you bail out
-const FINES_FROM_RANK = 3; // crimes at this rank or above can cost a fine
-const FINE_FRACTION = 0.12; // of the average payout, paid from cash on hand
 
 const PERFECT_LINES = [
   "Perfect score. Not a single thing went wrong, and there's a bonus on top.",
@@ -816,25 +814,15 @@ export function playCrime(
     };
   }
 
-  const average =
-    ((crime.minCash + crime.maxCash) / 2) * payScale(crime, rankLevel) * MONEY_SCALE;
-  const fine =
-    crime.minRankLevel >= FINES_FROM_RANK
-      ? Math.min(cashOnHand, tidy(average * FINE_FRACTION))
-      : 0;
-
   if (roll > 1 - CAUGHT_SHARE) {
     return {
       ...base,
       success: false,
       tier: "caught",
       label: "Caught",
-      cash: -fine,
+      cash: 0,
       xp,
-      result:
-        fine > 0
-          ? `${scene.fail} The law caught up with you, and £${fine.toLocaleString("en-GB")} came out of your pockets. Money in the bank is safe.`
-          : `${scene.fail} The law caught up with you.`
+      result: `${scene.fail} The law caught up with you.`
     };
   }
 
