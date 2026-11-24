@@ -174,6 +174,7 @@ export default function AutoTheftSection({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TheftResult | null>(null);
+
   async function steal(level: number) {
     setBusy(true);
     setError("");
@@ -239,9 +240,6 @@ export default function AutoTheftSection({
               <div>
                 You went for a <strong>{result.car.name}</strong> at {result.place}, but a constable
                 spotted you.
-                {result.fine > 0
-                  ? ` You were fined £${result.fine.toLocaleString("en-GB")}.`
-                  : " You had nothing to be fined."}
               </div>
             )}
             {result.jailSeconds ? (
@@ -413,4 +411,3 @@ export default function AutoTheftSection({
     </div>
   );
 }
-
