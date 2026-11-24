@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { userTag } from "@/lib/mailtext";
 import { lockPlayer } from "@/lib/lock";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -88,7 +89,9 @@ async function settle(
   const holding = await tx.player.findUnique({ where: { id: player.id }, select: { money: true } });
   const cashRoom = Math.max(0, INT_MAX - (holding?.money ?? 0));
 
-  let payout = Math.min(Math.floor(bet * multiplier), cashRoom);
+  // What the game says the player won. If the casino cannot cover it, the player is paid less (see below).
+  const fullPayout = Math.min(Math.floor(bet * multiplier), cashRoom);
+  let payout = fullPayout;
   let takeover = false;
   let previousOwner: string | null = null;
 
@@ -142,14 +145,15 @@ async function settle(
           }
         });
         if (oldOwner) {
+          const who = userTag(winner?.username ?? "A player");
           await tx.message.create({
             data: {
               toId: oldOwner.id,
-              fromName: winner?.username ?? "Rumrunners",
+              fromName: "The Casino",
               subject: "You lost your casino",
               body: paidInFull
-                ? `${winner?.username ?? "A player"} won every chip your ${game} casino in ${city} had. It was bust, so they now own the casino.`
-                : `${winner?.username ?? "A player"} won more than your ${game} casino in ${city} could pay. You could not cover it, so they were paid what was left and now own the casino.`
+                ? `${who} won every chip your ${game} casino in ${city} had.\n\nThe casino was bust, so ${who} now owns it.`
+                : `${who} won more than your ${game} casino in ${city} could pay.\n\nYou could not cover the win. ${who} was paid what was left and now owns the casino.`
             }
           });
         }
@@ -183,7 +187,7 @@ async function settle(
     data: { playerId: player.id, game, bet, payout, outcome: outcome as unknown as Prisma.InputJsonValue }
   });
 
-  return { money: updated.money, bet, payout, net: payout - bet, takeover, previousOwner, city };
+  return { money: updated.money, bet, payout, fullPayout, net: payout - bet, takeover, previousOwner, city };
 }
 
 export function wagerError(error: unknown, game: string) {
