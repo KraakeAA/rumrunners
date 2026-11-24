@@ -295,7 +295,7 @@ export default function BankSection({
         <div style={{ ...cell, borderTop: 0, display: "grid", gap: 6, placeItems: "center" }}>
           {receives > 0 && (
             <span style={{ fontSize: 12, color: "#c9bfa6" }}>
-              They will receive {gbp(receives)} after the {fee}% fee. Paid from your bank balance.
+              They will receive {gbp(receives)} after the {fee}% fee. Paid from your cash on hand.
             </span>
           )}
           <button
