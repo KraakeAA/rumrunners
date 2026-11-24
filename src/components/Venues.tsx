@@ -175,49 +175,35 @@ export function CasinoSection({
 
   const takeoverPopup = takenOver ? (
     <div
-      role="dialog"
-      aria-modal="true"
+      role="status"
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        background: "rgba(0,0,0,0.75)"
+        ...panel,
+        textAlign: "center",
+        border: "2px solid #b0904a",
+        background: "linear-gradient(180deg, #1f2a25, #171d1a)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.6), inset 0 0 0 1px #4d3d1c"
       }}
     >
       <div
         style={{
-          width: "100%",
-          maxWidth: 340,
-          boxSizing: "border-box",
-          textAlign: "center",
-          background: "#100d0c",
-          border: "2px solid #c69a48",
-          borderRadius: 6,
-          overflow: "hidden",
-          color: "#e8dcc0"
+          padding: "5px 8px",
+          background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+          borderBottom: "1px solid #b0904a",
+          color: "#f7efdb",
+          fontFamily: "Georgia, serif",
+          fontWeight: 700,
+          fontSize: 14,
+          textShadow: "0 1px 2px #000"
         }}
       >
-        <div style={{ padding: "10px 12px", background: "linear-gradient(180deg, #6e1220, #590d18)", borderBottom: "1px solid #c69a48", fontWeight: 700, fontSize: 18, letterSpacing: 0.5 }}>
-          Casino Taken Over
+        Casino Won!
+      </div>
+      <div style={{ padding: "8px 10px", lineHeight: 1.45, fontSize: 13 }}>
+        <div style={{ color: "#d4cab2" }}>
+          <strong style={{ color: "#ffffff" }}>{takenOver.previousOwner ?? "The owner"}</strong> couldn&apos;t afford to
+          pay. You were paid <strong style={{ color: "#7fe08f" }}>{gbp(takenOver.payout)}</strong>.
         </div>
-        <div style={{ padding: "16px 14px", lineHeight: 1.5, fontSize: 15 }}>
-          <p style={{ margin: "0 0 10px" }}>
-            <strong style={{ color: "#ffffff" }}>{takenOver.previousOwner ?? "The owner"}</strong> couldn&apos;t afford to pay.
-          </p>
-          <p style={{ margin: "0 0 10px" }}>
-            You were paid what was left: <strong style={{ color: "#7fe08f" }}>{gbp(takenOver.payout)}</strong>.
-          </p>
-          <p style={{ margin: 0, fontWeight: 700, color: "#ffe08a" }}>You now own this casino.</p>
-        </div>
-        <div style={{ padding: "0 14px 14px" }}>
-          <button type="button" style={{ ...btn, minWidth: 120 }} onClick={() => setTakenOver(null)}>
-            OK
-          </button>
-        </div>
+        <div style={{ marginTop: 6, fontWeight: 700, fontSize: 14, color: "#ffe08a" }}>You now own this casino!</div>
       </div>
     </div>
   ) : null;
@@ -376,15 +362,17 @@ export function CasinoSection({
       </div>
     );
   }
+
   // Everyone else: the game, with the owner and max bet shown.
   const gameKey = `${casino.id}-${casino.ownerId ?? "house"}`;
   const onPlayed = (info: { takeover: boolean; previousOwner: string | null; payout: number }) => {
     if (info.takeover) {
+      // Stay on the game and show a notice; the owner view appears on the next refresh.
       setTakenOver({ previousOwner: info.previousOwner, payout: info.payout });
       setBanner(null);
-    } else {
-      setBanner(null);
+      return;
     }
+    setBanner(null);
     reload();
   };
   // Nobody owns it: only the buy screen, no game.
@@ -630,6 +618,7 @@ export function CitiesSection() {
     </div>
   );
 }
+
 /* --------------------------- Bullet factory --------------------------- */
 
 function countdown(iso: string | null, now: number): string {
@@ -891,5 +880,3 @@ export function BulletFactorySection({
     </div>
   );
 }
-
-
