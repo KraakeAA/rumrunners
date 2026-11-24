@@ -9,6 +9,8 @@ import {
   type CSSProperties,
   type ReactNode
 } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { GameContext } from "@/components/GameContext";
 import GameStatistics from "@/components/GameStatistics";
 import { rankForLevel } from "@/lib/ranks";
 import BootleggingSection from "@/components/Bootlegging";
@@ -20,7 +22,7 @@ import SendLetterSection from "@/components/SendLetter";
 import OrganisedCrimeSection from "@/components/OrganisedCrime";
 import { clock, useActionStatus } from "@/components/EnergyBar";
 import { GarageSection, TravelSection } from "@/components/Travel";
-import { BulletFactorySection, CasinoSection, CitiesSection } from "@/components/Venues";
+import { BulletFactorySection, CitiesSection } from "@/components/Venues";
 import StoreSection from "@/components/Store";
 import LotterySection from "@/components/Lottery";
 import FindPlayerSection from "@/components/FindPlayer";
@@ -295,7 +297,6 @@ function StatTable({
           </span>
         ))}
       </div>
-
       {rows.map((row, r) => (
         <div
           key={r}
@@ -395,6 +396,10 @@ const slugOf = (name: string) => {
   return plain === "slotmachines" ? "slots" : plain;
 };
 
+// Pages that are real pages of their own (a file under src/app/(game)).
+// Moving to one of these goes through the Next.js router, which loads that page.
+const REAL_PAGES = new Set(["Keno", "Slot Machines", "Blackjack", "Roulette", "War"]);
+
 // Finds the page that matches a name or a web address. Anything unknown opens Home.
 function sectionFromAddress(groups: { items: string[] }[], value: string) {
   const wanted = slugOf(value);
@@ -470,8 +475,7 @@ export default function GameShell({
   recentCrimes = [],
   stats = EMPTY_STATS,
   training,
-  composeTo = "",
-  startSection = ""
+  children
 }: {
   player: Player;
   isAdmin?: boolean;
@@ -480,12 +484,17 @@ export default function GameShell({
   recentCrimes?: CrimeLog[];
   stats?: PlayerStats;
   training?: { strength: number; stamina: number; agility: number };
-  composeTo?: string;
-  startSection?: string;
+  children?: ReactNode;
 }) {
   const groups = staffLevel >= 2
     ? menuGroups.map((g) => (g.title === "Main" ? { ...g, items: [...g.items, "Admin"] } : g))
     : menuGroups;
+  const router = useRouter();
+  const pathname = usePathname() ?? "/";
+  const search = useSearchParams();
+  // /?to=Name opens a letter to that player; /?go=Forums opens a page by name.
+  const composeTo = pathname === "/" ? (search?.get("to") ?? "").slice(0, 40) : "";
+  const startSection = pathname === "/" ? (search?.get("go") ?? "").slice(0, 40) : pathname;
   const [section, setSection] = useState(composeTo ? "Send Letter" : sectionFromAddress(groups, startSection));
   const [letterTo, setLetterTo] = useState(composeTo);
   const [letterQuote, setLetterQuote] = useState<{ from: string; at: string; body: string } | null>(null);
@@ -493,6 +502,18 @@ export default function GameShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [characterOpen, setCharacterOpen] = useState(false);
   const [menuGroup, setMenuGroup] = useState("");
+
+  // Whenever the web address changes (a real page opened, or the back button),
+  // show the page that matches it.
+  useEffect(() => {
+    if (composeTo) {
+      setSection("Send Letter");
+      setLetterTo(composeTo);
+      return;
+    }
+    setSection(sectionFromAddress(groups, startSection));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // The back and forward buttons move between pages.
   useEffect(() => {
@@ -848,7 +869,11 @@ export default function GameShell({
     }
 
     setSection(item);
-    window.history.pushState(null, "", item === "Home" ? "/" : "/" + slugOf(item));
+    if (REAL_PAGES.has(item)) {
+      router.push("/" + slugOf(item));
+    } else {
+      window.history.pushState(null, "", item === "Home" ? "/" : "/" + slugOf(item));
+    }
   }
 
   function toggleMenu() {
@@ -1121,6 +1146,7 @@ export default function GameShell({
   const sky = skyFor(ukClock);
 
   return (
+    <GameContext.Provider value={{ money, setMoney }}>
     <div className="game" style={{ background: "#0b0f0d" }}>
       {/* TOP BAR */}
       <header
@@ -1470,7 +1496,6 @@ export default function GameShell({
           </button>
         </nav>
       </header>
-
       {characterOpen && <CharacterPanel onClose={() => setCharacterOpen(false)} />}
 
       {/* Shown over whatever page you are on, so a failed job that sends you to
@@ -1732,33 +1757,8 @@ export default function GameShell({
             <BankSection money={money} bank={bank} onMoney={setMoney} onBank={setBank} />
           )}
 
-          {section === "Keno" && (
-            <CasinoSection
-              game="Keno"
-              cash={money}
-              onCash={setMoney}
-            />
-          )}
-
-          {section === "Slot Machines" && (
-            <CasinoSection
-              game="Slots"
-              cash={money}
-              onCash={setMoney}
-            />
-          )}
-
-          {section === "Blackjack" && (
-            <CasinoSection game="Blackjack" cash={money} onCash={setMoney} />
-          )}
-
-          {section === "Roulette" && (
-            <CasinoSection game="Roulette" cash={money} onCash={setMoney} />
-          )}
-
-          {section === "War" && (
-            <CasinoSection game="War" cash={money} onCash={setMoney} />
-          )}
+          {REAL_PAGES.has(section) &&
+            (pathname.replace(/^\/+|\/+$/g, "") === slugOf(section) ? children : <p className="flavour">Loading...</p>)}
 
           {section === "Auto Theft" && (
             <AutoTheftSection
@@ -2056,5 +2056,6 @@ export default function GameShell({
         RUMRUNNERS · A CITY WITH ITS OWN RULES
       </footer>
     </div>
+    </GameContext.Provider>
   );
 }
