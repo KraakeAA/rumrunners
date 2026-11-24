@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { userTag } from "@/lib/mailtext";
 import { lockPlayer } from "@/lib/lock";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -219,8 +220,8 @@ export async function POST(req: Request) {
           data: {
             toId: other.id,
             fromName: "Escrow Agent",
-            subject: `Escrow invitation from ${me.username}`,
-            body: `${me.username} has asked to trade with you through the Escrow office. Open Escrow from the menu to accept or decline.`
+            subject: `Escrow invitation from ${userTag(me.username)}`,
+            body: `${userTag(me.username)} has asked to trade with you through the Escrow office. Open Escrow from the menu to accept or decline.`
           }
         });
         return `Invitation sent to ${other.username}. They need to accept before you can trade.`;
