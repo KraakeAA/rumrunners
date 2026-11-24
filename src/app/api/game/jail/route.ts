@@ -115,10 +115,25 @@ export async function POST(req: Request) {
         const success = Math.random() < chance;
 
         if (success) {
+          // A successful break-out counts as a bust in your statistics.
+          const selfStreak = me.bustStreak > 0 ? me.bustStreak + 1 : 1;
+          const selfWins = me.bustWins + 1;
           await tx.player.update({
             where: { id: me.id },
-            data: { jailUntil: null, jailReason: null, selfBustUsed: true }
+            data: {
+              jailUntil: null,
+              jailReason: null,
+              selfBustUsed: true,
+              bustWins: selfWins,
+              bustStreak: selfStreak,
+              bustBest: Math.max(me.bustBest, selfStreak)
+            }
           });
+          if (BUST_MILESTONES.includes(selfWins)) {
+            await tx.bustMilestone.create({
+              data: { playerId: me.id, number: selfWins, freed: me.username }
+            });
+          }
           return {
             success: true,
             message: "You slipped the guards and got out over the wall. You're free."
@@ -128,11 +143,15 @@ export async function POST(req: Request) {
         // A failed escape adds time: half of what's left, at least 5 seconds.
         // Sentences grow with rank and job size, so the penalty does too.
         const extra = Math.max(5, Math.round(myLeft * 0.5));
+        const selfFailStreak = me.bustStreak < 0 ? me.bustStreak - 1 : -1;
         await tx.player.update({
           where: { id: me.id },
           data: {
             jailUntil: new Date(me.jailUntil!.getTime() + extra * 1000),
-            selfBustUsed: true
+            selfBustUsed: true,
+            bustFails: { increment: 1 },
+            bustStreak: selfFailStreak,
+            bustWorst: Math.min(me.bustWorst, selfFailStreak)
           }
         });
         return {
