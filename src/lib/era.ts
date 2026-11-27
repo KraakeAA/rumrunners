@@ -154,6 +154,20 @@ export function shipCost(price: number): number {
   return Math.max(25, Math.round(price * 0.05));
 }
 
+export const SHIP_MINUTES = 10; // how long rail freight takes to arrive
+
+// A car stolen after the heat rules began can only be repaired once it has a false plate,
+// has been shipped and has arrived. Older cars and gifted cars keep the old rule (always).
+export function carRepairable(
+  car: { createdAt: Date | string; plateChanged: boolean; hasShipped: boolean; shipArrivesAt: Date | string | null },
+  now = Date.now()
+): boolean {
+  const inTransit = !!car.shipArrivesAt && new Date(car.shipArrivesAt).getTime() > now;
+  if (inTransit) return false;
+  if (new Date(car.createdAt).getTime() < HEAT_RULES_FROM) return true;
+  return car.plateChanged && car.hasShipped;
+}
+
 export const PLATE_COST = 20; // £ to fit a new plate
 export const PLATE_HEAT_DROP = 50; // heat removed by a new plate
 export const MAX_DAMAGE = 50; // worst damage on a freshly stolen car
