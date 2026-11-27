@@ -71,10 +71,13 @@ export async function POST(req: Request) {
         player.theftTimes && typeof player.theftTimes === "object"
           ? (player.theftTimes as Record<string, string>)
           : {};
-      const cooldownMs = (THEFT_COOLDOWNS[level.level] ?? 60) * 1000;
-      const lastTry = times[String(level.level)]
-        ? new Date(times[String(level.level)])
-        : null;
+      const cooldownMs = (THEFT_COOLDOWNS[level.level] ?? 180) * 1000;
+      // The wait is shared by every level, so use the most recent attempt at any of them.
+      let lastTry: Date | null = null;
+      for (const v of Object.values(times)) {
+        const t = new Date(v);
+        if (!Number.isNaN(t.getTime()) && (!lastTry || t > lastTry)) lastTry = t;
+      }
 
       if (!admin && lastTry && now.getTime() - lastTry.getTime() < cooldownMs) {
         const remaining = Math.ceil(
