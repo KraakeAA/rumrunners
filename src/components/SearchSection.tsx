@@ -27,10 +27,10 @@ type Data = {
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 const bar: CSSProperties = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 15,
+  fontSize: 13,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderTop: "1px solid #b0904a",
