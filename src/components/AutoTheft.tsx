@@ -140,31 +140,36 @@ function TheftPopup({ result, onClose }: { result: TheftResult; onClose: () => v
         textShadow: shadow,
       }}
     >
-      <div style={{ width: "100%", maxWidth: 520 }}>
-        <CarArt carKey={result.car.key} name={result.car.name} />
-      </div>
-
       {good ? (
         <>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              // A soft light behind the car, so dark paintwork does not vanish into the page.
+              background: "radial-gradient(ellipse 60% 55% at 50% 52%, rgba(150, 132, 92, 0.5), rgba(150, 132, 92, 0) 100%)",
+            }}
+          >
+            <CarArt carKey={result.car.key} name={result.car.name} />
+          </div>
           <div style={{ marginTop: 4, fontSize: 16, fontWeight: 700 }}>You stole a</div>
           <div style={{ margin: "6px 0", fontSize: 28, lineHeight: 1.1, fontWeight: 800 }}>{result.car.name}</div>
           <div style={{ fontSize: 15 }}>It has {result.damage}% damage</div>
           <div style={{ marginTop: 3, fontSize: 12, color: "#d9cfb4" }}>
-            from {result.place} · +{result.xpGained} XP{result.leveledUp ? ` · Promoted to ${result.rank}!` : ""}
+            from {result.place}{result.leveledUp ? ` · Promoted to ${result.rank}!` : ""}
           </div>
         </>
       ) : (
         <>
           <div style={{ marginTop: 4, fontSize: 28, fontWeight: 800, color: "#f09a8c" }}>Caught!</div>
           <div style={{ marginTop: 6, fontSize: 15 }}>
-            A constable spotted you going for the {result.car.name} at {result.place}.
+            A constable spotted you trying to steal a car at {result.place}.
           </div>
           {result.jailSeconds ? (
             <div style={{ marginTop: 4, fontSize: 13, color: "#f09a8c" }}>
               Locked up for {result.jailSeconds >= 60 ? `${Math.ceil(result.jailSeconds / 60)} minutes` : `${result.jailSeconds} seconds`}.
             </div>
           ) : null}
-          <div style={{ marginTop: 3, fontSize: 12, color: "#d9cfb4" }}>+{result.xpGained} XP</div>
         </>
       )}
     </div>
