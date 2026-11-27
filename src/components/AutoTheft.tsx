@@ -82,7 +82,7 @@ type WorkshopCar = {
   plateChanged: boolean;
   exposedUntil: string | null;
   shipArrivesAt: string | null;
-  canRepair: boolean;
+  canWork: boolean;
   originCity: string;
   city: string;
   heat: number;
@@ -91,7 +91,7 @@ type WorkshopCar = {
   shipCost: number;
 };
 
-type Pane = "plate" | "repair" | "ship";
+type Pane = "plate" | "repair" | "ship" | "drop";
 
 // Short city codes for the car rows.
 const CITY_CODES: Record<string, string> = {
@@ -175,6 +175,7 @@ export default function AutoTheftSection({
   const [shopMsg, setShopMsg] = useState("");
   const [notices, setNotices] = useState<string[]>([]);
   const [shipDest, setShipDest] = useState("");
+  const [dropArm, setDropArm] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const actedRef = useRef(onActed);
   actedRef.current = onActed;
@@ -249,10 +250,14 @@ export default function AutoTheftSection({
     } catch {
       failure = "Unable to connect. Please try again.";
     }
-    const verb = action === "plate" ? "fitted with false plates" : action === "repair" ? "repaired" : `sent to ${shipDest} (arrives in ${SHIP_MINUTES} minutes)`;
+    const verb = action === "plate" ? "fitted with false plates" : action === "repair" ? "repaired" : action === "drop" ? "dropped" : `sent to ${shipDest} (arrives in ${SHIP_MINUTES} minutes)`;
     const parts: string[] = [];
     if (done > 0) {
-      parts.push(`${done} ${done === 1 ? "car" : "cars"} ${verb} for £${spent.toLocaleString("en-GB")}.`);
+      parts.push(
+        action === "drop"
+          ? `${done} ${done === 1 ? "car" : "cars"} dropped.`
+          : `${done} ${done === 1 ? "car" : "cars"} ${verb} for £${spent.toLocaleString("en-GB")}.`
+      );
     }
     if (failure) parts.push(failure);
     setShopMsg(parts.join(" "));
@@ -265,13 +270,14 @@ export default function AutoTheftSection({
 
   // What a job costs for a car, and whether it applies to that car right now.
   function costOf(action: Pane, c: WorkshopCar) {
-    return action === "plate" ? PLATE_COST : action === "repair" ? c.repairCost : c.shipCost;
+    return action === "plate" ? PLATE_COST : action === "repair" ? c.repairCost : action === "ship" ? c.shipCost : 0;
   }
   function canDo(action: Pane, c: WorkshopCar) {
     const moving = !!c.shipArrivesAt && new Date(c.shipArrivesAt).getTime() > now;
-    if (action === "repair") return c.damage > 0 && c.canRepair && !moving;
-    if (action === "ship") return c.plateChanged && !moving && c.city !== shipDest;
-    return !c.plateChanged || heatZone(c.heat) !== "green";
+    if (action === "drop") return true;
+    if (action === "repair") return c.damage > 0 && c.canWork && !moving;
+    if (action === "ship") return !moving && c.city !== shipDest;
+    return c.canWork && !moving && (!c.plateChanged || heatZone(c.heat) !== "green");
   }
 
   const [busy, setBusy] = useState(false);
@@ -418,9 +424,6 @@ export default function AutoTheftSection({
                     fontWeight: 700,
                     lineHeight: 1.2,
                     color: "#f7efdb",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
                   }}
                 >
                   {l.name}
@@ -430,9 +433,6 @@ export default function AutoTheftSection({
                     fontSize: 10,
                     lineHeight: 1.2,
                     color: locked ? "#e0a24f" : "#a89f86",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
                   }}
                 >
                   {locked ? `Unlocks at ${rankForLevel(l.minRank)}` : l.blurb}
@@ -585,7 +585,7 @@ export default function AutoTheftSection({
                   {c.exposedUntil && (
                     <div style={{ padding: "0 6px 3px 27px", fontSize: 10, color: left > 0 ? "#e0a24f" : "#e0584f" }}>
                       {left > 0
-                        ? `Stolen plates! Police find it in ${clock(left)} unless you change the plate.`
+                        ? `Stolen plates! Police find it in ${clock(left)} unless you ship it out of ${c.city}.`
                         : "Police are on to it. Refreshing..."}
                     </div>
                   )}
@@ -656,6 +656,34 @@ export default function AutoTheftSection({
                         style={{ ...actionBtn(ships), flex: "none", padding: "5px 10px" }}
                       >
                         Ship ({ships.length}) £{sum(ships, "ship").toLocaleString("en-GB")}
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 4 }}>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          const key = picked.join(",");
+                          if (dropArm === key) {
+                            setDropArm("");
+                            runBatch("drop");
+                          } else {
+                            setDropArm(key);
+                          }
+                        }}
+                        style={{
+                          ...btn,
+                          width: "100%",
+                          padding: "5px 2px",
+                          fontSize: 12,
+                          border: "1px solid #a0443c",
+                          background: dropArm === picked.join(",") ? "linear-gradient(180deg, #a0443c, #5a1f1b)" : "linear-gradient(180deg, #3a2420, #241513)",
+                          opacity: busy ? 0.45 : 1,
+                        }}
+                      >
+                        {dropArm === picked.join(",")
+                          ? `Tap again to drop ${picked.length} for good`
+                          : `Drop (${picked.length})`}
                       </button>
                     </div>
                   </div>
