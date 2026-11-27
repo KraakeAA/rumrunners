@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import ItemIcon from "@/components/ItemIcon";
+import CarsPanel from "@/components/CarsPanel";
 
 type SlotItem = { type: string; name: string; kind: string; value: number };
 type Slot = { key: string; label: string; side: "left" | "right"; item: SlotItem | null };
@@ -319,7 +320,7 @@ export default function CharacterPanel({
   const [message, setMessage] = useState("");
   const [picked, setPicked] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<"character" | "kit">("character");
+  const [tab, setTab] = useState<"character" | "kit" | "cars">("character");
 
   const load = useCallback(async () => {
     try {
@@ -374,8 +375,7 @@ export default function CharacterPanel({
       setTab("kit");
     } else setPicked("");
   }
-
-  return (
+    return (
     <div
       role="dialog"
       aria-modal="true"
@@ -441,7 +441,8 @@ export default function CharacterPanel({
             <div style={{ display: "flex", background: "#0f0d09" }}>
               {([
                 { key: "character", label: "Character" },
-                { key: "kit", label: `Kit (${data.kit.length})` }
+                { key: "kit", label: `Kit (${data.kit.length})` },
+                { key: "cars", label: "Cars" }
               ] as const).map((t) => (
                 <button
                   key={t.key}
@@ -651,6 +652,8 @@ export default function CharacterPanel({
 
             </>
             )}
+
+            {tab === "cars" && <CarsPanel />}
 
             {tab === "kit" && (
             <>
