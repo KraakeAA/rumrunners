@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { rankForLevel } from "@/lib/ranks";
 import { clock } from "@/components/EnergyBar";
 import { crimeForCity } from "@/lib/city-crimes";
 import { GameImage, slugify } from "@/components/GameImage";
 import { useGame } from "@/components/GameContext";
 import { energyCostFor } from "@/lib/training";
-import { CRIMES, crimeCooldownSeconds, type CrimeDef } from "@/lib/game";
+import { CRIMES, crimeChance, crimeCooldownSeconds } from "@/lib/game";
 
 const titleBarStyle = {
   padding: "3px 8px",
@@ -39,13 +39,15 @@ function waitWords(secs: number) {
   return `${Math.round(secs)} sec`;
 }
 
-// Your chance at a crime today (the same sum the game uses), shown as a bar that is full at 92%.
-const CRIME_CHANCE_CAP = 0.92;
-function chanceFor(crime: CrimeDef, rankLevel: number) {
-  return Math.min(CRIME_CHANCE_CAP, crime.baseSuccess + Math.max(0, rankLevel - crime.minRankLevel) * 0.015);
-}
+// The crimes are grouped into tabs by rank: each crime unlocks at its own rank.
+const CRIME_TABS: { from: number; to: number }[] = [
+  { from: 1, to: 3 },
+  { from: 4, to: 6 },
+  { from: 7, to: 9 },
+  { from: 10, to: 13 }
+];
 
-// A slim picture strip for each crime. Drop art into public/images/crimes/banners/<crime id>.webp
+// A slim picture strip for each crime. Drop art into public/images/crimes/<crime id>.webp
 // (or .jpg / .png). Until it is there the strip is plain, and the little city picture still shows.
 function CrimeBanner({
   crimeId,
@@ -75,7 +77,7 @@ function CrimeBanner({
       {attempt < files.length && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-                    src={`/images/crimes/${files[attempt]}`}
+          src={`/images/crimes/${files[attempt]}`}
           alt=""
           onError={() => setAttempt((a) => a + 1)}
           style={{
@@ -133,7 +135,7 @@ function CrimeBanner({
   );
 }
 
-// A bar that fills as far as the chance goes.
+// A bar that fills as your chance grows, full at 100%.
 function ChanceBar({ chance }: { chance: number }) {
   const pct = Math.round(chance * 100);
   return (
@@ -153,7 +155,7 @@ function ChanceBar({ chance }: { chance: number }) {
     >
       <div
         style={{
-          width: `${Math.min(100, (chance / CRIME_CHANCE_CAP) * 100)}%`,
+          width: `${Math.min(100, chance * 100)}%`,
           height: "100%",
           background: "linear-gradient(180deg, #d9b24a, #7a5a14)"
         }}
@@ -181,13 +183,31 @@ export default function CrimesPage() {
   const g = useGame();
   const [crimeTier, setCrimeTier] = useState(-1);
 
-  // Crimes come in tiers of four. Every crime is listed; the ones above
-  // your rank are greyed out with the rank that unlocks them.
-  const crimeTiers = useMemo(() => {
-    const out: (typeof CRIMES)[number][][] = [];
-    for (let i = 0; i < CRIMES.length; i += 4) out.push(CRIMES.slice(i, i + 4));
-    return out;
-  }, []);
+  // How many times you have tried each crime: your chance grows with every attempt.
+  const [practice, setPractice] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (g.busy) return;
+    let alive = true;
+    fetch("/api/game/crime/practice", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && d.practice && typeof d.practice === "object") setPractice(d.practice);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [g.busy]);
+
+  // Every crime is listed; the ones above your rank are greyed out with the rank that unlocks them.
+  const crimeTiers = useMemo(
+    () =>
+      CRIME_TABS.map((t) => CRIMES.filter((c) => c.minRankLevel >= t.from && c.minRankLevel <= t.to)).filter(
+        (list) => list.length > 0
+      ),
+    []
+  );
+  const tabRanks = CRIME_TABS.filter((t) => CRIMES.some((c) => c.minRankLevel >= t.from && c.minRankLevel <= t.to));
   const topOpenTier = Math.max(
     0,
     crimeTiers.reduce((n, t, i) => (t[0].minRankLevel <= g.rankLevel ? i : n), 0)
@@ -233,7 +253,7 @@ export default function CrimesPage() {
                 cursor: "pointer"
               }}
             >
-              {i + 1}
+              {tabRanks[i].from}–{tabRanks[i].to}
               {!open && <span style={{ fontSize: 11 }}> 🔒</span>}
             </button>
           );
@@ -242,8 +262,8 @@ export default function CrimesPage() {
 
       <div style={{ margin: "2px 0 4px", fontSize: 11, color: "#b7ad93", textAlign: "center" }}>
         {crimeTiers[activeTier][0].minRankLevel <= g.rankLevel
-          ? `Tier ${activeTier + 1} · unlocked`
-          : `Tier ${activeTier + 1} unlocks at ${rankForLevel(crimeTiers[activeTier][0].minRankLevel)}`}
+          ? `Ranks ${tabRanks[activeTier].from}–${tabRanks[activeTier].to} · the more you do a crime, the better you get`
+          : `Unlocks at ${rankForLevel(crimeTiers[activeTier][0].minRankLevel)}`}
       </div>
 
       <div style={{ background: "#1f2a25", border: "1px solid #6b5d3a", color: "#f1e8d3", fontSize: 12, marginBottom: 6 }}>
@@ -276,7 +296,7 @@ export default function CrimesPage() {
                   <span style={{ fontSize: 10, color: "#c9bfa6", whiteSpace: "nowrap", flexShrink: 0 }}>
                     {waitWords(crimeCooldownSeconds(crime.energyCost))} wait
                   </span>
-                  <ChanceBar chance={chanceFor(crime, g.rankLevel)} />
+                  <ChanceBar chance={crimeChance(baseCrime, practice[crime.id] ?? 0)} />
                   <button
                     type="button"
                     disabled={disabled}
