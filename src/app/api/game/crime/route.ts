@@ -12,6 +12,7 @@ import {
   ENERGY_UNIT,
   maxEnergyFor,
   crimeCooldownSeconds,
+  crimeChance,
   energyAfterRegen,
   levelFromXp,
   playCrime,
@@ -192,11 +193,16 @@ export async function POST(req: Request) {
 
       // The same job reads differently in each city; the numbers do not change.
       const local = crimeForCity(crime, player.currentCity);
+      // How many times this player has tried this crime: practice sets their chance.
+      const attempts = await tx.crimeLog.count({
+        where: { playerId: player.id, crimeType: crime.name }
+      });
       const roll = playCrime(
         local,
         player.rankLevel,
         streak,
-        player.money
+        player.money,
+        attempts
       );
       const newXp = player.experience + roll.xp;
       // Never demote: a player keeps the rank they already hold.
@@ -267,6 +273,8 @@ export async function POST(req: Request) {
         streak: newStreak,
         streakBonus: roll.streakBonus,
         cooldown: crimeCooldownSeconds(crime.energyCost),
+        chance: Math.round(crimeChance(crime, attempts) * 100),
+        attempts: attempts + 1,
         jailSeconds
       };
     });
