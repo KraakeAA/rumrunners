@@ -70,10 +70,10 @@ const btn: CSSProperties = {
   cursor: "pointer",
 };
 
-// The car picture. Drop transparent art into public/images/cars/<car key>.png (or .webp).
+// The car picture. Drop transparent art into public/images/cars/<car key>.webp (or .png).
 function CarArt({ carKey, name }: { carKey: string; name: string }) {
   const [attempt, setAttempt] = useState(0);
-  const files = [`${carKey}.png`, `${carKey}.webp`];
+  const files = [`${carKey}.webp`, `${carKey}.png`];
   if (attempt >= files.length) {
     return (
       <div
@@ -191,10 +191,10 @@ function countdown(secs: number) {
   return h > 0 ? `${h}:${two(m)}:${two(sec)}` : `${m}:${two(sec)}`;
 }
 
-// A slim picture strip for each job. Drop art into public/images/autotheft/level-1.png (or .jpg / .webp).
+// A slim picture strip for each job. Drop art into public/images/autotheft/level-1.webp (or .jpg / .png).
 function LevelBanner({ level, name, locked, unlock }: { level: number; name: string; locked: boolean; unlock: string }) {
   const [attempt, setAttempt] = useState(0);
-  const files = [`level-${level}.png`, `level-${level}.jpg`, `level-${level}.webp`];
+  const files = [`level-${level}.webp`, `level-${level}.jpg`, `level-${level}.png`];
   return (
     <div
       style={{
@@ -320,6 +320,14 @@ export default function AutoTheftSection({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TheftResult | null>(null);
+
+  // Load the car pictures quietly in the background, so they appear at once when you win.
+  useEffect(() => {
+    CARS.forEach((c) => {
+      const img = new Image();
+      img.src = `/images/cars/${c.key}.webp`;
+    });
+  }, []);
 
   // Your chance on each job grows with every attempt, so fetch how many you have made.
   useEffect(() => {
