@@ -5,10 +5,10 @@ import { useEffect, useState, type CSSProperties } from "react";
 type Grave = { name: string; rank: string; diedAt: string; killedBy: string | null; revived: boolean };
 
 const bar: CSSProperties = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 16,
+  fontSize: 13,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderTop: "1px solid #b0904a",
