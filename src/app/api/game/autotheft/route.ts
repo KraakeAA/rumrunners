@@ -72,11 +72,12 @@ export async function POST(req: Request) {
           ? (player.theftTimes as Record<string, string>)
           : {};
       const cooldownMs = (THEFT_COOLDOWNS[level.level] ?? 180) * 1000;
-      // The wait is shared by every level, so use the most recent attempt at any of them.
+      // Each level has its own wait, counted from your last attempt at that level.
       let lastTry: Date | null = null;
-      for (const v of Object.values(times)) {
-        const t = new Date(v);
-        if (!Number.isNaN(t.getTime()) && (!lastTry || t > lastTry)) lastTry = t;
+      const lastRaw = times[String(level.level)];
+      if (lastRaw) {
+        const t = new Date(lastRaw);
+        if (!Number.isNaN(t.getTime())) lastTry = t;
       }
 
       if (!admin && lastTry && now.getTime() - lastTry.getTime() < cooldownMs) {
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
         }
       }
 
-      const chance = theftChance(level, model.tier);
+      const chance = theftChance(level, player.rankLevel);
       const success = Math.random() < chance;
       const place = pick(STREETS[player.currentCity] ?? STREETS.London);
 
