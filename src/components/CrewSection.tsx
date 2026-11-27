@@ -294,3 +294,394 @@ export default function CrewSection({
         </div>
       );
     }
+    return (
+      <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
+        <div style={bar}>Start Crew</div>
+        <div style={box}>
+          <p style={{ margin: "0 0 6px" }}>Become leader of a crew with up to {data.maxMembers} members.</p>
+          <p style={{ margin: 0 }}>
+            Only {data.maxCrews} crews can exist at once ({data.crewCount} so far). Starting one costs money, but no
+            weekly payment is due.
+          </p>
+          <div style={{ textAlign: "center", margin: "10px 0 4px" }}>
+            <div style={{ fontSize: 16 }}>{gbp(data.cost)}</div>
+            <div style={sub}>Start cost</div>
+          </div>
+
+          {!starting ? (
+            <div style={{ textAlign: "center" }}>
+              <button
+                type="button"
+                className="button"
+                disabled={full}
+                onClick={() => setStarting(true)}
+                style={{ padding: "6px 22px", fontSize: 13, opacity: full ? 0.55 : 1 }}
+              >
+                {full ? "All crews taken" : "Continue >"}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+              <label style={{ display: "grid", gap: 3 }}>
+                <strong>Name:</strong>
+                <input
+                  value={name}
+                  maxLength={24}
+                  placeholder="Name of crew"
+                  onChange={(e) => setName(e.target.value)}
+                  style={field}
+                />
+              </label>
+              <div style={{ display: "grid", gap: 3 }}>
+                <strong>Colour:</strong>
+                <Swatches value={color} onPick={setColor} />
+              </div>
+              <div style={{ ...sub }}>
+                Your colour is the banner shown on every member&apos;s profile.
+              </div>
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <button type="button" className="button secondary" onClick={() => setStarting(false)} style={{ padding: "6px 14px", fontSize: 13 }}>
+                  Cancel!
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  disabled={busy || !name.trim()}
+                  onClick={() => act({ action: "start", name, color })}
+                  style={{ padding: "6px 18px", fontSize: 13, opacity: busy || !name.trim() ? 0.55 : 1 }}
+                >
+                  Start!
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ ...bar, marginTop: 8 }}>No Crew</div>
+        <div style={box}>
+          <p style={{ margin: "0 0 8px" }}>
+            You are not part of any crew. Pick one below to apply. The crew&apos;s leader sets the questions.
+          </p>
+          {data.crews.length === 0 ? (
+            <p style={{ ...sub, margin: 0 }}>There are no crews yet. Start the first one.</p>
+          ) : (
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <select value={pick} onChange={(e) => setPick(e.target.value)} style={{ ...field, flex: 1, minWidth: 0 }}>
+                <option value="">-- Select crew --</option>
+                {data.crews.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.members}/{data.maxMembers})
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="button"
+                disabled={!pick}
+                onClick={openApplication}
+                style={{ padding: "7px 14px", fontSize: 13, flexShrink: 0, opacity: pick ? 1 : 0.55 }}
+              >
+                Apply
+              </button>
+            </div>
+          )}
+        </div>
+        {notices}
+      </div>
+    );
+  }
+  // --------------------------------------------------------------- in a crew
+  const crew = data.mine;
+  const pending = crew.applications.length;
+  const tabs: { key: typeof tab; label: string }[] = [
+    { key: "overview", label: "Crew" },
+    { key: "bank", label: "Bank" },
+    { key: "forum", label: "Forum" },
+    ...(crew.isLeader
+      ? [
+          { key: "applications" as const, label: pending > 0 ? `Applications (${pending})` : "Applications" },
+          { key: "settings" as const, label: "Settings" }
+        ]
+      : [])
+  ];
+
+  const tabBtn = (active: boolean): CSSProperties => ({
+    flex: 1,
+    padding: "6px 2px",
+    fontSize: 12,
+    border: "1px solid #6b5d3a",
+    borderTop: 0,
+    background: active ? "#4d3d1c" : "#17201c",
+    color: active ? "#f7efdb" : "#b7ad93",
+    cursor: "pointer",
+    fontFamily: "inherit"
+  });
+
+  return (
+    <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
+      <div style={{ ...bar, background: `linear-gradient(180deg, ${crew.color}, #1a1a18)` }}>{crew.name}</div>
+      <div style={{ display: "flex" }}>
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => {
+              setTab(t.key);
+              setError("");
+              setMessage("");
+              setConfirm("");
+            }}
+            style={tabBtn(tab === t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {notices}
+
+      {tab === "forum" && (
+        <div style={{ marginTop: 6 }}>
+          <ForumBoard
+            key="CREW"
+            category="CREW"
+            title={`${crew.name} Forum`}
+            isAdmin={isAdmin}
+            playerId={playerId}
+            leader={crew.isLeader}
+          />
+        </div>
+      )}
+
+      {tab === "overview" && (
+        <>
+          <div style={{ ...box, marginTop: 6, borderTop: "1px solid #6b5d3a" }}>
+            {crew.motto ? (
+              <p style={{ margin: "0 0 6px", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{crew.motto}</p>
+            ) : (
+              <p style={{ ...sub, margin: "0 0 6px" }}>No crew description yet.</p>
+            )}
+            <div style={sub}>
+              Leader: <strong style={{ color: "#f1e8d3" }}>{crew.leaderName}</strong> · {crew.members.length}/
+              {data.maxMembers} members · Founded{" "}
+              {new Date(crew.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+            </div>
+            <div style={{ marginTop: 6 }}>
+              <Link href={`/crew/${crew.id}`} style={{ color: "#e4c04d" }}>
+                View the crew profile
+              </Link>
+            </div>
+          </div>
+
+          <div style={{ ...bar, fontSize: 13, padding: "4px 8px", marginTop: 6 }}>Members</div>
+          {crew.members.map((m) => (
+            <div
+              key={m.username}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "5px 8px",
+                border: "1px solid #6b5d3a",
+                borderTop: 0,
+                background: "#17201c",
+                fontSize: 13
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Link href={`/profile/${encodeURIComponent(m.username)}`} style={{ color: "#f7efdb", textDecoration: "none", fontWeight: 600 }}>
+                  {m.username}
+                </Link>
+                {m.isLeader && <span style={{ color: "#e4c04d", fontSize: 11 }}> · Leader</span>}
+                <div style={sub}>
+                  {m.rank} · gave {gbp(m.donated)}
+                </div>
+              </div>
+              {crew.isLeader && !m.isLeader && (
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => (confirm === `kick:${m.username}` ? act({ action: "kick", username: m.username }, () => setConfirm("")) : setConfirm(`kick:${m.username}`))}
+                  style={{ padding: "4px 10px", fontSize: 11, flexShrink: 0 }}
+                >
+                  {confirm === `kick:${m.username}` ? "Sure?" : "Remove"}
+                </button>
+              )}
+            </div>
+          ))}
+
+          {!crew.isLeader && (
+            <div style={{ textAlign: "center", marginTop: 10 }}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={busy}
+                onClick={() => (confirm === "leave" ? act({ action: "leave" }, () => setConfirm("")) : setConfirm("leave"))}
+                style={{ padding: "6px 18px", fontSize: 13 }}
+              >
+                {confirm === "leave" ? "Press again to leave" : "Leave crew"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+            {tab === "bank" && (
+        <>
+          <div style={{ ...box, marginTop: 6, borderTop: "1px solid #6b5d3a", textAlign: "center" }}>
+            <div style={sub}>Crew bank</div>
+            <div style={{ fontFamily: "Georgia, serif", fontSize: 16, color: "#f7efdb" }}>{gbp(crew.bank)}</div>
+            <div style={sub}>You hold {gbp(data.money)} in cash.</div>
+          </div>
+          <div style={box}>
+            <input
+              inputMode="numeric"
+              placeholder="Amount (£)"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))}
+              style={field}
+            />
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              <button
+                type="button"
+                className="button"
+                disabled={busy || !amount}
+                onClick={() => act({ action: "donate", amount: Number(amount) }, () => setAmount(""))}
+                style={{ flex: 1, padding: "7px 0", fontSize: 13, opacity: busy || !amount ? 0.55 : 1 }}
+              >
+                Donate
+              </button>
+              {crew.isLeader && (
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy || !amount}
+                  onClick={() => act({ action: "withdraw", amount: Number(amount) }, () => setAmount(""))}
+                  style={{ flex: 1, padding: "7px 0", fontSize: 13, opacity: busy || !amount ? 0.55 : 1 }}
+                >
+                  Withdraw
+                </button>
+              )}
+            </div>
+            <p style={{ ...sub, margin: "6px 0 0" }}>
+              Any member can put money in. Only the leader can take it out.
+            </p>
+          </div>
+        </>
+      )}
+
+      {tab === "applications" && crew.isLeader && (
+        <>
+          {crew.applications.length === 0 ? (
+            <div style={{ ...box, marginTop: 6, borderTop: "1px solid #6b5d3a", color: "#b7ad93" }}>
+              No applications waiting.
+            </div>
+          ) : (
+            crew.applications.map((a) => (
+              <div key={a.id} style={{ ...box, marginTop: 6, borderTop: "1px solid #6b5d3a" }}>
+                <div>
+                  <Link href={`/profile/${encodeURIComponent(a.username)}`} style={{ color: "#f7efdb", fontWeight: 700 }}>
+                    {a.username}
+                  </Link>{" "}
+                  <span style={sub}>{a.rank}</span>
+                </div>
+                {crew.questions.length === 0 ? (
+                  <div style={{ ...sub, marginTop: 4 }}>No questions were set.</div>
+                ) : (
+                  crew.questions.map((q, i) => (
+                    <div key={i} style={{ marginTop: 5 }}>
+                      <div style={sub}>{q}</div>
+                      <div style={{ overflowWrap: "anywhere" }}>{a.answers[i] || "—"}</div>
+                    </div>
+                  ))
+                )}
+                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={busy}
+                    onClick={() => act({ action: "review", applicationId: a.id, accept: true })}
+                    style={{ flex: 1, padding: "6px 0", fontSize: 13, opacity: busy ? 0.55 : 1 }}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={busy}
+                    onClick={() => act({ action: "review", applicationId: a.id, accept: false })}
+                    style={{ flex: 1, padding: "6px 0", fontSize: 13, opacity: busy ? 0.55 : 1 }}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </>
+      )}
+
+      {tab === "settings" && crew.isLeader && (
+        <>
+          <div style={{ ...box, marginTop: 6, borderTop: "1px solid #6b5d3a", display: "grid", gap: 8 }}>
+            <label style={{ display: "grid", gap: 3 }}>
+              <strong>Crew description</strong>
+              <textarea
+                rows={4}
+                maxLength={MAX_MOTTO_LENGTH}
+                value={motto}
+                onChange={(e) => setMotto(e.target.value)}
+                style={{ ...field, resize: "vertical" }}
+              />
+            </label>
+            <div style={{ display: "grid", gap: 3 }}>
+              <strong>Colour</strong>
+              <Swatches value={setColour} onPick={setSetColour} />
+            </div>
+            <div style={{ display: "grid", gap: 4 }}>
+              <strong>Application questions</strong>
+              <div style={sub}>Up to {MAX_QUESTIONS}. Leave them all empty to take applicants without questions.</div>
+              {Array.from({ length: MAX_QUESTIONS }, (_, i) => (
+                <input
+                  key={i}
+                  value={questions[i] ?? ""}
+                  maxLength={MAX_QUESTION_LENGTH}
+                  placeholder={`Question ${i + 1}`}
+                  onChange={(e) => {
+                    const next = Array.from({ length: MAX_QUESTIONS }, (_, j) => questions[j] ?? "");
+                    next[i] = e.target.value;
+                    setQuestions(next);
+                  }}
+                  style={field}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              className="button"
+              disabled={busy}
+              onClick={() => act({ action: "edit", motto, color: setColour, questions })}
+              style={{ padding: "7px 0", fontSize: 13, opacity: busy ? 0.55 : 1 }}
+            >
+              Save
+            </button>
+          </div>
+
+          <div style={{ ...box, marginTop: 6, borderTop: "1px solid #6b5d3a", textAlign: "center" }}>
+            <p style={{ ...sub, margin: "0 0 6px" }}>
+              Disbanding ends the crew for everyone. What is left in the crew bank comes to you.
+            </p>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy}
+              onClick={() => (confirm === "disband" ? act({ action: "disband" }, () => setConfirm("")) : setConfirm("disband"))}
+              style={{ padding: "6px 18px", fontSize: 13 }}
+            >
+              {confirm === "disband" ? "Press again to disband" : "Disband crew"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
