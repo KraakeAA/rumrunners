@@ -45,9 +45,9 @@ type Data = {
 };
 
 const bar: CSSProperties = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   fontFamily: "Georgia, serif",
-  fontSize: 15,
+  fontSize: 13,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderTop: "1px solid #b0904a",
@@ -227,8 +227,7 @@ export default function OrganisedCrimeSection() {
           </div>
         </div>
       )}
-
-      {/* ---------- IN A CREW ---------- */}
+            {/* ---------- IN A CREW ---------- */}
       {oc && (
         <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
           <div style={{ ...box, display: "flex", justifyContent: "space-between", fontSize: 13 }}>
