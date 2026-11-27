@@ -378,7 +378,7 @@ export const CRIMES: CrimeDef[] = [
       }
     ]
   },
-  {
+    {
     id: "jewellery",
     name: "Jewellery Heist",
     description: "Diamonds, pearls and a very quiet exit.",
@@ -710,6 +710,18 @@ export function successChance(
   );
 }
 
+// Your chance at a crime starts at 0% and grows with every attempt you make at that crime,
+// reaching 100%. The better the crime, the more attempts it takes to master it.
+export const CRIME_START_CHANCE = 0;
+export function crimeAttemptsToMaster(crime: CrimeDef): number {
+  const i = Math.max(0, CRIMES.findIndex((c) => c.id === crime.id));
+  return 25 + i * 12;
+}
+export function crimeChance(crime: CrimeDef, attempts: number): number {
+  const m = Math.min(1, Math.max(0, attempts) / crimeAttemptsToMaster(crime));
+  return CRIME_START_CHANCE + (1 - CRIME_START_CHANCE) * m;
+}
+
 export function payScale(crime: CrimeDef, rankLevel: number) {
   return 1 + Math.min(0.3, levelsAbove(crime, rankLevel) * 0.03);
 }
@@ -717,7 +729,6 @@ export function payScale(crime: CrimeDef, rankLevel: number) {
 export function xpScale(crime: CrimeDef, rankLevel: number) {
   return Math.max(0.35, 1 - levelsAbove(crime, rankLevel) * 0.12);
 }
-
 export function crimePayRange(crime: CrimeDef, rankLevel: number) {
   const scale = payScale(crime, rankLevel);
 
@@ -740,10 +751,12 @@ export function playCrime(
   rankLevel: number,
   streak: number,
   cashOnHand: number,
+  attempts: number = 0,
   rng: () => number = Math.random
 ): CrimeOutcome {
   const scene = pick(crime.scenes, rng);
-  const chance = successChance(crime, rankLevel, scene.risk);
+  // Practice alone sets the chance, so the bar on the Crimes page is the real chance.
+  const chance = crimeChance(crime, attempts);
   const xpFactor = xpScale(crime, rankLevel);
   const streakBonus = streakBonusFor(streak);
 
