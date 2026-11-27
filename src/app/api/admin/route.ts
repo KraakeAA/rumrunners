@@ -210,7 +210,7 @@ export async function POST(req: Request) {
       if (!model) throw new Refuse("Pick a car.");
       const city = SHIP_CITIES.includes(String(body.city)) ? String(body.city) : "London";
       await prisma.car.create({
-        data: { ownerId: target.id, model: model.key, originCity: city, city, plate: makePlate(city), plateChanged: true, sweptAt: new Date() }
+        data: { ownerId: target.id, model: model.key, originCity: city, city, plate: makePlate(city), plateChanged: true, hasShipped: true, sweptAt: new Date() }
       });
       message = `${target.username} was given a ${model.name}.`;
     } else if (action === "removecar") {
