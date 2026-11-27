@@ -364,20 +364,6 @@ const slugOf = (name: string) => {
   return plain === "slotmachines" ? "slots" : plain;
 };
 
-// Pages that are real pages of their own (a file under src/app/(game)).
-// Moving to one of these goes through the Next.js router, which loads that page.
-const REAL_PAGES = new Set([
-  "Keno", "Slot Machines", "Blackjack", "Roulette", "War",
-  "Bootlegging", "Garage", "Hitlist", "Hospital", "Lottery", "Search", "Store",
-  "Graveyard", "Updates", "Find Player", "Help Desk", "Statistics",
-  "Wiki", "Terms of Service", "Cities",
-  "Auto Theft", "Bullet Factory", "Escrow", "Gymnasium", "Jail", "Local Bank",
-  "Marketplace", "Organised Crime", "Railway", "Whack",
-  "Crimes", "Mailbox", "Send Letter", "Classifieds", "Off Topic", "Crew Forum",
-  "Crew", "Suggestion Box", "Game", "Forums", "Admin", "Rackets", "Gold",
-  "Pawn Shop", "Stock Market", "Brothel", "Saved Mail", "Rumrunners Live", "Full Site"
-]);
-
 // Finds the page that matches a name or a web address. Anything unknown opens Home.
 function sectionFromAddress(groups: { items: string[] }[], value: string) {
   const wanted = slugOf(value);
@@ -481,7 +467,7 @@ export default function GameShell({
   const [characterOpen, setCharacterOpen] = useState(false);
   const [menuGroup, setMenuGroup] = useState("");
 
-  // Whenever the web address changes (a real page opened, or the back button),
+  // Whenever the web address changes (a page opened, or the back button),
   // show the page that matches it.
   useEffect(() => {
     if (composeTo) {
@@ -492,25 +478,14 @@ export default function GameShell({
     }
     const next = sectionFromAddress(groups, startSection);
     setSection(next);
+    setMenuOpen(false);
     // An old /?go=Name link opens that page at its own address.
-    if (pathname === "/" && next !== "Home" && REAL_PAGES.has(next)) {
+    if (pathname === "/" && next !== "Home") {
       router.replace("/" + slugOf(next));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  // The back and forward buttons move between pages.
-  useEffect(() => {
-    const onPop = () => {
-      const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
-      setSection(sectionFromAddress(groups, path));
-      setLetterTo("");
-      setMenuOpen(false);
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const [notice, setNotice] = useState("");
   const status = useActionStatus({
     energy: player.energy,
@@ -852,11 +827,7 @@ export default function GameShell({
     }
 
     setSection(item);
-    if (REAL_PAGES.has(item)) {
-      router.push("/" + slugOf(item));
-    } else {
-      window.history.pushState(null, "", "/" + slugOf(item));
-    }
+    router.push("/" + slugOf(item));
   }
 
   function toggleMenu() {
@@ -1656,7 +1627,7 @@ export default function GameShell({
           {BANNER_PAGES.has(section) && <Banner slot={`banners/${slugify(section)}`} />}
           {section === "Home" && renderStatistics()}
 
-          {REAL_PAGES.has(section) &&
+          {section !== "Home" &&
             (pathname.replace(/^\/+|\/+$/g, "") === slugOf(section) ? children : <p className="flavour">Loading...</p>)}
 
           {section !== "Home" &&
