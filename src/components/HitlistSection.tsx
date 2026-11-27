@@ -33,29 +33,33 @@ const bar: CSSProperties = {
   borderBottom: "1px solid #b0904a",
   textShadow: "0 1px 2px #000"
 };
-const cell: CSSProperties = {
+const box: CSSProperties = {
+  background: "#1f2a25",
   border: "1px solid #6b5d3a",
-  background: "#2a332e",
-  padding: "5px 8px",
-  fontSize: 13,
-  overflowWrap: "anywhere"
+  marginBottom: 6,
+  color: "#f1e8d3",
+  fontSize: 12
 };
-const head: CSSProperties = { ...cell, background: "#3a3a30", color: "#d4cab2" };
 const input: CSSProperties = {
-  height: 34,
+  height: 30,
   width: "100%",
   boxSizing: "border-box",
   padding: "0 8px",
   border: "1px solid #a08340",
+  borderRadius: 0,
   background: "#0e1411",
   color: "#f7efdb",
   fontSize: 16
 };
+const label: CSSProperties = { fontSize: 10, color: "#c9bfa6", marginBottom: 2, display: "block" };
 
 function when(iso: string) {
-  const d = new Date(iso);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 export default function HitlistSection({ onCash }: { onCash?: (money: number) => void }) {
@@ -85,6 +89,11 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
 
   useEffect(() => {
     load();
+    // Keep the list fresh, so a bounty that has just been paid out disappears by itself.
+    const t = window.setInterval(() => {
+      if (!document.hidden) load();
+    }, 3_000);
+    return () => window.clearInterval(t);
   }, [load]);
 
   async function act(body: Record<string, unknown>, done?: () => void) {
@@ -113,140 +122,158 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
   }
 
   const picked = data?.bounties.find((b) => b.id === pick);
-  const canBuyOff = Boolean(picked && data && picked.targetId === data.meId);
+  const canBuyOff = Boolean(picked);
   const reasonMax = data?.reasonMax ?? 150;
 
   return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
-      <div style={bar}>Hitlist</div>
+      <Banner slot="banners/hitlist" />
 
-      {error && <p className="notice" role="alert" style={{ color: "#f09a8c" }}>{error}</p>}
-      {message && <p className="notice" style={{ color: "#9be39f" }}>{message}</p>}
+      {error && <p className="notice" role="alert" style={{ color: "#f09a8c", margin: "0 0 6px" }}>{error}</p>}
+      {message && <p className="notice" style={{ color: "#9be39f", margin: "0 0 6px" }}>{message}</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "26% 1fr 1fr 44px" }}>
-        <div style={{ ...head, gridRow: "1 / span 3" }}>Target</div>
-        <div style={head}>Amount</div>
-        <div style={head}>Paid by</div>
-        <div style={{ ...head, gridRow: "1 / span 3" }} />
-        <div style={{ ...head, gridColumn: "2 / span 2" }}>Date</div>
-        <div style={{ ...head, gridColumn: "2 / span 2" }}>Reason</div>
+      <div style={box}>
+        <div style={bar}>Hitlist{data ? ` (${data.bounties.length})` : ""}</div>
 
         {!data ? (
-          <div style={{ ...cell, gridColumn: "1 / -1", color: "#b7ad93" }}>Loading…</div>
+          <div style={{ padding: 8, color: "#b7ad93" }}>Loading…</div>
         ) : data.bounties.length === 0 ? (
-          <div style={{ ...cell, gridColumn: "1 / -1", color: "#c9bfa6" }}>Nobody has a price on their head.</div>
+          <div style={{ padding: 8, color: "#c9bfa6" }}>Nobody has a price on their head.</div>
         ) : (
-          data.bounties.map((b) => (
-            <div key={b.id} style={{ display: "contents" }}>
-              <div style={{ ...cell, gridRow: "span 3", background: "#454545" }}>{b.targetName}</div>
-              <div style={{ ...cell, background: "#454545" }}>{gbp(b.amount)}</div>
-              <div style={{ ...cell, background: "#454545" }}>{b.paidBy}</div>
-              <div style={{ ...cell, gridRow: "span 3", background: "#454545", display: "grid", placeItems: "center", padding: 0 }}>
+          data.bounties.map((b) => {
+            const on = pick === b.id;
+            return (
+              <label
+                key={b.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "5px 8px",
+                  borderBottom: "1px solid #3d4a40",
+                  background: on ? "#26352d" : "transparent",
+                  cursor: "pointer"
+                }}
+              >
                 <input
                   type="radio"
                   name="bounty"
                   aria-label={`Select the bounty on ${b.targetName}`}
-                  checked={pick === b.id}
+                  checked={on}
                   onChange={() => setPick(b.id)}
-                  style={{ width: 22, height: 22 }}
+                  style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }}
                 />
-              </div>
-              <div style={{ ...cell, gridColumn: "2 / span 2", background: "#454545" }}>{when(b.createdAt)}</div>
-              <div style={{ ...cell, gridColumn: "2 / span 2", background: "#454545" }}>{b.reason || "No reason given."}</div>
-            </div>
-          ))
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                    <strong style={{ fontSize: 13, overflowWrap: "anywhere" }}>{b.targetName}</strong>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#e4c04d", flexShrink: 0 }}>{gbp(b.amount)}</span>
+                  </div>
+                  <div style={{ fontSize: 10, lineHeight: 1.3, color: "#a89f86", overflowWrap: "anywhere" }}>
+                    by {b.paidBy} · {when(b.createdAt)}
+                    {b.reason ? ` · ${b.reason}` : ""}
+                  </div>
+                </div>
+              </label>
+            );
+          })
         )}
 
-        <div style={{ ...cell, gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
-          {picked && !canBuyOff && (
-            <span style={{ fontSize: 11, color: "#b7ad93" }}>You can only buy off a bounty on your own head.</span>
-          )}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 8,
+            padding: "5px 8px",
+            background: "#17201c"
+          }}
+        >
+          <span style={{ fontSize: 10, color: "#b7ad93", flex: 1 }}>
+            {picked ? `Pay to remove the bounty on ${picked.targetName}.` : "Pick a bounty to pay it off."}
+          </span>
           <button
             type="button"
             className="button"
-            style={{ padding: "5px 18px", fontSize: 14, opacity: busy || !canBuyOff ? 0.55 : 1 }}
+            style={{ padding: "4px 14px", fontSize: 12, opacity: busy || !canBuyOff ? 0.55 : 1 }}
             disabled={busy || !canBuyOff}
             onClick={() => act({ action: "buyoff", id: pick }, () => setPick(""))}
           >
-            Buy off{picked && canBuyOff ? ` (${gbp(picked.amount)})` : "!"}
+            Buy off{picked && canBuyOff ? ` (${gbp(picked.amount)})` : ""}
           </button>
         </div>
       </div>
 
-      <div style={{ marginTop: 14 }}>
-        <Banner slot="banners/hitlist" />
-      </div>
-      <div style={{ ...bar, marginTop: 0 }}>Add Target</div>
-      <div style={{ ...cell, color: "#d4cab2", padding: "8px 10px" }}>
-        <strong>Fees</strong>
-        <div>Add target: 5% of amount{data ? ` (minimum bounty ${gbp(data.minimum)})` : ""}</div>
-        <div style={{ fontSize: 11, color: "#b7ad93", marginTop: 3 }}>
-          Whoever kills the target collects every bounty on him.
-        </div>
-      </div>
+      <div style={box}>
+        <div style={bar}>Add Target</div>
+        <div style={{ padding: 8 }}>
+          <div style={{ fontSize: 10, color: "#b7ad93", marginBottom: 6 }}>
+            Fee 5% of the amount{data ? `, minimum bounty ${gbp(data.minimum)}` : ""}. Whoever kills the target collects
+            every bounty on him.
+          </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-        <div style={head}>Username:</div>
-        <div style={head}>Amount:</div>
-        <div style={cell}>
-          <input
-            style={input}
-            aria-label="Target username"
-            autoCapitalize="none"
-            autoCorrect="off"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-          />
-        </div>
-        <div style={{ ...cell, display: "flex", alignItems: "center", gap: 4 }}>
-          £
-          <input
-            style={input}
-            aria-label="Bounty amount"
-            inputMode="numeric"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
-          />
-        </div>
-        <div style={{ ...head, display: "flex", justifyContent: "space-between" }}>
-          <span>Reason:</span>
-          <span style={{ color: "#b7ad93" }}>({reasonMax - reason.length} chars left)</span>
-        </div>
-        <div style={{ ...head, background: "#3a3a30" }} />
-        <div style={{ ...cell, gridColumn: "1 / -1" }}>
-          <textarea
-            aria-label="Reason"
-            maxLength={reasonMax}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            style={{ ...input, height: 110, padding: 8, resize: "none" }}
-          />
-        </div>
-        <div style={{ ...head, gridColumn: "1 / -1" }}>Anonymously:</div>
-        <div style={{ ...cell, gridColumn: "1 / -1", display: "flex", justifyContent: "center", gap: 40 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="radio" name="anon" checked={anonymous} onChange={() => setAnonymous(true)} /> Yes
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="radio" name="anon" checked={!anonymous} onChange={() => setAnonymous(false)} /> No
-          </label>
-        </div>
-        <div style={{ ...cell, gridColumn: "1 / -1", display: "grid", placeItems: "center" }}>
-          <button
-            type="button"
-            className="button"
-            style={{ padding: "6px 24px", fontSize: 15, opacity: busy || !target.trim() || !amount ? 0.55 : 1 }}
-            disabled={busy || !target.trim() || !amount}
-            onClick={() =>
-              act({ action: "add", target: target.trim(), amount: Number(amount), reason, anonymous }, () => {
-                setTarget("");
-                setAmount("");
-                setReason("");
-              })
-            }
-          >
-            Add target!
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={label}>Username</span>
+              <input
+                style={input}
+                aria-label="Target username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={label}>Amount (£)</span>
+              <input
+                style={input}
+                aria-label="Bounty amount"
+                inputMode="numeric"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 6 }}>
+            <span style={label}>
+              Reason ({reasonMax - reason.length} left)
+            </span>
+            <textarea
+              aria-label="Reason"
+              maxLength={reasonMax}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              style={{ ...input, height: 54, padding: 6, resize: "none" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 6 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+              <input
+                type="checkbox"
+                checked={anonymous}
+                onChange={(e) => setAnonymous(e.target.checked)}
+                style={{ width: 16, height: 16, margin: 0 }}
+              />
+              Anonymous
+            </label>
+            <button
+              type="button"
+              className="button"
+              style={{ padding: "4px 16px", fontSize: 13, opacity: busy || !target.trim() || !amount ? 0.55 : 1 }}
+              disabled={busy || !target.trim() || !amount}
+              onClick={() =>
+                act({ action: "add", target: target.trim(), amount: Number(amount), reason, anonymous }, () => {
+                  setTarget("");
+                  setAmount("");
+                  setReason("");
+                })
+              }
+            >
+              Add target
+            </button>
+          </div>
         </div>
       </div>
     </div>
