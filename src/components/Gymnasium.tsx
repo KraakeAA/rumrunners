@@ -27,10 +27,10 @@ const IVORY = "#e8dcc0";
 const ICONS: Record<Stat["key"], string> = { strength: "🏋", stamina: "🏃", agility: "🤸" };
 
 const bar: CSSProperties = {
-  padding: "7px 8px",
+  padding: "3px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 16,
+  fontSize: 13,
   letterSpacing: 0.5,
   color: IVORY,
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
