@@ -1583,7 +1583,7 @@ export default function GameShell({
         </div>
         </>
       )}
-            <div className="game-layout">
+                  <div className="game-layout">
         <main className="main-content">
           {/* MENU SCREEN */}
           {menuOpen && (
@@ -1648,7 +1648,7 @@ export default function GameShell({
           ) : (
           <>
           {BANNER_PAGES.has(section) && (
-            <Banner slot={`banners/${slugify(section)}`} ratio={SLIM_BANNER_PAGES.has(section) ? 1150 / 190 : 1150 / 300} />
+            <Banner slot={`banners/${slugify(section)}`} />
           )}
           {section === "Home" && renderStatistics()}
 
