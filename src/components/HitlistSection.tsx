@@ -205,11 +205,7 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
                         fontSize: 11,
                         lineHeight: 1.25,
                         color: b.reason ? "#d9cfb4" : "#6f7a70",
-                        overflowWrap: "anywhere",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden"
+                        overflowWrap: "anywhere"
                       }}
                     >
                       {b.reason || "No message"}
