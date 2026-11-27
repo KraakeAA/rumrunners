@@ -93,6 +93,18 @@ type WorkshopCar = {
 
 type Pane = "plate" | "repair" | "ship";
 
+// Short city codes for the car rows.
+const CITY_CODES: Record<string, string> = {
+  London: "LON",
+  Birmingham: "BIR",
+  Manchester: "MAN",
+  Liverpool: "LIV",
+  Glasgow: "GLA",
+};
+function short(city: string) {
+  return CITY_CODES[city] ?? city.slice(0, 3).toUpperCase();
+}
+
 function PlateBadge({ plate }: { plate: string }) {
   return (
     <span
@@ -484,6 +496,7 @@ export default function AutoTheftSection({
               />
               <span style={{ flex: 1, minWidth: 0 }}>Car</span>
               <span style={{ width: 56, textAlign: "center", flexShrink: 0 }}>Plate</span>
+              <span style={{ width: 46, textAlign: "center", flexShrink: 0 }}>City</span>
               <span style={{ width: 26, textAlign: "right", flexShrink: 0 }}>Dmg</span>
               <span style={{ width: 19, textAlign: "center", flexShrink: 0 }}>Heat</span>
               <span style={{ width: 40, textAlign: "center", flexShrink: 0 }}>Ship</span>
@@ -528,6 +541,13 @@ export default function AutoTheftSection({
                       {c.name}
                     </span>
                     <PlateBadge plate={c.plate} />
+                    <span
+                      title={`Stolen in ${c.originCity}, now in ${c.city}`}
+                      style={{ width: 46, flexShrink: 0, textAlign: "center", fontSize: 9, whiteSpace: "nowrap", color: "#c9bfa6" }}
+                    >
+                      {short(c.originCity)}
+                      {c.originCity !== c.city ? <span style={{ color: "#9fc4e4" }}>{`>${short(c.city)}`}</span> : ""}
+                    </span>
                     <span
                       title={`${c.damage}% damage`}
                       style={{
