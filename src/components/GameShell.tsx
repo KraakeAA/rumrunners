@@ -11,7 +11,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GameContext } from "@/components/GameContext";
 import JailSection from "@/components/Jail";
-import { useActionStatus } from "@/components/EnergyBar";
+import { useActionStatus, clock } from "@/components/EnergyBar";
 import CharacterPanel from "@/components/CharacterPanel";
 import CrimePopup from "@/components/CrimePopup";
 import PromotionPopup from "@/components/PromotionPopup";
@@ -1086,6 +1086,9 @@ export default function GameShell({
   }
 
   const sky = skyFor(ukClock);
+  // Shown under the energy bar only while it is not full: the next 10 points and when they arrive.
+  const energyGain = Math.min(10, status.maxEnergy - energy);
+  const energyWait = status.nextEnergyIn + Math.max(0, energyGain - 1) * 4;
 
   return (
     <GameContext.Provider
@@ -1226,7 +1229,7 @@ export default function GameShell({
             </span>
           </button>
 
-          <div style={{ minWidth: 0, flex: 1, maxWidth: 150 }}>
+          <div style={{ position: "relative", minWidth: 0, flex: 1, maxWidth: 150 }}>
             <div
               aria-label="Player money"
               style={{
@@ -1322,6 +1325,25 @@ export default function GameShell({
                 {energy} / {status.maxEnergy}
               </div>
             </div>
+            {energy < status.maxEnergy && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  marginTop: 1,
+                  textAlign: "center",
+                  fontSize: 8,
+                  lineHeight: "9px",
+                  color: "#e8d7b6",
+                  textShadow: "0 1px 2px #000",
+                  pointerEvents: "none"
+                }}
+              >
+                +{energyGain} IN {clock(energyWait)}
+              </div>
+            )}
           </div>
         </div>
 
