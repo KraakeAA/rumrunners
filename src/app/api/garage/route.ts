@@ -133,7 +133,7 @@ export async function POST(req: Request) {
 
   const destination = String(body?.destination ?? "");
 
-  if ((action !== "plate" && action !== "repair" && action !== "ship") || !carId) {
+  if ((action !== "plate" && action !== "repair" && action !== "ship" && action !== "drop") || !carId) {
     return NextResponse.json({ error: "Choose a car and a job." }, { status: 400 });
   }
 
@@ -160,6 +160,12 @@ export async function POST(req: Request) {
 
       const inTransit = !!car.shipArrivesAt && car.shipArrivesAt.getTime() > now.getTime();
       const block = workBlock(car, player.currentCity, now.getTime());
+
+      if (action === "drop") {
+        // Abandon the car for good. It can't be dropped while it is being used in a trade.
+        await tx.car.delete({ where: { id: car.id } });
+        return { message: `You dumped the ${model.name} [${car.plate}] and walked away.` };
+      }
 
       if (action === "plate") {
         if (block) throw new Error(block);
