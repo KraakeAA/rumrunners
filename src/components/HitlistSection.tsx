@@ -174,7 +174,7 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <Banner slot="banners/hitlist" ratio={1150 / 190} />
+        <Banner slot="banners/hitlist" />
       </div>
       <div style={{ ...bar, marginTop: 0 }}>Add Target</div>
       <div style={{ ...cell, color: "#d4cab2", padding: "8px 10px" }}>
