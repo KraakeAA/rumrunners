@@ -217,6 +217,10 @@ model Car {
   heatAt     DateTime @default(now())
   // True once the original plate has been swapped for a false one.
   plateChanged Boolean @default(false)
+  // True once the car has been sent by rail freight; it can only be repaired after that.
+  hasShipped Boolean @default(false)
+  // While a shipment is on its way this is when it arrives (null when not in transit).
+  shipArrivesAt DateTime?
   // The last time the police checked this car (null on cars from before the heat rules).
   sweptAt    DateTime?
   // Crates of booze in the boot, keyed by booze key.
@@ -306,7 +310,6 @@ model CasinoLog {
 
   @@index([playerId, createdAt])
 }
-
 model ForumTopic {
   id        String   @id @default(cuid())
   category  String
@@ -336,6 +339,7 @@ model ForumPost {
 
   @@index([topicId, createdAt])
 }
+
 // A four-player organised crime: one leader and three role slots.
 model OrganisedCrime {
   id        String   @id @default(cuid())
