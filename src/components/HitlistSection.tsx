@@ -23,10 +23,10 @@ type Data = {
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 const bar: CSSProperties = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 16,
+  fontSize: 13,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderTop: "1px solid #b0904a",
@@ -174,7 +174,7 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <Banner slot="banners/hitlist" />
+        <Banner slot="banners/hitlist" ratio={1150 / 190} />
       </div>
       <div style={{ ...bar, marginTop: 0 }}>Add Target</div>
       <div style={{ ...cell, color: "#d4cab2", padding: "8px 10px" }}>
