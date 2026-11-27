@@ -52,6 +52,7 @@ const input: CSSProperties = {
   fontSize: 16
 };
 const label: CSSProperties = { fontSize: 10, color: "#c9bfa6", marginBottom: 2, display: "block" };
+const cellLabel: CSSProperties = { fontSize: 8, letterSpacing: 1, textTransform: "uppercase", color: "#8f8770", display: "block" };
 
 function when(iso: string) {
   return new Date(iso).toLocaleString("en-GB", {
@@ -129,8 +130,19 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <Banner slot="banners/hitlist" />
 
-      {error && <p className="notice" role="alert" style={{ color: "#f09a8c", margin: "0 0 6px" }}>{error}</p>}
-      {message && <p className="notice" style={{ color: "#9be39f", margin: "0 0 6px" }}>{message}</p>}
+      {error && (
+        <div
+          role="alert"
+          style={{ ...box, padding: "5px 8px", borderLeft: "3px solid #e0584f", color: "#e8c4bc", fontSize: 11 }}
+        >
+          {error}
+        </div>
+      )}
+      {message && (
+        <div style={{ ...box, padding: "5px 8px", borderLeft: "3px solid #b0904a", color: "#e4d9bb", fontSize: 11 }}>
+          {message}
+        </div>
+      )}
 
       <div style={box}>
         <div style={bar}>Hitlist{data ? ` (${data.bounties.length})` : ""}</div>
@@ -163,14 +175,45 @@ export default function HitlistSection({ onCash }: { onCash?: (money: number) =>
                   onChange={() => setPick(b.id)}
                   style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }}
                 />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.6fr)",
+                    border: "1px solid #3d4a40",
+                    background: "#17201c"
+                  }}
+                >
+                  <div style={{ padding: "3px 6px", borderRight: "1px solid #3d4a40", borderBottom: "1px solid #3d4a40", minWidth: 0 }}>
+                    <span style={cellLabel}>Target</span>
                     <strong style={{ fontSize: 13, overflowWrap: "anywhere" }}>{b.targetName}</strong>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#e4c04d", flexShrink: 0 }}>{gbp(b.amount)}</span>
                   </div>
-                  <div style={{ fontSize: 10, lineHeight: 1.3, color: "#a89f86", overflowWrap: "anywhere" }}>
-                    by {b.paidBy} · {when(b.createdAt)}
-                    {b.reason ? ` · ${b.reason}` : ""}
+                  <div style={{ padding: "3px 6px", borderBottom: "1px solid #3d4a40", minWidth: 0 }}>
+                    <span style={cellLabel}>Bounty</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#e4c04d" }}>{gbp(b.amount)}</span>
+                  </div>
+                  <div style={{ padding: "3px 6px", borderRight: "1px solid #3d4a40", minWidth: 0 }}>
+                    <span style={cellLabel}>From</span>
+                    <div style={{ fontSize: 11, color: "#d9cfb4", overflowWrap: "anywhere" }}>{b.paidBy}</div>
+                    <div style={{ fontSize: 9, color: "#8f8770" }}>{when(b.createdAt)}</div>
+                  </div>
+                  <div style={{ padding: "3px 6px", minWidth: 0 }}>
+                    <span style={cellLabel}>Message</span>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        lineHeight: 1.25,
+                        color: b.reason ? "#d9cfb4" : "#6f7a70",
+                        overflowWrap: "anywhere",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden"
+                      }}
+                    >
+                      {b.reason || "No message"}
+                    </div>
                   </div>
                 </div>
               </label>
