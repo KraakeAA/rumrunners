@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { CARS, heatZone, PLATE_COST, PLATE_HEAT_DROP, SHIP_CITIES, THEFT_COOLDOWN_SECONDS, THEFT_LEVELS, EXPOSURE_MINUTES } from "@/lib/era";
-import { GameImage, slugify } from "@/components/GameImage";
+import { CARS, heatZone, PLATE_COST, PLATE_HEAT_DROP, SHIP_CITIES, SHIP_MINUTES, THEFT_COOLDOWN_SECONDS, THEFT_LEVELS } from "@/lib/era";
 import { clock } from "@/components/EnergyBar";
 import { rankForLevel } from "@/lib/ranks";
 import { energyCostFor } from "@/lib/training";
-import { DamageBar, HeatBar } from "@/components/Travel";
 
 type TheftResult = {
   success: boolean;
@@ -74,7 +72,6 @@ const btn: CSSProperties = {
   cursor: "pointer",
 };
 const sub: CSSProperties = { fontSize: 11, color: "#c9bfa6" };
-const TIER_NAMES = ["", "Common", "Decent", "Fine", "Grand"];
 
 type WorkshopCar = {
   id: string;
@@ -84,6 +81,8 @@ type WorkshopCar = {
   plateOrigin: string;
   plateChanged: boolean;
   exposedUntil: string | null;
+  shipArrivesAt: string | null;
+  canRepair: boolean;
   originCity: string;
   city: string;
   heat: number;
@@ -99,19 +98,47 @@ function PlateBadge({ plate }: { plate: string }) {
     <span
       style={{
         display: "inline-block",
-        padding: "0 6px",
+        flexShrink: 0,
+        padding: "0 4px",
         background: "#141414",
         color: "#e8e4d4",
         border: "1px solid #c9c5b4",
         borderRadius: 2,
         fontFamily: "Georgia, serif",
         fontWeight: 700,
-        fontSize: 12,
-        letterSpacing: 1.5,
-        lineHeight: "17px",
+        fontSize: 10,
+        letterSpacing: 1,
+        lineHeight: "14px",
+        whiteSpace: "nowrap",
       }}
     >
       {plate}
+    </span>
+  );
+}
+
+// Three little bars climbing left to right: green, amber, red. The ones that are lit show the heat.
+function HeatBars({ heat }: { heat: number }) {
+  const zone = heatZone(heat);
+  const lit = zone === "red" ? 3 : zone === "amber" ? 2 : 1;
+  const colours = ["#6fcf6f", "#e0a24f", "#e0584f"];
+  return (
+    <span
+      title={`Heat ${zone}`}
+      aria-label={`Heat ${zone}`}
+      style={{ display: "inline-flex", alignItems: "flex-end", gap: 2, height: 13, flexShrink: 0 }}
+    >
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          style={{
+            width: 5,
+            height: 5 + i * 4,
+            borderRadius: 1,
+            background: i < lit ? colours[i] : "#2d3731",
+          }}
+        />
+      ))}
     </span>
   );
 }
@@ -207,7 +234,7 @@ export default function AutoTheftSection({
     } catch {
       failure = "Unable to connect. Please try again.";
     }
-    const verb = action === "plate" ? "fitted with false plates" : action === "repair" ? "repaired" : `shipped to ${shipDest}`;
+    const verb = action === "plate" ? "fitted with false plates" : action === "repair" ? "repaired" : `sent to ${shipDest} (arrives in ${SHIP_MINUTES} minutes)`;
     const parts: string[] = [];
     if (done > 0) {
       parts.push(`${done} ${done === 1 ? "car" : "cars"} ${verb} for £${spent.toLocaleString("en-GB")}.`);
@@ -226,8 +253,9 @@ export default function AutoTheftSection({
     return action === "plate" ? PLATE_COST : action === "repair" ? c.repairCost : c.shipCost;
   }
   function canDo(action: Pane, c: WorkshopCar) {
-    if (action === "repair") return c.damage > 0;
-    if (action === "ship") return c.plateChanged && c.city !== shipDest;
+    const moving = !!c.shipArrivesAt && new Date(c.shipArrivesAt).getTime() > now;
+    if (action === "repair") return c.damage > 0 && c.canRepair && !moving;
+    if (action === "ship") return c.plateChanged && !moving && c.city !== shipDest;
     return !c.plateChanged || heatZone(c.heat) !== "green";
   }
 
@@ -272,35 +300,16 @@ export default function AutoTheftSection({
       setBusy(false);
     }
   }
-
-  return (
+    return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       {result && (
         <div style={{ ...panel, textAlign: "center" }}>
           <div style={barStyle}>{result.success ? "You got away with it!" : "Caught!"}</div>
           <div style={{ padding: 10, lineHeight: 1.6 }}>
             {result.success ? (
-              <>
-                <div style={{ maxWidth: 300, margin: "0 auto 8px" }}>
-                  <GameImage slot={`cars/${slugify(result.car.name)}`} width="100%" height={120} />
-                </div>
-                <div>
-                  You took a <strong>{result.car.name}</strong> from {result.place}. It is in your
-                  garage in {result.city} with {result.plate} plates.
-                </div>
-                <div style={sub}>
-                  {TIER_NAMES[result.car.tier]} motor · melts down for{" "}
-                  {result.car.scrap.toLocaleString("en-GB")} bullets
-                </div>
-                <div style={{ maxWidth: 260, margin: "6px auto 0" }}>
-                  <HeatBar heat={result.heat} />
-                  <DamageBar damage={result.damage} />
-                </div>
-                <div style={{ color: "#e0a24f", marginTop: 6, fontSize: 11 }}>
-                  It&apos;s red hot. Fit a false plate within {EXPOSURE_MINUTES} minutes or the police will
-                  find it. Open Your cars below.
-                </div>
-              </>
+              <div>
+                You stole the <strong>{result.car.name}</strong> from {result.place}. It has {result.damage}% damage.
+              </div>
             ) : (
               <div>
                 You went for a <strong>{result.car.name}</strong> at {result.place}, but a constable
@@ -318,7 +327,8 @@ export default function AutoTheftSection({
           </div>
         </div>
       )}
-            {notices.length > 0 && (
+
+      {notices.length > 0 && (
         <div style={{ ...panel, padding: 8, color: "#e08f7f", border: "1px solid #a0443c" }}>
           {notices.map((n, i) => (
             <div key={i}>{n}</div>
@@ -441,7 +451,8 @@ export default function AutoTheftSection({
           {currentCity} streets · {Math.round(THEFT_COOLDOWN_SECONDS / 60)} minute wait after every job
         </div>
       </div>
-            <div style={panel}>
+
+      <div style={panel}>
         <div style={barStyle}>Your cars ({cars.length})</div>
         {cars.length === 0 ? (
           <div style={{ padding: 8, ...sub }}>You have no cars yet.</div>
@@ -469,26 +480,24 @@ export default function AutoTheftSection({
               <span style={{ flex: 1 }}>
                 {picked.length === 0 ? "Tick cars to work on them" : `${picked.length} selected`}
               </span>
-              <span style={{ width: 54, textAlign: "center" }}>Heat</span>
             </div>
 
             {cars.map((c) => {
               const on = picked.includes(c.id);
-              const zone = heatZone(c.heat);
-              const colour = zone === "red" ? "#e0584f" : zone === "amber" ? "#e0a24f" : "#6fcf6f";
-              const label = zone === "red" ? "RED" : zone === "amber" ? "AMBER" : "GREEN";
               const left = c.exposedUntil ? Math.max(0, Math.ceil((new Date(c.exposedUntil).getTime() - now) / 1000)) : 0;
+              const transit = c.shipArrivesAt ? Math.max(0, Math.ceil((new Date(c.shipArrivesAt).getTime() - now) / 1000)) : 0;
               return (
                 <div
                   key={c.id}
                   style={{ borderBottom: "1px solid #3d4a40", background: on ? "#26352d" : "transparent" }}
                 >
                   <label
+                    title={`${c.name}, in ${c.city}`}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      padding: "5px 8px",
+                      gap: 6,
+                      padding: "4px 6px",
                       cursor: "pointer",
                     }}
                   >
@@ -497,73 +506,55 @@ export default function AutoTheftSection({
                       aria-label={`Select ${c.name}`}
                       checked={on}
                       onChange={() => setPicked(on ? picked.filter((id) => id !== c.id) : [...picked, c.id])}
-                      style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }}
+                      style={{ width: 15, height: 15, margin: 0, flexShrink: 0 }}
                     />
                     <span
                       style={{
                         flex: 1,
                         minWidth: 0,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontSize: 13,
-                        fontWeight: 700,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        lineHeight: 1.15,
+                        color: "#f1e8d3",
                       }}
                     >
                       {c.name}
-                      {c.damage > 0 && (
-                        <span style={{ fontWeight: 400, fontSize: 10, color: c.damage >= 35 ? "#e0584f" : "#e0a24f" }}>
-                          {" "}
-                          {c.damage}% dmg
-                        </span>
-                      )}
-                      {c.city !== currentCity && (
-                        <span style={{ fontWeight: 400, fontSize: 10, color: "#9d957f" }}> · {c.city}</span>
-                      )}
                     </span>
                     <PlateBadge plate={c.plate} />
                     <span
-                      title={`Heat ${c.heat}%`}
+                      title={`${c.damage}% damage`}
                       style={{
-                        position: "relative",
-                        width: 54,
-                        height: 15,
+                        width: 26,
                         flexShrink: 0,
-                        background: "#0e1411",
-                        border: "1px solid #5b4d3a",
-                        overflow: "hidden",
+                        textAlign: "right",
+                        fontSize: 10,
+                        color: c.damage >= 35 ? "#e0584f" : c.damage > 0 ? "#e0a24f" : "#6f7a70",
                       }}
                     >
+                      {c.damage}%
+                    </span>
+                    <HeatBars heat={c.heat} />
+                    {transit > 0 && (
                       <span
+                        title={`Shipping to ${c.city}`}
                         style={{
-                          position: "absolute",
-                          left: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: `${Math.max(0, Math.min(100, c.heat))}%`,
-                          background: colour,
-                          opacity: 0.55,
-                        }}
-                      />
-                      <span
-                        style={{
-                          position: "relative",
-                          display: "block",
-                          textAlign: "center",
-                          fontSize: 9,
-                          lineHeight: "13px",
-                          fontWeight: 700,
-                          letterSpacing: 0.5,
-                          color: "#fff",
-                          textShadow: "0 1px 1px #000",
+                          flexShrink: 0,
+                          padding: "0 4px",
+                          border: "1px solid #5a7fa0",
+                          borderRadius: 2,
+                          background: "#1b2a38",
+                          color: "#9fc4e4",
+                          fontSize: 10,
+                          lineHeight: "14px",
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        {label}
+                        {clock(transit)}
                       </span>
-                    </span>
+                    )}
                   </label>
                   {c.exposedUntil && (
-                    <div style={{ padding: "0 8px 4px 32px", fontSize: 10, color: left > 0 ? "#e0a24f" : "#e0584f" }}>
+                    <div style={{ padding: "0 6px 3px 27px", fontSize: 10, color: left > 0 ? "#e0a24f" : "#e0584f" }}>
                       {left > 0
                         ? `Stolen plates! Police find it in ${clock(left)} unless you change the plate.`
                         : "Police are on to it. Refreshing..."}
@@ -572,14 +563,14 @@ export default function AutoTheftSection({
                 </div>
               );
             })}
-
-            {picked.length > 0 &&
+                        {picked.length > 0 &&
               (() => {
                 const chosen = cars.filter((c) => picked.includes(c.id));
                 const plates = chosen.filter((c) => canDo("plate", c));
                 const repairs = chosen.filter((c) => canDo("repair", c));
                 const ships = chosen.filter((c) => canDo("ship", c));
                 const notReady = chosen.filter((c) => !c.plateChanged).length;
+                const waitingRepair = chosen.filter((c) => c.damage > 0 && !canDo("repair", c)).length;
                 const sum = (list: WorkshopCar[], a: Pane) => list.reduce((n, c) => n + costOf(a, c), 0);
                 const actionBtn = (list: WorkshopCar[]): CSSProperties => ({
                   ...btn,
@@ -641,9 +632,11 @@ export default function AutoTheftSection({
                       </button>
                     </div>
                     <div style={{ ...sub, marginTop: 4, fontSize: 10 }}>
-                      Plate: false plate for £{PLATE_COST.toLocaleString("en-GB")} each, takes {PLATE_HEAT_DROP} off the
-                      heat, never the stolen city again. Ship: any car that already has a false plate, from wherever it is
-                      {notReady > 0 ? ` (${notReady} still on stolen plates, change those first)` : ""}.
+                      Plate: £{PLATE_COST.toLocaleString("en-GB")} each, takes {PLATE_HEAT_DROP} off the heat, never the stolen
+                      city again. Ship: needs a false plate first, takes {SHIP_MINUTES} minutes
+                      {notReady > 0 ? ` (${notReady} still on stolen plates)` : ""}. Repair: only after a car has a false
+                      plate, has been shipped and has arrived
+                      {waitingRepair > 0 ? ` (${waitingRepair} not ready yet)` : ""}.
                     </div>
                   </div>
                 );
