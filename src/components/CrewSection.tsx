@@ -294,7 +294,7 @@ export default function CrewSection({
         </div>
       );
     }
-    return (
+        return (
       <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
         <div style={bar}>Start Crew</div>
         <div style={box}>
