@@ -33,6 +33,30 @@ function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+// How many times the player has tried each job, keyed by job number.
+function practiceOf(raw: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (raw && typeof raw === "object") {
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      const n = Number(v);
+      if (Number.isFinite(n) && n > 0) out[k] = Math.floor(n);
+    }
+  }
+  return out;
+}
+
+export async function GET() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  }
+  const player = await prisma.player.findUnique({ where: { userId }, select: { theftPractice: true } });
+  if (!player) {
+    return NextResponse.json({ error: "Player not found." }, { status: 404 });
+  }
+  return NextResponse.json({ practice: practiceOf(player.theftPractice) });
+}
+
 export async function POST(req: Request) {
   const __dead = await denyIfDead();
   if (__dead) return __dead;
@@ -108,7 +132,10 @@ export async function POST(req: Request) {
         }
       }
 
-      const chance = theftChance(level, player.rankLevel);
+      const practice = practiceOf(player.theftPractice);
+      const tries = practice[String(level.level)] ?? 0;
+      const chance = theftChance(level, tries);
+      const newPractice = { ...practice, [String(level.level)]: tries + 1 };
       const success = Math.random() < chance;
       const place = pick(STREETS[player.currentCity] ?? STREETS.London);
 
@@ -131,6 +158,7 @@ export async function POST(req: Request) {
           lastTheftAt: now,
           ...(success ? { theftWins: { increment: 1 } } : { theftFails: { increment: 1 } }),
           theftTimes: { ...times, [String(level.level)]: now.toISOString() },
+          theftPractice: newPractice,
         },
       });
 
@@ -181,6 +209,7 @@ export async function POST(req: Request) {
         place,
         city: player.currentCity,
         chance: Math.round(chance * 100),
+        practice: newPractice,
         heat,
         plate,
         damage,
