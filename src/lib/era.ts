@@ -64,12 +64,30 @@ export function travelMinutes(car: CarModel | undefined): number {
 
 // Heat: how much the police want a car. Cools down while it sits unused.
 export const MAX_HEAT = 100;
-export const HEAT_COOL_MINUTES = 5; // one point of heat lost every 5 minutes
+export const HEAT_COOL_MINUTES = 29; // one point lost every 29 minutes: red to green takes about two days
 export const DRIVE_HEAT = 8; // heat added by each journey
 
 export function currentHeat(heat: number, heatAt: Date | string, now = Date.now()): number {
   const lost = Math.floor((now - new Date(heatAt).getTime()) / (HEAT_COOL_MINUTES * 60_000));
   return Math.max(0, Math.min(MAX_HEAT, heat - Math.max(0, lost)));
+}
+
+// Three heat zones: green is quiet, amber is watched, red is hunted.
+export type HeatZone = "green" | "amber" | "red";
+export function heatZone(heat: number): HeatZone {
+  return heat >= 67 ? "red" : heat >= 34 ? "amber" : "green";
+}
+export const STOLEN_HEAT = 100; // every stolen car starts red
+export const EXPOSURE_MINUTES = 5; // how long a car can sit on its original plates
+export const SWEEP_MINUTES = 120; // police check the streets this often
+export const MAX_SWEEPS = 100;
+export const HEAT_RULES_FROM = Date.parse("2026-11-28T00:00:00Z"); // cars older than this keep the old rules
+
+// Chance per police check that a car is found. Shipped cars are harder to trace.
+export function sweepChance(heat: number, shipped: boolean): number {
+  const z = heatZone(heat);
+  const base = z === "red" ? 0.12 : z === "amber" ? 0.05 : 0;
+  return shipped ? base / 2 : base;
 }
 
 // Auto theft: four levels unlocked by rank. Every car can turn up at every
@@ -110,8 +128,27 @@ export function makePlate(city: string): string {
   return `${code} ${digits}`;
 }
 
-// Shipping a car to another city by rail freight. The plate stays as it is,
-// so the car keeps the number of the city it was stolen in.
+// Which city a plate belongs to, read from its two letters.
+export function plateCity(plate: string): string | null {
+  const code = plate.slice(0, 2);
+  for (const [city, codes] of Object.entries(PLATE_CODES)) {
+    if (codes.includes(code)) return city;
+  }
+  return null;
+}
+
+// A false plate: from any city except the one the car was stolen in.
+export function makeFalsePlate(originCity: string, current: string): string {
+  const cities = Object.keys(PLATE_CODES).filter((c) => c !== originCity);
+  for (let i = 0; i < 20; i++) {
+    const plate = makePlate(cities[Math.floor(Math.random() * cities.length)]);
+    if (plate !== current) return plate;
+  }
+  return makePlate(cities[0]);
+}
+
+// Shipping a car to another city by rail freight. A car still on its stolen
+// plates is spotted at the station, so change the plate first.
 export const SHIP_CITIES = ["London", "Birmingham", "Manchester", "Liverpool", "Glasgow"];
 export function shipCost(price: number): number {
   return Math.max(25, Math.round(price * 0.05));
@@ -130,7 +167,6 @@ export function repairCost(damage: number, tier: number): number {
 export function effectiveMinutes(car: CarModel | undefined, damage: number): number {
   return Math.round(travelMinutes(car) * (car ? 1 + damage / 100 : 1));
 }
-
 // Each theft level has its own cooldown.
 export const THEFT_COOLDOWNS: Record<number, number> = { 1: 30, 2: 45, 3: 60, 4: 90 };
 
