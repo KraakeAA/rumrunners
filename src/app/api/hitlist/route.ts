@@ -108,7 +108,12 @@ export async function POST(req: Request) {
       if (action === "buyoff") {
         const bounty = await tx.bounty.findUnique({ where: { id: String(body.id ?? "") } });
         if (!bounty || bounty.status !== "active") throw new Refuse("That bounty is already gone.");
-        if (bounty.targetId !== me.id) throw new Refuse("You can only buy off a bounty on your own head.");
+        // Anyone can pay a bounty off. The bounty is claimed first so two people can't both pay for it.
+        const claimed = await tx.bounty.updateMany({
+          where: { id: bounty.id, status: "active" },
+          data: { status: "bought_off", resolvedAt: new Date() }
+        });
+        if (claimed.count !== 1) throw new Refuse("That bounty is already gone.");
 
         const paid = await tx.player.updateMany({
           where: { id: me.id, money: { gte: bounty.amount } },
@@ -116,11 +121,10 @@ export async function POST(req: Request) {
         });
         if (paid.count !== 1) throw new Refuse("You can't afford to buy that off.");
 
-        await tx.bounty.update({
-          where: { id: bounty.id },
-          data: { status: "bought_off", resolvedAt: new Date() }
-        });
-        message = `You paid £${bounty.amount.toLocaleString("en-GB")} and the bounty is gone.`;
+        message =
+          bounty.targetId === me.id
+            ? `You paid £${bounty.amount.toLocaleString("en-GB")} and the bounty is gone.`
+            : `You paid £${bounty.amount.toLocaleString("en-GB")} and the bounty on ${bounty.targetName} is gone.`;
         return;
       }
 
