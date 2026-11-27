@@ -63,7 +63,7 @@ export async function GET() {
         rank: true,
         rankLevel: true,
         updatedAt: true,
-        user: { select: { isAdmin: true } }
+        user: { select: { isAdmin: true, staffRole: true } }
       },
       orderBy: {
         updatedAt: "desc"
@@ -76,7 +76,8 @@ export async function GET() {
         rank: p.rank,
         rankLevel: p.rankLevel,
         updatedAt: p.updatedAt,
-        isAdmin: p.user.isAdmin
+        isAdmin: p.user.isAdmin,
+        staffRole: p.user.staffRole ?? ""
       })),
       count: players.length
     });
