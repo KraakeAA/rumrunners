@@ -83,7 +83,7 @@ export default function GameRoute({ page }: { page: GamePage }) {
   if (page === "Local Bank") {
     return <BankSection money={g.money} bank={g.bank} onMoney={g.setMoney} onBank={g.setBank} />;
   }
-  if (page === "Marketplace") return <GoldMarketplace onCash={g.setMoney} />;
+  if (page === "Marketplace") return <GoldMarketplace onCash={g.setMoney} onGold={g.setGold} />;
   if (page === "Organised Crime") return <OrganisedCrimeSection />;
   if (page === "Railway") return <TravelSection onArrive={g.setCurrentCity} isAdmin={g.isAdmin} />;
   return <WhackSection onCash={g.setMoney} isAdmin={g.isAdmin} />;
