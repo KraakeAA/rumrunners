@@ -4,8 +4,6 @@ import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { expireEscrowsFor } from "@/lib/escrow";
-import { isAdminUser } from "@/lib/admin-bypass";
-import { sendToJail, sentenceFor } from "@/lib/jail";
 import { policeSweep } from "@/lib/police";
 import {
   EXPOSURE_MINUTES,
@@ -14,9 +12,10 @@ import {
   makeFalsePlate,
   plateCity,
   PLATE_COST,
-  PLATE_HEAT_DROP,
+  AMBER_HEAT,
+  MAX_HEAT,
   carModel,
-  carRepairable,
+  workBlock,
   SHIP_MINUTES,
   currentHeat,
   effectiveMinutes,
@@ -87,7 +86,7 @@ export async function GET() {
           plateChanged: c.plateChanged,
           shipArrivesAt:
             c.shipArrivesAt && c.shipArrivesAt.getTime() > now ? c.shipArrivesAt.toISOString() : null,
-          canRepair: carRepairable(c, now),
+          canWork: workBlock(c, player.currentCity, now) === null,
           exposedUntil: exposed
             ? new Date(c.createdAt.getTime() + EXPOSURE_MINUTES * 60_000).toISOString()
             : null,
@@ -159,51 +158,30 @@ export async function POST(req: Request) {
       }
       const now = new Date();
 
+      const inTransit = !!car.shipArrivesAt && car.shipArrivesAt.getTime() > now.getTime();
+      const block = workBlock(car, player.currentCity, now.getTime());
+
       if (action === "plate") {
+        if (block) throw new Error(block);
         const paid = await tx.player.updateMany({
           where: { id: player.id, money: { gte: PLATE_COST } },
           data: { money: { decrement: PLATE_COST } },
         });
         if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
 
-        const heat = Math.max(
-          0,
-          currentHeat(car.heat, car.heatAt, now.getTime()) - PLATE_HEAT_DROP
-        );
-        // A false plate never shows the city the car was stolen in.
+        // A false plate never shows the city the car was stolen in, and the car goes green.
         const plate = makeFalsePlate(car.originCity, car.plate);
         await tx.car.update({
           where: { id: car.id },
-          data: { plate, heat, heatAt: now, plateChanged: true },
+          data: { plate, heat: 0, heatAt: now, plateChanged: true },
         });
-        return { plate, message: `Your ${model.name} now carries the plate ${plate}.` };
+        return { plate, message: `Your ${model.name} now carries the plate ${plate}. It is off the radar.` };
       }
-
-      const inTransit = !!car.shipArrivesAt && car.shipArrivesAt.getTime() > now.getTime();
 
       if (action === "ship") {
         if (inTransit) throw new Error("IN_TRANSIT");
         if (!SHIP_CITIES.includes(destination)) throw new Error("BAD_CITY");
         if (destination === car.city) throw new Error("ALREADY_THERE");
-        if (!car.plateChanged) {
-          // Still on its stolen plates: the railway police check it at the station.
-          await tx.car.delete({ where: { id: car.id } });
-          if (!(await isAdminUser(userId, tx))) {
-            const sentence = sentenceFor(model.tier + 1, player.rankLevel);
-            await sendToJail(
-              tx,
-              player.id,
-              sentence.seconds,
-              sentence.security,
-              `Caught shipping a stolen ${model.name}`,
-              now
-            );
-          }
-          return {
-            caught: true,
-            message: `Railway police checked your ${model.name} [${car.plate}] at the station and found it was stolen. The car was impounded and you were arrested. Change the plate first next time.`,
-          };
-        }
         const fee = shipCost(model.price);
         const paid = await tx.player.updateMany({
           where: { id: player.id, money: { gte: fee } },
@@ -214,6 +192,13 @@ export async function POST(req: Request) {
           where: { id: car.id },
           data: {
             city: destination,
+            // Back to where it was stolen: red at once. First trip away on stolen plates: amber.
+            // A plated car otherwise keeps the heat it has.
+            ...(destination === car.originCity
+              ? { heat: MAX_HEAT, heatAt: now }
+              : !car.plateChanged
+                ? { heat: AMBER_HEAT, heatAt: now }
+                : {}),
             hasShipped: true,
             shipArrivesAt: new Date(now.getTime() + SHIP_MINUTES * 60_000),
           },
@@ -224,8 +209,7 @@ export async function POST(req: Request) {
       }
 
       if (car.damage <= 0) throw new Error("NOT_DAMAGED");
-      if (inTransit) throw new Error("IN_TRANSIT");
-      if (!carRepairable(car, now.getTime())) throw new Error("NOT_REPAIRABLE");
+      if (block) throw new Error(block);
       const cost = repairCost(car.damage, model.tier);
       const paid = await tx.player.updateMany({
         where: { id: player.id, money: { gte: cost } },
@@ -251,7 +235,8 @@ export async function POST(req: Request) {
       NOT_DAMAGED: ["That car is not damaged.", 400],
       BAD_CITY: ["Choose a city to ship it to.", 400],
       IN_TRANSIT: ["That car is still on its way. Wait for it to arrive.", 400],
-      NOT_REPAIRABLE: ["A stolen car can only be repaired after it has a false plate and has been shipped and arrived.", 400],
+      AT_ORIGIN: ["You can't do that in the city the car was stolen in. Ship it to another city first.", 400],
+      NOT_HERE: ["You need to be in the same city as the car. Travel there first.", 400],
       ALREADY_THERE: ["That car is already in that city.", 400],
       PLAYER_NOT_FOUND: ["Player not found.", 404],
     };
