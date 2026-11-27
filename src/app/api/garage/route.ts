@@ -16,6 +16,8 @@ import {
   PLATE_COST,
   PLATE_HEAT_DROP,
   carModel,
+  carRepairable,
+  SHIP_MINUTES,
   currentHeat,
   effectiveMinutes,
   makePlate,
@@ -83,6 +85,9 @@ export async function GET() {
           plate: c.plate,
           plateOrigin: plateCity(c.plate) ?? c.originCity,
           plateChanged: c.plateChanged,
+          shipArrivesAt:
+            c.shipArrivesAt && c.shipArrivesAt.getTime() > now ? c.shipArrivesAt.toISOString() : null,
+          canRepair: carRepairable(c, now),
           exposedUntil: exposed
             ? new Date(c.createdAt.getTime() + EXPOSURE_MINUTES * 60_000).toISOString()
             : null,
@@ -174,7 +179,10 @@ export async function POST(req: Request) {
         return { plate, message: `Your ${model.name} now carries the plate ${plate}.` };
       }
 
+      const inTransit = !!car.shipArrivesAt && car.shipArrivesAt.getTime() > now.getTime();
+
       if (action === "ship") {
+        if (inTransit) throw new Error("IN_TRANSIT");
         if (!SHIP_CITIES.includes(destination)) throw new Error("BAD_CITY");
         if (destination === car.city) throw new Error("ALREADY_THERE");
         if (!car.plateChanged) {
@@ -202,13 +210,22 @@ export async function POST(req: Request) {
           data: { money: { decrement: fee } },
         });
         if (paid.count !== 1) throw new Error("INSUFFICIENT_FUNDS");
-        await tx.car.update({ where: { id: car.id }, data: { city: destination } });
+        await tx.car.update({
+          where: { id: car.id },
+          data: {
+            city: destination,
+            hasShipped: true,
+            shipArrivesAt: new Date(now.getTime() + SHIP_MINUTES * 60_000),
+          },
+        });
         return {
-          message: `Your ${model.name} [${car.plate}] has been shipped to ${destination} for £${fee.toLocaleString("en-GB")}.`,
+          message: `Your ${model.name} [${car.plate}] is on its way to ${destination} for £${fee.toLocaleString("en-GB")}. It arrives in ${SHIP_MINUTES} minutes.`,
         };
       }
 
       if (car.damage <= 0) throw new Error("NOT_DAMAGED");
+      if (inTransit) throw new Error("IN_TRANSIT");
+      if (!carRepairable(car, now.getTime())) throw new Error("NOT_REPAIRABLE");
       const cost = repairCost(car.damage, model.tier);
       const paid = await tx.player.updateMany({
         where: { id: player.id, money: { gte: cost } },
@@ -233,6 +250,8 @@ export async function POST(req: Request) {
       INSUFFICIENT_FUNDS: ["You do not have enough cash.", 400],
       NOT_DAMAGED: ["That car is not damaged.", 400],
       BAD_CITY: ["Choose a city to ship it to.", 400],
+      IN_TRANSIT: ["That car is still on its way. Wait for it to arrive.", 400],
+      NOT_REPAIRABLE: ["A stolen car can only be repaired after it has a false plate and has been shipped and arrived.", 400],
       ALREADY_THERE: ["That car is already in that city.", 400],
       PLAYER_NOT_FOUND: ["Player not found.", 404],
     };
