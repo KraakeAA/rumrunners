@@ -9,10 +9,13 @@ import { energyAfterRegen, levelFromXp, maxEnergyFor } from "@/lib/game";
 import { rankForLevel } from "@/lib/ranks";
 import { jailRemaining, sendToJail, sentenceFor } from "@/lib/jail";
 import { notifyPromotion } from "@/lib/promotion";
+import { policeSweep } from "@/lib/police";
 import {
   CARS,
+  EXPOSURE_MINUTES,
   MAX_DAMAGE,
   makePlate,
+  STOLEN_HEAT,
   THEFT_COOLDOWNS,
   THEFT_LEVELS,
   theftChance,
@@ -46,6 +49,12 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Police checks are settled first, in their own step, so a failed job can't undo them.
+    const notices = await prisma.$transaction(async (tx) => {
+      await lockPlayer(tx, userId);
+      return policeSweep(tx, userId);
+    });
+
     const result = await prisma.$transaction(async (tx) => {
       await lockPlayer(tx, userId);
       const player = await tx.player.findUnique({ where: { userId } });
@@ -142,7 +151,7 @@ export async function POST(req: Request) {
       let plate = "";
       let damage = 0;
       if (success) {
-        heat = level.heat[model.tier - 1];
+        heat = STOLEN_HEAT; // fresh from the street: red hot
         plate = makePlate(player.currentCity);
         damage = Math.floor(Math.random() * (MAX_DAMAGE + 1));
         const car = await tx.car.create({
@@ -155,6 +164,7 @@ export async function POST(req: Request) {
             plate,
             damage,
             heatAt: now,
+            sweptAt: now,
           },
         });
         carId = car.id;
@@ -180,6 +190,8 @@ export async function POST(req: Request) {
         rankLevel: updated.rankLevel,
         leveledUp: newLevel > player.rankLevel,
         jailSeconds,
+        notices,
+        exposureMinutes: EXPOSURE_MINUTES,
       };
     });
 
