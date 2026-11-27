@@ -12,27 +12,18 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GameContext } from "@/components/GameContext";
 import { rankForLevel } from "@/lib/ranks";
-import AutoTheftSection from "@/components/AutoTheft";
 import JailSection from "@/components/Jail";
 import MailboxSection from "@/components/Mailbox";
 import ForumBoard from "@/components/ForumBoard";
 import SendLetterSection from "@/components/SendLetter";
-import OrganisedCrimeSection from "@/components/OrganisedCrime";
 import { clock, useActionStatus } from "@/components/EnergyBar";
-import { TravelSection } from "@/components/Travel";
-import { BulletFactorySection } from "@/components/Venues";
 import CharacterPanel from "@/components/CharacterPanel";
-import WhackSection from "@/components/WhackSection";
 import { crimeForCity } from "@/lib/city-crimes";
 import CrimePopup from "@/components/CrimePopup";
 import PromotionPopup from "@/components/PromotionPopup";
 import BreakoutPopup from "@/components/BreakoutPopup";
 import { Banner, JobCard, slugify } from "@/components/GameImage";
-import GoldMarketplace from "@/components/GoldMarketplace";
-import GymnasiumSection from "@/components/Gymnasium";
-import EscrowSection from "@/components/EscrowSection";
 import { energyCostFor } from "@/lib/training";
-import BankSection from "@/components/BankSection";
 import CrewSection from "@/components/CrewSection";
 import AdminSection from "@/components/AdminSection";
 import { wealthStatus } from "@/lib/wealth";
@@ -288,11 +279,11 @@ function StatTable({
 
       {rows.map((row, r) => (
         <div
-                    key={r}
+          key={r}
           style={{
             display: "grid",
             gridTemplateColumns: template,
-            gap: 8,
+                        gap: 8,
             padding: "3px 6px",
             fontSize: 11,
             lineHeight: 1.25,
@@ -391,7 +382,9 @@ const REAL_PAGES = new Set([
   "Keno", "Slot Machines", "Blackjack", "Roulette", "War",
   "Bootlegging", "Garage", "Hitlist", "Hospital", "Lottery", "Search", "Store",
   "Graveyard", "Updates", "Find Player", "Help Desk", "Statistics",
-  "Wiki", "Terms of Service", "Cities"
+  "Wiki", "Terms of Service", "Cities",
+  "Auto Theft", "Bullet Factory", "Escrow", "Gymnasium", "Jail", "Local Bank",
+  "Marketplace", "Organised Crime", "Railway", "Whack"
 ]);
 
 // Finds the page that matches a name or a web address. Anything unknown opens Home.
@@ -585,7 +578,7 @@ export default function GameShell({
         inFlight = false;
       }
     }
-    checkBalanceRef.current = check;
+        checkBalanceRef.current = check;
     check();
     const t = window.setInterval(check, 4000);
     document.addEventListener("visibilitychange", check);
@@ -598,7 +591,7 @@ export default function GameShell({
   const [busy, setBusy] = useState(false);
   const [currentCity, setCurrentCity] = useState(player.currentCity || "London");
   const [ukClock, setUkClock] = useState("--:--:--");
-    const [ukDate, setUkDate] = useState("Loading UK time");
+  const [ukDate, setUkDate] = useState("Loading UK time");
   const [bankAmount, setBankAmount] = useState("100");
   const [localCrimes, setLocalCrimes] = useState(recentCrimes);
   const [crimeByType, setCrimeByType] = useState(stats.crimeByType);
@@ -875,8 +868,7 @@ export default function GameShell({
     setMenuGroup("");
     setMenuOpen((open) => !open);
   }
-
-  function renderStatistics() {
+    function renderStatistics() {
     const attempts = crimeByType.reduce((n, c) => n + c.attempts, 0);
     const succeeded = crimeByType.reduce((n, c) => n + c.successes, 0);
     const failed = attempts - succeeded;
@@ -898,7 +890,7 @@ export default function GameShell({
     );
 
     const sortedCrimes = [...crimeByType].sort((a, b) =>
-            a.crimeType.localeCompare(b.crimeType)
+      a.crimeType.localeCompare(b.crimeType)
     );
 
     return (
@@ -1140,7 +1132,32 @@ export default function GameShell({
   const sky = skyFor(ukClock);
 
   return (
-    <GameContext.Provider value={{ money, setMoney }}>
+    <GameContext.Provider
+      value={{
+        money,
+        setMoney,
+        gold,
+        setGold,
+        bank,
+        setBank,
+        bullets,
+        setBullets,
+        energy,
+        setEnergy,
+        rankLevel,
+        setExperience,
+        noteRank,
+        staminaLevel,
+        onTrainingLevels,
+        currentCity,
+        setCurrentCity,
+        isAdmin,
+        jailLeft: status.jailLeft,
+        theftLeft: status.theftLeft,
+        refresh: status.refresh,
+        showBreakout: () => setBrokeOut(true)
+      }}
+    >
     <div className="game" style={{ background: "#0b0f0d" }}>
       {/* TOP BAR */}
       <header
@@ -1150,7 +1167,7 @@ export default function GameShell({
           overflow: "hidden",
           minHeight: 0,
           height: "auto",
-          padding: "4px 4px 8px",
+                    padding: "4px 4px 8px",
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
@@ -1178,7 +1195,7 @@ export default function GameShell({
           <button
             type="button"
             aria-label="Character"
-                        title="Character"
+            title="Character"
             onClick={() => setCharacterOpen(true)}
             style={{
               position: "relative",
@@ -1440,7 +1457,7 @@ export default function GameShell({
               fontSize: 20,
               textShadow: jailCount > 0 ? "0 0 6px #e4b822, 0 1px 3px #000" : "0 1px 3px #000",
               opacity: jailCount > 0 ? 1 : 0.7,
-              cursor: "pointer"
+                            cursor: "pointer"
             }}
           >
             ▥
@@ -1467,7 +1484,8 @@ export default function GameShell({
               </span>
             )}
           </button>
-                    <button
+
+          <button
             type="button"
             className="mobile-menu-toggle"
             aria-label="Menu"
@@ -1719,7 +1737,7 @@ export default function GameShell({
                   const wait = status.crimeLeft(crime.id);
                   const crimeEnergy = energyCostFor(crime.energyCost, staminaLevel);
                   const needsEnergy = !isAdmin && energy < crimeEnergy;
-                  const disabled = busy || (!isAdmin && (wait > 0 || needsEnergy || status.jailLeft > 0));
+                                const disabled = busy || (!isAdmin && (wait > 0 || needsEnergy || status.jailLeft > 0));
 
                   return (
                     <JobCard
@@ -1746,68 +1764,13 @@ export default function GameShell({
             </div>
           )}
 
-          {section === "Local Bank" && (
-            <BankSection money={money} bank={bank} onMoney={setMoney} onBank={setBank} />
-          )}
-
           {REAL_PAGES.has(section) &&
             (pathname.replace(/^\/+|\/+$/g, "") === slugOf(section) ? children : <p className="flavour">Loading...</p>)}
-
-          {section === "Auto Theft" && (
-            <AutoTheftSection
-              rankLevel={rankLevel}
-              energy={energy}
-                            staminaLevel={staminaLevel}
-              theftLeft={status.theftLeft}
-              onActed={status.refresh}
-              jailLeft={status.jailLeft}
-              isAdmin={isAdmin}
-              currentCity={currentCity}
-              onCash={setMoney}
-              onResult={(r) => {
-                setEnergy(r.energy);
-                setMoney(r.money);
-                setExperience(r.experience);
-                noteRank(r.rank, r.rankLevel);
-              }}
-            />
-          )}
-
-          {section === "Organised Crime" && <OrganisedCrimeSection />}
-
-          {section === "Whack" && <WhackSection onCash={setMoney} isAdmin={isAdmin} />}
 
           {section === "Rackets" && (
             <p className="flavour">
               Own and protect criminal rackets for passive income.
             </p>
-          )}
-
-          {section === "Marketplace" && (
-            <GoldMarketplace onCash={setMoney} onGold={setGold} />
-          )}
-          {section === "Railway" && (
-            <TravelSection onArrive={(city) => setCurrentCity(city)} isAdmin={isAdmin} />
-          )}
-
-          {section === "Bullet Factory" && (
-            <BulletFactorySection
-              onCash={setMoney}
-              onBullets={setBullets}
-            />
-          )}
-
-          {section === "Escrow" && <EscrowSection onCash={setMoney} onGold={setGold} />}
-
-          {section === "Jail" && (
-            <JailSection onChanged={status.refresh} onBrokeOut={() => setBrokeOut(true)} />
-          )}
-
-          {section === "Gymnasium" && (
-            <GymnasiumSection
-              onEnergy={setEnergy}
-              onLevels={onTrainingLevels}
-            />
           )}
 
           {section === "Admin" && staffLevel >= 2 && <AdminSection staff={staffLevel} />}
