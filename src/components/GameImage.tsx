@@ -110,7 +110,7 @@ export function GameImage({
 }
 
 // The wide picture across the top of a page.
-export function Banner({ slot }: { slot: string }) {
+export function Banner({ slot, ratio = 1150 / 300 }: { slot: string; ratio?: number }) {
   return (
     <div
       style={{
@@ -119,7 +119,7 @@ export function Banner({ slot }: { slot: string }) {
         margin: "0 auto 6px"
       }}
     >
-      <GameImage slot={slot} width="100%" ratio={1150 / 300} bare />
+      <GameImage slot={slot} width="100%" ratio={ratio} bare />
     </div>
   );
 }
@@ -184,7 +184,6 @@ const chip: CSSProperties = {
   color: "#f1e8d3",
   fontSize: 12
 };
-
 export function JobCard({
   slot,
   title,
