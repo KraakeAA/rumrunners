@@ -309,6 +309,11 @@ const BANNER_PAGES = new Set([
   "Pawn Shop", "Stock Market", "Brothel", "Crew", "Find Player", "Cities"
 ]);
 
+// Campaign pages get a slimmer picture across the top.
+const SLIM_BANNER_PAGES = new Set([
+  "Bootlegging", "Organised Crime", "Whack", "Rackets", "Graveyard", "Crew", "Hitlist"
+]);
+
 const JAIL_BLOCKED = new Set([
   "Crimes", "Auto Theft", "Bootlegging", "Whack", "Hitlist", "Organised Crime",
   "Rackets", "Search", "Gymnasium", "Railway", "Bullet Factory", "Store",
@@ -467,7 +472,7 @@ export default function GameShell({
   const [characterOpen, setCharacterOpen] = useState(false);
   const [menuGroup, setMenuGroup] = useState("");
 
-  // Whenever the web address changes (a page opened, or the back button),
+  // Whenever the web address changes (a real page opened, or the back button),
   // show the page that matches it.
   useEffect(() => {
     if (composeTo) {
@@ -570,9 +575,8 @@ export default function GameShell({
   const [outcome, setOutcome] = useState<CrimeResult | null>(null);
   const [streak, setStreak] = useState(() => streakFromLogs(recentCrimes));
   const [statsCategory, setStatsCategory] = useState("Current");
-
-  useEffect(() => {
-        const updateClock = () => {
+    useEffect(() => {
+    const updateClock = () => {
       const now = new Date();
 
       setUkClock(
@@ -860,15 +864,14 @@ export default function GameShell({
     const sortedCrimes = [...crimeByType].sort((a, b) =>
       a.crimeType.localeCompare(b.crimeType)
     );
-
-    return (
+        return (
       <div style={{ width: "100%", minWidth: 0 }}>
         <style>{`
           .stat-scroll .stat-row:nth-of-type(odd) { background: #1c2621; }
           .stat-scroll .stat-row:nth-of-type(even) { background: #151d19; }
         `}</style>
         <TitleBar>Welcome to Rumrunners</TitleBar>
-                <TitleBar>Statistics</TitleBar>
+        <TitleBar>Statistics</TitleBar>
 
         <div style={{ padding: "3px 4px", background: "#101612" }}>
           <select
@@ -1084,8 +1087,7 @@ export default function GameShell({
       </div>
     );
   }
-
-  const sky = skyFor(ukClock);
+    const sky = skyFor(ukClock);
   // Shown under the energy bar only while it is not full: the next 10 points and when they arrive.
   const energyGain = Math.min(10, status.maxEnergy - energy);
   const energyWait = status.nextEnergyIn + Math.max(0, energyGain - 1) * 4;
@@ -1171,7 +1173,7 @@ export default function GameShell({
             aria-label="Character"
             title="Character"
             onClick={() => setCharacterOpen(true)}
-                        style={{
+            style={{
               position: "relative",
               width: 38,
               height: 44,
@@ -1336,8 +1338,9 @@ export default function GameShell({
                   textAlign: "center",
                   fontSize: 8,
                   lineHeight: "9px",
-                  color: "#e8d7b6",
-                  textShadow: "0 1px 2px #000",
+                  color: "#fff",
+                  fontWeight: 600,
+                  textShadow: "0 1px 2px #000, 0 0 3px #000",
                   pointerEvents: "none"
                 }}
               >
@@ -1346,8 +1349,7 @@ export default function GameShell({
             )}
           </div>
         </div>
-
-        {/* MESSAGES, JAIL AND MENU — TOP RIGHT */}
+                {/* MESSAGES, JAIL AND MENU — TOP RIGHT */}
         <nav
           aria-label="Game shortcuts"
           style={{
@@ -1470,7 +1472,7 @@ export default function GameShell({
                   fontWeight: 700,
                   lineHeight: "15px",
                   textAlign: "center",
-                                    textShadow: "none"
+                  textShadow: "none"
                 }}
               >
                 {jailCount > 99 ? "99+" : jailCount}
@@ -1581,8 +1583,7 @@ export default function GameShell({
         </div>
         </>
       )}
-
-      <div className="game-layout">
+            <div className="game-layout">
         <main className="main-content">
           {/* MENU SCREEN */}
           {menuOpen && (
@@ -1646,7 +1647,9 @@ export default function GameShell({
             <JailSection onChanged={status.refresh} onBrokeOut={() => setBrokeOut(true)} />
           ) : (
           <>
-          {BANNER_PAGES.has(section) && <Banner slot={`banners/${slugify(section)}`} />}
+          {BANNER_PAGES.has(section) && (
+            <Banner slot={`banners/${slugify(section)}`} ratio={SLIM_BANNER_PAGES.has(section) ? 1150 / 190 : 1150 / 300} />
+          )}
           {section === "Home" && renderStatistics()}
 
           {section !== "Home" &&
