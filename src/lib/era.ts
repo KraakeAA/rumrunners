@@ -167,8 +167,15 @@ export function repairCost(damage: number, tier: number): number {
 export function effectiveMinutes(car: CarModel | undefined, damage: number): number {
   return Math.round(travelMinutes(car) * (car ? 1 + damage / 100 : 1));
 }
-// Each theft level has its own cooldown.
-export const THEFT_COOLDOWNS: Record<number, number> = { 1: 30, 2: 45, 3: 60, 4: 90 };
+
+// One cooldown covers every level: after any auto theft you wait 3 minutes before the next.
+export const THEFT_COOLDOWN_SECONDS = 180;
+export const THEFT_COOLDOWNS: Record<number, number> = {
+  1: THEFT_COOLDOWN_SECONDS,
+  2: THEFT_COOLDOWN_SECONDS,
+  3: THEFT_COOLDOWN_SECONDS,
+  4: THEFT_COOLDOWN_SECONDS
+};
 
 export function theftChance(level: TheftLevel, tier: number): number {
   const gap = Math.max(0, tier - level.level);
