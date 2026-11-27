@@ -160,8 +160,8 @@ export default function GymnasiumSection({
 
       <div style={{ marginTop: 6, border: "1px solid #6b5d3a", background: "#1a221e" }}>
         {/* Picture banner with the level over it */}
-        <div style={{ position: "relative", height: 92, borderBottom: "1px solid #6b5d3a", overflow: "hidden" }}>
-          <GameImage slot={`gym/${s.key}`} width="100%" height={92} />
+        <div style={{ position: "relative", aspectRatio: "1680 / 276", borderBottom: "1px solid #6b5d3a", overflow: "hidden" }}>
+          <GameImage slot={`gym/${s.key}`} width="100%" ratio={1680 / 276} />
           <div
             style={{
               position: "absolute",
