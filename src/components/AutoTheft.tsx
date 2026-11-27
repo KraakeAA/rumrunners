@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { CARS, PLATE_COST, PLATE_HEAT_DROP, SHIP_CITIES, THEFT_COOLDOWNS, THEFT_LEVELS, EXPOSURE_MINUTES } from "@/lib/era";
-import { GameImage, JobCard, slugify } from "@/components/GameImage";
+import { CARS, heatZone, PLATE_COST, PLATE_HEAT_DROP, SHIP_CITIES, THEFT_COOLDOWN_SECONDS, THEFT_LEVELS, EXPOSURE_MINUTES } from "@/lib/era";
+import { GameImage, slugify } from "@/components/GameImage";
 import { clock } from "@/components/EnergyBar";
 import { rankForLevel } from "@/lib/ranks";
 import { energyCostFor } from "@/lib/training";
@@ -129,11 +129,10 @@ export default function AutoTheftSection({
   onResult,
 }: Props) {
   const [cars, setCars] = useState<WorkshopCar[]>([]);
-  const [selected, setSelected] = useState("");
-  const [pane, setPane] = useState<Pane>("plate");
+  const [picked, setPicked] = useState<string[]>([]);
   const [shopMsg, setShopMsg] = useState("");
   const [notices, setNotices] = useState<string[]>([]);
-  const [shipTo, setShipTo] = useState<Record<string, string>>({});
+  const [shipDest, setShipDest] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const actedRef = useRef(onActed);
   actedRef.current = onActed;
@@ -149,7 +148,9 @@ export default function AutoTheftSection({
       const r = await fetch("/api/garage", { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
-      setCars(Array.isArray(d.cars) ? d.cars : []);
+      const list: WorkshopCar[] = Array.isArray(d.cars) ? d.cars : [];
+      setCars(list);
+      setPicked((p) => p.filter((id) => list.some((c) => c.id === id)));
       if (Array.isArray(d.notices) && d.notices.length > 0) {
         setNotices(d.notices);
         actedRef.current();
@@ -166,34 +167,71 @@ export default function AutoTheftSection({
     return () => clearInterval(t);
   }, [loadCars]);
 
-  async function garageJob(action: Pane, carId: string, destination?: string) {
+  // Does the same job for every ticked car that it applies to, one after another.
+  async function runBatch(action: Pane) {
     if (busy) return;
+    const targets = cars.filter((c) => picked.includes(c.id) && canDo(action, c));
+    if (targets.length === 0) return;
+    if (action === "ship" && !shipDest) {
+      setShopMsg("Choose a city to ship to first.");
+      return;
+    }
     setBusy(true);
     setShopMsg("");
+    let done = 0;
+    let spent = 0;
+    let failure = "";
+    let lastMoney: number | null = null;
+    let caught = false;
     try {
-      const response = await fetch("/api/garage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, carId, destination }),
-      });
-      const data = await response.json();
-      setShopMsg(data.error || data.message || "");
-      if (response.ok) {
-        if (typeof data.money === "number") onCash(data.money);
-        if (action === "ship") setShipTo({ ...shipTo, [carId]: "" });
-        if (data.caught) {
-          setSelected("");
-          onActed();
+      for (const c of targets) {
+        const response = await fetch("/api/garage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, carId: c.id, destination: action === "ship" ? shipDest : undefined }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          failure = data.error || "That could not be completed.";
+          break;
         }
-        loadCars();
+        done++;
+        spent += costOf(action, c);
+        if (typeof data.money === "number") lastMoney = data.money;
+        if (data.caught) {
+          caught = true;
+          failure = data.message || "";
+          break;
+        }
       }
     } catch {
-      setShopMsg("Unable to connect. Please try again.");
-    } finally {
-      setBusy(false);
+      failure = "Unable to connect. Please try again.";
     }
+    const verb = action === "plate" ? "fitted with false plates" : action === "repair" ? "repaired" : `shipped to ${shipDest}`;
+    const parts: string[] = [];
+    if (done > 0) {
+      parts.push(`${done} ${done === 1 ? "car" : "cars"} ${verb} for £${spent.toLocaleString("en-GB")}.`);
+    }
+    if (failure) parts.push(failure);
+    setShopMsg(parts.join(" "));
+    if (lastMoney !== null) onCash(lastMoney);
+    setPicked([]);
+    if (caught) onActed();
+    await loadCars();
+    setBusy(false);
   }
-    const [busy, setBusy] = useState(false);
+
+  // What a job costs for a car, and whether it applies to that car right now.
+  function costOf(action: Pane, c: WorkshopCar) {
+    return action === "plate" ? PLATE_COST : action === "repair" ? c.repairCost : c.shipCost;
+  }
+  function canDo(action: Pane, c: WorkshopCar) {
+    if (action === "repair") return c.damage > 0;
+    if (action === "ship") return c.plateChanged && c.city !== shipDest;
+    return !c.plateChanged || heatZone(c.heat) !== "green";
+  }
+
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TheftResult | null>(null);
 
@@ -280,8 +318,7 @@ export default function AutoTheftSection({
           </div>
         </div>
       )}
-
-      {notices.length > 0 && (
+            {notices.length > 0 && (
         <div style={{ ...panel, padding: 8, color: "#e08f7f", border: "1px solid #a0443c" }}>
           {notices.map((n, i) => (
             <div key={i}>{n}</div>
@@ -302,53 +339,106 @@ export default function AutoTheftSection({
 
       <div style={{ ...panel, marginBottom: 6 }}>
         <div style={barStyle}>Auto Theft</div>
-        <div style={{ padding: 6 }}>
-          {THEFT_LEVELS.filter(
-            (l, i) => isAdmin || rankLevel >= l.minRank || (i === 0 || rankLevel >= THEFT_LEVELS[i - 1].minRank)
-          ).map((l) => {
-            const slot = `autotheft/level-${l.level}`;
-            if (!isAdmin && rankLevel < l.minRank) {
-              return (
-                <JobCard
-                  key={l.level}
-                  slot={slot}
-                  title={l.name}
-                  description={l.blurb}
-                  meters={[]}
-                  locked
-                  lockedText={`Unlocks at ${rankForLevel(l.minRank)}`}
-                  buttonLabel="Locked"
-                  compact
-                />
-              );
-            }
-            const wait = isAdmin ? 0 : theftLeft(l.level);
-            const levelEnergy = energyCostFor(l.energy, staminaLevel);
-            const tired = !isAdmin && energy < levelEnergy;
-            const disabled = busy || (!isAdmin && (wait > 0 || tired || jailLeft > 0)) || CARS.length === 0;
-            return (
-              <JobCard
-                key={l.level}
-                slot={slot}
-                title={l.name}
-                description={l.blurb}
-                meters={[]}
-                seconds={THEFT_COOLDOWNS[l.level] ?? 60}
-                hideTime
-                energy={levelEnergy}
-                tired={tired}
-                waiting={wait > 0}
-                waitLeft={wait}
+        {THEFT_LEVELS.map((l) => {
+          const locked = !isAdmin && rankLevel < l.minRank;
+          const wait = isAdmin ? 0 : theftLeft(l.level);
+          const levelEnergy = energyCostFor(l.energy, staminaLevel);
+          const tired = !isAdmin && energy < levelEnergy;
+          const jailed = !isAdmin && jailLeft > 0;
+          const disabled = busy || locked || wait > 0 || tired || jailed || CARS.length === 0;
+          const label = locked
+            ? "Locked"
+            : jailed
+              ? "Jailed"
+              : wait > 0
+                ? clock(wait)
+                : tired
+                  ? "Tired"
+                  : "Steal";
+          return (
+            <div
+              key={l.level}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "5px 8px",
+                borderBottom: "1px solid #3d4a40",
+                opacity: locked ? 0.55 : 1,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 18,
+                  height: 18,
+                  flexShrink: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  border: "1px solid #b0904a",
+                  borderRadius: 9,
+                  background: "#17201c",
+                  color: "#e4c04d",
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                {l.level}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: "Georgia, serif",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                    color: "#f7efdb",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {l.name}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    lineHeight: 1.2,
+                    color: locked ? "#e0a24f" : "#a89f86",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {locked ? `Unlocks at ${rankForLevel(l.minRank)}` : l.blurb}
+                </div>
+              </div>
+              {!locked && (
+                <span style={{ fontSize: 10, color: "#c9bfa6", flexShrink: 0, whiteSpace: "nowrap" }}>
+                  {levelEnergy} energy
+                </span>
+              )}
+              <button
+                type="button"
                 disabled={disabled}
-                buttonLabel={!isAdmin && jailLeft > 0 ? "Jailed" : wait > 0 ? clock(wait) : tired ? "Tired" : "Steal!"}
                 onClick={() => steal(l.level)}
-                compact
-              />
-            );
-          })}
-        </div>
-        <div style={{ ...sub, padding: "6px 8px", textAlign: "center" }}>
-          You&apos;ll be working the streets of {currentCity}.
+                style={{
+                  ...btn,
+                  width: 62,
+                  padding: "3px 0",
+                  fontSize: 12,
+                  flexShrink: 0,
+                  opacity: disabled ? 0.5 : 1,
+                  cursor: disabled ? "default" : "pointer",
+                }}
+              >
+                {label}
+              </button>
+            </div>
+          );
+        })}
+        <div style={{ ...sub, padding: "4px 8px", fontSize: 10, textAlign: "center" }}>
+          {currentCity} streets · {Math.round(THEFT_COOLDOWN_SECONDS / 60)} minute wait after every job
         </div>
       </div>
             <div style={panel}>
@@ -357,156 +447,208 @@ export default function AutoTheftSection({
           <div style={{ padding: 8, ...sub }}>You have no cars yet.</div>
         ) : (
           <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "4px 8px",
+                background: "#17201c",
+                borderBottom: "1px solid #6b5d3a",
+                fontSize: 11,
+                color: "#c9bfa6",
+              }}
+            >
+              <input
+                type="checkbox"
+                aria-label="Select all cars"
+                checked={picked.length === cars.length}
+                onChange={(e) => setPicked(e.target.checked ? cars.map((c) => c.id) : [])}
+                style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }}
+              />
+              <span style={{ flex: 1 }}>
+                {picked.length === 0 ? "Tick cars to work on them" : `${picked.length} selected`}
+              </span>
+              <span style={{ width: 54, textAlign: "center" }}>Heat</span>
+            </div>
+
             {cars.map((c) => {
-              const open = selected === c.id;
+              const on = picked.includes(c.id);
+              const zone = heatZone(c.heat);
+              const colour = zone === "red" ? "#e0584f" : zone === "amber" ? "#e0a24f" : "#6fcf6f";
+              const label = zone === "red" ? "RED" : zone === "amber" ? "AMBER" : "GREEN";
               const left = c.exposedUntil ? Math.max(0, Math.ceil((new Date(c.exposedUntil).getTime() - now) / 1000)) : 0;
-              const exposed = !!c.exposedUntil;
               return (
                 <div
                   key={c.id}
-                  style={{
-                    padding: "5px 8px",
-                    borderBottom: "1px solid #6b5d3a",
-                    background: open ? "#26352d" : "transparent",
-                  }}
+                  style={{ borderBottom: "1px solid #3d4a40", background: on ? "#26352d" : "transparent" }}
                 >
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <GameImage slot={`cars/${slugify(c.name)}`} width={46} height={34} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                        <strong style={{ fontSize: 13 }}>{c.name}</strong>
-                        <PlateBadge plate={c.plate} />
-                      </div>
-                      <div style={sub}>
-                        {c.plateChanged ? "False plate" : `${c.plateOrigin} plate`} · {c.city}
-                        {c.city !== c.originCity ? ` (from ${c.originCity})` : ""}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelected(open ? "" : c.id);
-                        setPane("plate");
-                        setShopMsg("");
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "5px 8px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${c.name}`}
+                      checked={on}
+                      onChange={() => setPicked(on ? picked.filter((id) => id !== c.id) : [...picked, c.id])}
+                      style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }}
+                    />
+                    <span
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontSize: 13,
+                        fontWeight: 700,
                       }}
-                      style={{ ...btn, padding: "3px 10px", fontSize: 12, flexShrink: 0 }}
                     >
-                      {open ? "Close" : "Select"}
-                    </button>
-                  </div>
-                  <HeatBar heat={c.heat} />
-                  <DamageBar damage={c.damage} />
-                  {exposed && (
-                    <div style={{ marginTop: 3, fontSize: 11, color: left > 0 ? "#e0a24f" : "#e0584f" }}>
+                      {c.name}
+                      {c.damage > 0 && (
+                        <span style={{ fontWeight: 400, fontSize: 10, color: c.damage >= 35 ? "#e0584f" : "#e0a24f" }}>
+                          {" "}
+                          {c.damage}% dmg
+                        </span>
+                      )}
+                      {c.city !== currentCity && (
+                        <span style={{ fontWeight: 400, fontSize: 10, color: "#9d957f" }}> · {c.city}</span>
+                      )}
+                    </span>
+                    <PlateBadge plate={c.plate} />
+                    <span
+                      title={`Heat ${c.heat}%`}
+                      style={{
+                        position: "relative",
+                        width: 54,
+                        height: 15,
+                        flexShrink: 0,
+                        background: "#0e1411",
+                        border: "1px solid #5b4d3a",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: `${Math.max(0, Math.min(100, c.heat))}%`,
+                          background: colour,
+                          opacity: 0.55,
+                        }}
+                      />
+                      <span
+                        style={{
+                          position: "relative",
+                          display: "block",
+                          textAlign: "center",
+                          fontSize: 9,
+                          lineHeight: "13px",
+                          fontWeight: 700,
+                          letterSpacing: 0.5,
+                          color: "#fff",
+                          textShadow: "0 1px 1px #000",
+                        }}
+                      >
+                        {label}
+                      </span>
+                    </span>
+                  </label>
+                  {c.exposedUntil && (
+                    <div style={{ padding: "0 8px 4px 32px", fontSize: 10, color: left > 0 ? "#e0a24f" : "#e0584f" }}>
                       {left > 0
                         ? `Stolen plates! Police find it in ${clock(left)} unless you change the plate.`
                         : "Police are on to it. Refreshing..."}
                     </div>
                   )}
-
-                  {open && (
-                    <div style={{ marginTop: 6 }}>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        {(["plate", "repair", "ship"] as Pane[]).map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => {
-                              setPane(p);
-                              setShopMsg("");
-                            }}
-                            style={{
-                              ...btn,
-                              flex: 1,
-                              padding: "4px 0",
-                              fontSize: 12,
-                              opacity: pane === p ? 1 : 0.55,
-                              outline: pane === p ? "1px solid #f7efdb" : "none",
-                            }}
-                          >
-                            {p === "plate" ? "Plate" : p === "repair" ? "Repair" : "Ship"}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div style={{ padding: "6px 0 0" }}>
-                        {pane === "plate" && (
-                          <>
-                            <div style={sub}>
-                              A false plate from any city but {c.originCity}, and it can never go back. Takes{" "}
-                              {PLATE_HEAT_DROP} off the heat.
-                            </div>
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => garageJob("plate", c.id)}
-                              style={{ ...btn, marginTop: 4, padding: "4px 10px", fontSize: 12, opacity: busy ? 0.5 : 1 }}
-                            >
-                              Change plate (£{PLATE_COST})
-                            </button>
-                          </>
-                        )}
-                        {pane === "repair" && (
-                          <>
-                            <div style={sub}>
-                              Damaged cars are slower: up to 50% longer waits between journeys.
-                            </div>
-                            <button
-                              type="button"
-                              disabled={busy || c.damage <= 0}
-                              onClick={() => garageJob("repair", c.id)}
-                              style={{ ...btn, marginTop: 4, padding: "4px 10px", fontSize: 12, opacity: busy || c.damage <= 0 ? 0.5 : 1 }}
-                            >
-                              {c.damage > 0 ? `Repair (£${c.repairCost.toLocaleString("en-GB")})` : "No damage"}
-                            </button>
-                          </>
-                        )}
-                        {pane === "ship" && (
-                          <>
-                            <div style={{ ...sub, color: c.plateChanged ? "#c9bfa6" : "#e0a24f" }}>
-                              {c.plateChanged
-                                ? "Rail freight to another city. Shipped cars are harder for police to trace."
-                                : "Change the plate first! A car on its stolen plates is caught at the station and you go to jail."}
-                            </div>
-                            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
-                              <select
-                                value={shipTo[c.id] ?? ""}
-                                onChange={(e) => setShipTo({ ...shipTo, [c.id]: e.target.value })}
-                                style={{
-                                  flex: 1,
-                                  minWidth: 0,
-                                  padding: "3px 6px",
-                                  border: "1px solid #a08340",
-                                  borderRadius: 0,
-                                  background: "#0e1411",
-                                  color: "#f7efdb",
-                                  fontSize: 16,
-                                }}
-                              >
-                                <option value="">Send to…</option>
-                                {SHIP_CITIES.filter((x) => x !== c.city).map((x) => (
-                                  <option key={x} value={x}>
-                                    {x}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type="button"
-                                disabled={!shipTo[c.id] || busy}
-                                onClick={() => garageJob("ship", c.id, shipTo[c.id])}
-                                style={{ ...btn, padding: "4px 10px", fontSize: 12, flexShrink: 0, opacity: !shipTo[c.id] || busy ? 0.5 : 1 }}
-                              >
-                                Ship (£{c.shipCost.toLocaleString("en-GB")})
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
+
+            {picked.length > 0 &&
+              (() => {
+                const chosen = cars.filter((c) => picked.includes(c.id));
+                const plates = chosen.filter((c) => canDo("plate", c));
+                const repairs = chosen.filter((c) => canDo("repair", c));
+                const ships = chosen.filter((c) => canDo("ship", c));
+                const notReady = chosen.filter((c) => !c.plateChanged).length;
+                const sum = (list: WorkshopCar[], a: Pane) => list.reduce((n, c) => n + costOf(a, c), 0);
+                const actionBtn = (list: WorkshopCar[]): CSSProperties => ({
+                  ...btn,
+                  flex: 1,
+                  padding: "5px 2px",
+                  fontSize: 12,
+                  opacity: busy || list.length === 0 ? 0.45 : 1,
+                });
+                return (
+                  <div style={{ padding: 8, background: "#17201c", borderTop: "1px solid #6b5d3a" }}>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        type="button"
+                        disabled={busy || plates.length === 0}
+                        onClick={() => runBatch("plate")}
+                        style={actionBtn(plates)}
+                      >
+                        Plate ({plates.length}) £{sum(plates, "plate").toLocaleString("en-GB")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || repairs.length === 0}
+                        onClick={() => runBatch("repair")}
+                        style={actionBtn(repairs)}
+                      >
+                        Repair ({repairs.length}) £{sum(repairs, "repair").toLocaleString("en-GB")}
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                      <select
+                        aria-label="Ship to"
+                        value={shipDest}
+                        onChange={(e) => setShipDest(e.target.value)}
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          padding: "3px 6px",
+                          border: "1px solid #a08340",
+                          borderRadius: 0,
+                          background: "#0e1411",
+                          color: "#f7efdb",
+                          fontSize: 16,
+                        }}
+                      >
+                        <option value="">Ship to…</option>
+                        {SHIP_CITIES.map((x) => (
+                          <option key={x} value={x}>
+                            {x}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={busy || ships.length === 0 || !shipDest}
+                        onClick={() => runBatch("ship")}
+                        style={{ ...actionBtn(ships), flex: "none", padding: "5px 10px" }}
+                      >
+                        Ship ({ships.length}) £{sum(ships, "ship").toLocaleString("en-GB")}
+                      </button>
+                    </div>
+                    <div style={{ ...sub, marginTop: 4, fontSize: 10 }}>
+                      Plate: false plate for £{PLATE_COST.toLocaleString("en-GB")} each, takes {PLATE_HEAT_DROP} off the
+                      heat, never the stolen city again. Ship: any car that already has a false plate, from wherever it is
+                      {notReady > 0 ? ` (${notReady} still on stolen plates, change those first)` : ""}.
+                    </div>
+                  </div>
+                );
+              })()}
+
             {shopMsg && <p style={{ color: "#ddc18d", margin: 0, padding: "6px 8px" }}>{shopMsg}</p>}
             <div style={{ ...sub, padding: "6px 8px" }}>
               Heat: <span style={{ color: "#6fcf6f" }}>green</span> is quiet, <span style={{ color: "#e0a24f" }}>amber</span>{" "}
