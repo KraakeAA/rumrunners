@@ -254,7 +254,7 @@ function LevelBanner({ level, name, locked, unlock }: { level: number; name: str
             textAlign: "right",
           }}
         >
-          {locked ? `Unlocks at ${unlock}` : `Level ${level}`}
+          {locked ? `Unlocks at ${unlock}` : ""}
         </span>
       </div>
     </div>
@@ -316,9 +316,24 @@ export default function AutoTheftSection({
   onResult,
 }: Props) {
   const [notices, setNotices] = useState<string[]>([]);
+  const [practice, setPractice] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TheftResult | null>(null);
+
+  // Your chance on each job grows with every attempt, so fetch how many you have made.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/game/autotheft", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && d.practice && typeof d.practice === "object") setPractice(d.practice);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function steal(level: number) {
     setBusy(true);
@@ -341,6 +356,7 @@ export default function AutoTheftSection({
         return;
       }
       setResult(data as TheftResult);
+      if (data.practice && typeof data.practice === "object") setPractice(data.practice);
       if (Array.isArray(data.notices) && data.notices.length > 0) setNotices(data.notices);
       onActed();
       onResult({
@@ -390,7 +406,7 @@ export default function AutoTheftSection({
           const jailed = !isAdmin && jailLeft > 0;
           const disabled = busy || locked || wait > 0 || tired || jailed || CARS.length === 0;
           const label = jailed ? "Jailed" : wait > 0 ? countdown(wait) : tired ? "Tired" : "Steal";
-          const chance = theftChance(l, rankLevel);
+          const chance = theftChance(l, practice[String(l.level)] ?? 0);
           return (
             <div key={l.level} style={{ borderBottom: "1px solid #3d4a40" }}>
               <LevelBanner level={l.level} name={l.name} locked={locked} unlock={rankForLevel(l.minRank)} />
