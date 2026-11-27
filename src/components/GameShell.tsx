@@ -11,9 +11,7 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GameContext } from "@/components/GameContext";
-import GameStatistics from "@/components/GameStatistics";
 import { rankForLevel } from "@/lib/ranks";
-import BootleggingSection from "@/components/Bootlegging";
 import AutoTheftSection from "@/components/AutoTheft";
 import JailSection from "@/components/Jail";
 import MailboxSection from "@/components/Mailbox";
@@ -21,32 +19,22 @@ import ForumBoard from "@/components/ForumBoard";
 import SendLetterSection from "@/components/SendLetter";
 import OrganisedCrimeSection from "@/components/OrganisedCrime";
 import { clock, useActionStatus } from "@/components/EnergyBar";
-import { GarageSection, TravelSection } from "@/components/Travel";
-import { BulletFactorySection, CitiesSection } from "@/components/Venues";
-import StoreSection from "@/components/Store";
-import LotterySection from "@/components/Lottery";
-import FindPlayerSection from "@/components/FindPlayer";
+import { TravelSection } from "@/components/Travel";
+import { BulletFactorySection } from "@/components/Venues";
 import CharacterPanel from "@/components/CharacterPanel";
 import WhackSection from "@/components/WhackSection";
-import SearchSection from "@/components/SearchSection";
 import { crimeForCity } from "@/lib/city-crimes";
 import CrimePopup from "@/components/CrimePopup";
 import PromotionPopup from "@/components/PromotionPopup";
 import BreakoutPopup from "@/components/BreakoutPopup";
 import { Banner, JobCard, slugify } from "@/components/GameImage";
-import HospitalSection from "@/components/HospitalSection";
-import HitlistSection from "@/components/HitlistSection";
 import GoldMarketplace from "@/components/GoldMarketplace";
 import GymnasiumSection from "@/components/Gymnasium";
 import EscrowSection from "@/components/EscrowSection";
 import { energyCostFor } from "@/lib/training";
-import GraveyardSection from "@/components/GraveyardSection";
 import BankSection from "@/components/BankSection";
 import CrewSection from "@/components/CrewSection";
 import AdminSection from "@/components/AdminSection";
-import UpdatesSection from "@/components/UpdatesSection";
-import InfoPage from "@/components/InfoPage";
-import HelpDesk from "@/components/HelpDesk";
 import { wealthStatus } from "@/lib/wealth";
 import { isBalanceHeld } from "@/lib/balance-hold";
 import {
@@ -297,9 +285,10 @@ function StatTable({
           </span>
         ))}
       </div>
+
       {rows.map((row, r) => (
         <div
-          key={r}
+                    key={r}
           style={{
             display: "grid",
             gridTemplateColumns: template,
@@ -398,7 +387,12 @@ const slugOf = (name: string) => {
 
 // Pages that are real pages of their own (a file under src/app/(game)).
 // Moving to one of these goes through the Next.js router, which loads that page.
-const REAL_PAGES = new Set(["Keno", "Slot Machines", "Blackjack", "Roulette", "War"]);
+const REAL_PAGES = new Set([
+  "Keno", "Slot Machines", "Blackjack", "Roulette", "War",
+  "Bootlegging", "Garage", "Hitlist", "Hospital", "Lottery", "Search", "Store",
+  "Graveyard", "Updates", "Find Player", "Help Desk", "Statistics",
+  "Wiki", "Terms of Service", "Cities"
+]);
 
 // Finds the page that matches a name or a web address. Anything unknown opens Home.
 function sectionFromAddress(groups: { items: string[] }[], value: string) {
@@ -604,7 +598,7 @@ export default function GameShell({
   const [busy, setBusy] = useState(false);
   const [currentCity, setCurrentCity] = useState(player.currentCity || "London");
   const [ukClock, setUkClock] = useState("--:--:--");
-  const [ukDate, setUkDate] = useState("Loading UK time");
+    const [ukDate, setUkDate] = useState("Loading UK time");
   const [bankAmount, setBankAmount] = useState("100");
   const [localCrimes, setLocalCrimes] = useState(recentCrimes);
   const [crimeByType, setCrimeByType] = useState(stats.crimeByType);
@@ -872,7 +866,7 @@ export default function GameShell({
     if (REAL_PAGES.has(item)) {
       router.push("/" + slugOf(item));
     } else {
-      window.history.pushState(null, "", item === "Home" ? "/" : "/" + slugOf(item));
+      window.history.pushState(null, "", "/" + slugOf(item));
     }
   }
 
@@ -904,7 +898,7 @@ export default function GameShell({
     );
 
     const sortedCrimes = [...crimeByType].sort((a, b) =>
-      a.crimeType.localeCompare(b.crimeType)
+            a.crimeType.localeCompare(b.crimeType)
     );
 
     return (
@@ -1184,7 +1178,7 @@ export default function GameShell({
           <button
             type="button"
             aria-label="Character"
-            title="Character"
+                        title="Character"
             onClick={() => setCharacterOpen(true)}
             style={{
               position: "relative",
@@ -1473,8 +1467,7 @@ export default function GameShell({
               </span>
             )}
           </button>
-
-          <button
+                    <button
             type="button"
             className="mobile-menu-toggle"
             aria-label="Menu"
@@ -1496,6 +1489,7 @@ export default function GameShell({
           </button>
         </nav>
       </header>
+
       {characterOpen && <CharacterPanel onClose={() => setCharacterOpen(false)} />}
 
       {/* Shown over whatever page you are on, so a failed job that sends you to
@@ -1643,7 +1637,6 @@ export default function GameShell({
           <>
           {BANNER_PAGES.has(section) && <Banner slot={`banners/${slugify(section)}`} />}
           {section === "Home" && renderStatistics()}
-          {section === "Statistics" && <GameStatistics />}
 
           {section === "Crimes" && (
             <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
@@ -1764,7 +1757,7 @@ export default function GameShell({
             <AutoTheftSection
               rankLevel={rankLevel}
               energy={energy}
-              staminaLevel={staminaLevel}
+                            staminaLevel={staminaLevel}
               theftLeft={status.theftLeft}
               onActed={status.refresh}
               jailLeft={status.jailLeft}
@@ -1780,13 +1773,9 @@ export default function GameShell({
             />
           )}
 
-          {section === "Bootlegging" && <BootleggingSection onCash={setMoney} />}
-
           {section === "Organised Crime" && <OrganisedCrimeSection />}
 
           {section === "Whack" && <WhackSection onCash={setMoney} isAdmin={isAdmin} />}
-
-          {section === "Hitlist" && <HitlistSection onCash={setMoney} />}
 
           {section === "Rackets" && (
             <p className="flavour">
@@ -1801,8 +1790,6 @@ export default function GameShell({
             <TravelSection onArrive={(city) => setCurrentCity(city)} isAdmin={isAdmin} />
           )}
 
-          {section === "Garage" && <GarageSection onCash={setMoney} />}
-
           {section === "Bullet Factory" && (
             <BulletFactorySection
               onCash={setMoney}
@@ -1816,10 +1803,6 @@ export default function GameShell({
             <JailSection onChanged={status.refresh} onBrokeOut={() => setBrokeOut(true)} />
           )}
 
-          {section === "Hospital" && <HospitalSection onCash={setMoney} />}
-
-          {section === "Graveyard" && <GraveyardSection />}
-
           {section === "Gymnasium" && (
             <GymnasiumSection
               onEnergy={setEnergy}
@@ -1827,17 +1810,7 @@ export default function GameShell({
             />
           )}
 
-          {section === "Search" && <SearchSection onCash={setMoney} />}
-
-          {section === "Updates" && <UpdatesSection />}
-
           {section === "Admin" && staffLevel >= 2 && <AdminSection staff={staffLevel} />}
-
-          {section === "Cities" && (
-            <CitiesSection />
-          )}
-
-          {section === "Find Player" && <FindPlayerSection />}
 
           {section === "Mailbox" && (
             <MailboxSection
@@ -1899,8 +1872,6 @@ export default function GameShell({
             </p>
           )}
 
-          {section === "Store" && <StoreSection onCash={setMoney} />}
-
           {section === "Pawn Shop" && (
             <p className="flavour">
               Buy and sell items at the pawn shop.
@@ -1919,19 +1890,11 @@ export default function GameShell({
             </p>
           )}
 
-          {section === "Lottery" && <LotterySection onCash={setMoney} />}
-
           {section === "Rumrunners Live" && (
             <p className="flavour">
               Live news from the underworld.
             </p>
           )}
-
-          {section === "Wiki" && <InfoPage kind="wiki" />}
-
-          {section === "Terms of Service" && <InfoPage kind="terms" />}
-
-          {section === "Help Desk" && <HelpDesk />}
 
           {section === "Suggestion Box" && (
             <ForumBoard
