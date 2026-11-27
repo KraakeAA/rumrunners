@@ -215,6 +215,10 @@ model Car {
   plate      String  @default("")
   damage     Int     @default(0) // 0 = perfect, 50 = badly knocked about
   heatAt     DateTime @default(now())
+  // True once the original plate has been swapped for a false one.
+  plateChanged Boolean @default(false)
+  // The last time the police checked this car (null on cars from before the heat rules).
+  sweptAt    DateTime?
   // Crates of booze in the boot, keyed by booze key.
   cargo      Json?
   // Set while the car is held by the Escrow agent; it can't be used or sold until the trade ends.
@@ -332,7 +336,6 @@ model ForumPost {
 
   @@index([topicId, createdAt])
 }
-
 // A four-player organised crime: one leader and three role slots.
 model OrganisedCrime {
   id        String   @id @default(cuid())
