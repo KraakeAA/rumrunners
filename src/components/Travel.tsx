@@ -289,6 +289,7 @@ export function TravelSection({
     </div>
   );
 }
+
 const sub: CSSProperties = { fontSize: 12, color: "#c9bfa6" };
 /* ------------------------------- Garage ------------------------------- */
 
@@ -397,8 +398,8 @@ export function GarageSection({ onCash }: { onCash?: (money: number) => void }) 
         ))}
         {msg && <div style={{ padding: "6px 8px", color: "#ddc18d" }}>{msg}</div>}
         <div style={{ padding: 8, fontSize: 12, color: "#c9bfa6" }}>
-          Cars are not driven. Change the plate, then ship them to another city by rail freight (a car on its
-          stolen plates is caught at the station), melt them down for bullets at the Bullet Factory, or use them on Organised Crime jobs.
+          Cars are not driven. Ship them to another city by rail freight, then travel there to change the plate
+          and repair them, melt them down for bullets at the Bullet Factory, or use them on Organised Crime jobs.
           Need more room? Buy a bigger garage in the Store.
         </div>
       </div>
