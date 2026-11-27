@@ -4,33 +4,22 @@ import {
   useCallback,
   useRef,
   useEffect,
-  useMemo,
   useState,
   type CSSProperties,
   type ReactNode
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GameContext } from "@/components/GameContext";
-import { rankForLevel } from "@/lib/ranks";
 import JailSection from "@/components/Jail";
-import MailboxSection from "@/components/Mailbox";
-import ForumBoard from "@/components/ForumBoard";
-import SendLetterSection from "@/components/SendLetter";
-import { clock, useActionStatus } from "@/components/EnergyBar";
+import { useActionStatus } from "@/components/EnergyBar";
 import CharacterPanel from "@/components/CharacterPanel";
-import { crimeForCity } from "@/lib/city-crimes";
 import CrimePopup from "@/components/CrimePopup";
 import PromotionPopup from "@/components/PromotionPopup";
 import BreakoutPopup from "@/components/BreakoutPopup";
-import { Banner, JobCard, slugify } from "@/components/GameImage";
-import { energyCostFor } from "@/lib/training";
-import CrewSection from "@/components/CrewSection";
-import AdminSection from "@/components/AdminSection";
+import { Banner, slugify } from "@/components/GameImage";
 import { wealthStatus } from "@/lib/wealth";
 import { isBalanceHeld } from "@/lib/balance-hold";
 import {
-  CRIMES,
-  crimeCooldownSeconds,
   MAX_STREAK,
   streakFromLogs,
   xpForLevel
@@ -283,7 +272,7 @@ function StatTable({
           style={{
             display: "grid",
             gridTemplateColumns: template,
-                        gap: 8,
+            gap: 8,
             padding: "3px 6px",
             fontSize: 11,
             lineHeight: 1.25,
@@ -309,7 +298,6 @@ function StatTable({
     </div>
   );
 }
-
 // Anything that acts on the game world is shut while you are in jail.
 // Pages that get a wide picture across the top. The picture file is
 // public/images/banners/<page-name>.jpg, for example banners/local-bank.jpg
@@ -384,7 +372,10 @@ const REAL_PAGES = new Set([
   "Graveyard", "Updates", "Find Player", "Help Desk", "Statistics",
   "Wiki", "Terms of Service", "Cities",
   "Auto Theft", "Bullet Factory", "Escrow", "Gymnasium", "Jail", "Local Bank",
-  "Marketplace", "Organised Crime", "Railway", "Whack"
+  "Marketplace", "Organised Crime", "Railway", "Whack",
+  "Crimes", "Mailbox", "Send Letter", "Classifieds", "Off Topic", "Crew Forum",
+  "Crew", "Suggestion Box", "Game", "Forums", "Admin", "Rackets", "Gold",
+  "Pawn Shop", "Stock Market", "Brothel", "Saved Mail", "Rumrunners Live", "Full Site"
 ]);
 
 // Finds the page that matches a name or a web address. Anything unknown opens Home.
@@ -496,9 +487,15 @@ export default function GameShell({
     if (composeTo) {
       setSection("Send Letter");
       setLetterTo(composeTo);
+      router.replace("/sendletter");
       return;
     }
-    setSection(sectionFromAddress(groups, startSection));
+    const next = sectionFromAddress(groups, startSection);
+    setSection(next);
+    // An old /?go=Name link opens that page at its own address.
+    if (pathname === "/" && next !== "Home" && REAL_PAGES.has(next)) {
+      router.replace("/" + slugOf(next));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -578,7 +575,7 @@ export default function GameShell({
         inFlight = false;
       }
     }
-        checkBalanceRef.current = check;
+    checkBalanceRef.current = check;
     check();
     const t = window.setInterval(check, 4000);
     document.addEventListener("visibilitychange", check);
@@ -598,10 +595,9 @@ export default function GameShell({
   const [outcome, setOutcome] = useState<CrimeResult | null>(null);
   const [streak, setStreak] = useState(() => streakFromLogs(recentCrimes));
   const [statsCategory, setStatsCategory] = useState("Current");
-  const [crimeTier, setCrimeTier] = useState(-1);
 
   useEffect(() => {
-    const updateClock = () => {
+        const updateClock = () => {
       const now = new Date();
 
       setUkClock(
@@ -868,7 +864,8 @@ export default function GameShell({
     setMenuGroup("");
     setMenuOpen((open) => !open);
   }
-    function renderStatistics() {
+
+  function renderStatistics() {
     const attempts = crimeByType.reduce((n, c) => n + c.attempts, 0);
     const succeeded = crimeByType.reduce((n, c) => n + c.successes, 0);
     const failed = attempts - succeeded;
@@ -900,7 +897,7 @@ export default function GameShell({
           .stat-scroll .stat-row:nth-of-type(even) { background: #151d19; }
         `}</style>
         <TitleBar>Welcome to Rumrunners</TitleBar>
-        <TitleBar>Statistics</TitleBar>
+                <TitleBar>Statistics</TitleBar>
 
         <div style={{ padding: "3px 4px", background: "#101612" }}>
           <select
@@ -1117,18 +1114,6 @@ export default function GameShell({
     );
   }
 
-  // Crimes come in tiers of four. Every crime is listed; the ones above
-  // your rank are greyed out with the rank that unlocks them.
-  const crimeTiers = useMemo(() => {
-    const out: (typeof CRIMES)[number][][] = [];
-    for (let i = 0; i < CRIMES.length; i += 4) out.push(CRIMES.slice(i, i + 4));
-    return out;
-  }, []);
-  const topOpenTier = Math.max(
-    0,
-    crimeTiers.reduce((n, t, i) => (t[0].minRankLevel <= rankLevel ? i : n), 0)
-  );
-  const activeTier = crimeTier === -1 ? topOpenTier : Math.min(crimeTier, crimeTiers.length - 1);
   const sky = skyFor(ukClock);
 
   return (
@@ -1155,7 +1140,22 @@ export default function GameShell({
         jailLeft: status.jailLeft,
         theftLeft: status.theftLeft,
         refresh: status.refresh,
-        showBreakout: () => setBrokeOut(true)
+        showBreakout: () => setBrokeOut(true),
+        playerId,
+        staffLevel,
+        latestMailId,
+        mailChanged: () => {
+          status.refresh();
+          checkBalanceRef.current();
+        },
+        letterTo,
+        letterQuote,
+        openLetter,
+        go: navigate,
+        busy,
+        notice,
+        commitCrime,
+        crimeLeft: status.crimeLeft
       }}
     >
     <div className="game" style={{ background: "#0b0f0d" }}>
@@ -1167,7 +1167,7 @@ export default function GameShell({
           overflow: "hidden",
           minHeight: 0,
           height: "auto",
-                    padding: "4px 4px 8px",
+          padding: "4px 4px 8px",
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
@@ -1197,7 +1197,7 @@ export default function GameShell({
             aria-label="Character"
             title="Character"
             onClick={() => setCharacterOpen(true)}
-            style={{
+                        style={{
               position: "relative",
               width: 38,
               height: 44,
@@ -1457,7 +1457,7 @@ export default function GameShell({
               fontSize: 20,
               textShadow: jailCount > 0 ? "0 0 6px #e4b822, 0 1px 3px #000" : "0 1px 3px #000",
               opacity: jailCount > 0 ? 1 : 0.7,
-                            cursor: "pointer"
+              cursor: "pointer"
             }}
           >
             ▥
@@ -1477,7 +1477,7 @@ export default function GameShell({
                   fontWeight: 700,
                   lineHeight: "15px",
                   textAlign: "center",
-                  textShadow: "none"
+                                    textShadow: "none"
                 }}
               >
                 {jailCount > 99 ? "99+" : jailCount}
@@ -1656,262 +1656,8 @@ export default function GameShell({
           {BANNER_PAGES.has(section) && <Banner slot={`banners/${slugify(section)}`} />}
           {section === "Home" && renderStatistics()}
 
-          {section === "Crimes" && (
-            <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
-              <div
-                style={{
-                  ...titleBarStyle,
-                  fontSize: 16,
-                  padding: "6px 8px"
-                }}
-              >
-                Crimes
-              </div>
-
-              {status.jailLeft > 0 && (
-                <p className="notice">
-                  You are in jail for another {clock(status.jailLeft)}.{" "}
-                  <button
-                    type="button"
-                    onClick={() => navigate("Jail")}
-                    style={{ background: "none", border: 0, color: "#e4c04d", textDecoration: "underline", cursor: "pointer", fontSize: 12 }}
-                  >
-                    Go to the prison
-                  </button>
-                </p>
-              )}
-
-              {notice && <p className="notice">{notice}</p>}
-
-              <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-                {crimeTiers.map((t, i) => {
-                  const open = t[0].minRankLevel <= rankLevel;
-                  const on = i === activeTier;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setCrimeTier(i)}
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        padding: "8px 0",
-                        fontSize: 15,
-                        border: on ? "1px solid #f0dfa8" : "1px solid #6b5d3a",
-                        background: on ? "#8f8668" : "#4a4640",
-                        color: open ? "#f7efdb" : "#9a9382",
-                        cursor: "pointer"
-                      }}
-                    >
-                      {i + 1}
-                      {!open && <span style={{ fontSize: 11 }}> 🔒</span>}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div style={{ margin: "4px 0 6px", fontSize: 12, color: "#b7ad93", textAlign: "center" }}>
-                {crimeTiers[activeTier][0].minRankLevel <= rankLevel
-                  ? `Tier ${activeTier + 1} · unlocked`
-                  : `Tier ${activeTier + 1} unlocks at ${rankForLevel(crimeTiers[activeTier][0].minRankLevel)}`}
-              </div>
-
-              <div style={{ display: "grid", gap: 4 }}>
-                {crimeTiers[activeTier].map((baseCrime) => {
-                  const crime = crimeForCity(baseCrime, currentCity);
-                  if (!isAdmin && crime.minRankLevel > rankLevel) {
-                    return (
-                      <JobCard
-                        key={crime.id}
-                        slot={`crimes/${slugify(currentCity)}/${crime.id}`}
-                        title={crime.name}
-                        description={crime.description}
-                        meters={[]}
-                        locked
-                        lockedText={`Unlocks at ${rankForLevel(crime.minRankLevel)}`}
-                        buttonLabel="Locked"
-                      />
-                    );
-                  }
-
-                  const wait = status.crimeLeft(crime.id);
-                  const crimeEnergy = energyCostFor(crime.energyCost, staminaLevel);
-                  const needsEnergy = !isAdmin && energy < crimeEnergy;
-                                const disabled = busy || (!isAdmin && (wait > 0 || needsEnergy || status.jailLeft > 0));
-
-                  return (
-                    <JobCard
-                      key={crime.id}
-                      slot={`crimes/${slugify(currentCity)}/${crime.id}`}
-                      title={crime.name}
-                      description={crime.description}
-                      meters={[]}
-                      seconds={crimeCooldownSeconds(crime.energyCost)}
-                      hideTime
-                      energy={crimeEnergy}
-                      tired={needsEnergy}
-                      waiting={!isAdmin && wait > 0}
-                      waitLeft={isAdmin ? 0 : wait}
-                      disabled={disabled}
-                      buttonLabel={
-                        !isAdmin && status.jailLeft > 0 ? "Jailed" : !isAdmin && wait > 0 ? clock(wait) : needsEnergy ? "Tired" : "Commit!"
-                      }
-                      onClick={() => commitCrime(crime.id)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {REAL_PAGES.has(section) &&
             (pathname.replace(/^\/+|\/+$/g, "") === slugOf(section) ? children : <p className="flavour">Loading...</p>)}
-
-          {section === "Rackets" && (
-            <p className="flavour">
-              Own and protect criminal rackets for passive income.
-            </p>
-          )}
-
-          {section === "Admin" && staffLevel >= 2 && <AdminSection staff={staffLevel} />}
-
-          {section === "Mailbox" && (
-            <MailboxSection
-              onOpenOc={() => navigate("Organised Crime")}
-              onReply={openLetter}
-              refreshKey={latestMailId}
-              onChanged={() => {
-                status.refresh();
-                checkBalanceRef.current();
-              }}
-            />
-          )}
-
-          {section === "Send Letter" && (
-            <SendLetterSection key={letterTo} initialTo={letterTo} quote={letterQuote} />
-          )}
-
-          {section === "Saved Mail" && (
-            <p className="flavour">
-              Your saved messages.
-            </p>
-          )}
-
-          {section === "Classifieds" && (
-            <ForumBoard
-              key="CLASSIFIEDS"
-              category="CLASSIFIEDS"
-              title="Classifieds"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
-
-          {section === "Off Topic" && (
-            <ForumBoard
-              key="OFF_TOPIC"
-              category="OFF_TOPIC"
-              title="Off Topic"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
-
-          {section === "Crew Forum" && (
-            <ForumBoard
-              key="CREW"
-              category="CREW"
-              title="Crew Forum"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
-
-          {section === "Crew" && <CrewSection onCash={setMoney} isAdmin={isAdmin} playerId={playerId} />}
-
-          {section === "Gold" && (
-            <p className="flavour">
-              Premium currency. Not yet active.
-            </p>
-          )}
-
-          {section === "Pawn Shop" && (
-            <p className="flavour">
-              Buy and sell items at the pawn shop.
-            </p>
-          )}
-
-          {section === "Stock Market" && (
-            <p className="flavour">
-              Investments and the stock market.
-            </p>
-          )}
-
-          {section === "Brothel" && (
-            <p className="flavour">
-              Visit the city&apos;s establishments.
-            </p>
-          )}
-
-          {section === "Rumrunners Live" && (
-            <p className="flavour">
-              Live news from the underworld.
-            </p>
-          )}
-
-          {section === "Suggestion Box" && (
-            <ForumBoard
-              key="SUGGESTIONS"
-              category="SUGGESTIONS"
-              title="Suggestion Box"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
-
-          {section === "Full Site" && (
-            <p className="flavour">
-              You are viewing the full Rumrunners game.
-            </p>
-          )}
-
-          {section === "Profile" && (
-            <p className="flavour">
-              Your player profile.
-            </p>
-          )}
-
-          {section === "Forums" && (
-            <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", display: "grid", gap: 6 }}>
-              <div style={{ ...titleBarStyle, fontSize: 16, padding: "6px 8px" }}>Forums</div>
-              {[
-                { name: "Game", note: "Talk about the game, news and updates." },
-                { name: "Classifieds", note: "Buy, sell and trade with other players." },
-                { name: "Off Topic", note: "The public house. Anything beyond the game." }
-              ].map((f) => (
-                <button
-                  key={f.name}
-                  type="button"
-                  className="nav-item"
-                  onClick={() => navigate(f.name)}
-                  style={{ width: "100%" }}
-                >
-                  <strong style={{ display: "block", fontSize: 14 }}>{f.name}</strong>
-                  <span style={{ fontSize: 11, color: "#b7ad93", fontFamily: "inherit" }}>{f.note}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {section === "Game" && (
-            <ForumBoard
-              key="OFFICIAL"
-              category="OFFICIAL"
-              title="Game"
-              isAdmin={isAdmin}
-              playerId={playerId}
-            />
-          )}
 
           {section !== "Home" &&
             section !== "Crimes" &&
