@@ -115,26 +115,28 @@ export function sweepChance(heat: number, shipped: boolean): number {
   return shipped ? base / 2 : base;
 }
 
-// Auto theft: four levels unlocked by rank. Every car can turn up at every
-// level, but the better cars are far harder to take at the earlier levels.
+// Auto theft: four levels unlocked by rank. The better the level, the better the cars,
+// and the special cars of level 4 are only for the top rank.
 export type TheftLevel = {
   level: 1 | 2 | 3 | 4;
   name: string;
   minRank: number;
   blurb: string;
   energy: number;
-  baseChance: number; // chance against an easy car
+  baseChance: number; // chance at the rank that unlocks the level
   weights: [number, number, number, number]; // how often tier 1..4 cars turn up
   xp: number; // XP for a successful theft (plus a little more for harder cars)
   fine: number; // paid if you are caught
   heat: [number, number, number, number]; // heat on a stolen car by tier
 };
 
+export const GODFATHER_RANK = 13; // top rank: Legendary Crime Baron
+
 export const THEFT_LEVELS: TheftLevel[] = [
-  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 20, baseChance: 0.75, weights: [70, 25, 4, 1], xp: 14, fine: 3, heat: [25, 35, 50, 65] },
-  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 30, baseChance: 0.78, weights: [40, 40, 16, 4], xp: 30, fine: 8, heat: [30, 40, 55, 70] },
-  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 40, baseChance: 0.8, weights: [15, 35, 35, 15], xp: 52, fine: 20, heat: [35, 45, 60, 75] },
-  { level: 4, name: "Society Motor Snatch", minRank: 9, blurb: "Take the grandest cars from outside the finest houses and hotels.", energy: 50, baseChance: 0.82, weights: [5, 20, 35, 40], xp: 80, fine: 50, heat: [40, 50, 65, 80] }
+  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 20, baseChance: 0.3, weights: [75, 22, 3, 0], xp: 14, fine: 3, heat: [25, 35, 50, 65] },
+  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 30, baseChance: 0.25, weights: [40, 42, 18, 0], xp: 30, fine: 8, heat: [30, 40, 55, 70] },
+  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 40, baseChance: 0.2, weights: [15, 40, 45, 0], xp: 52, fine: 20, heat: [35, 45, 60, 75] },
+  { level: 4, name: "Special Cars", minRank: GODFATHER_RANK, blurb: "The grandest motors in Britain, from outside the finest houses and hotels.", energy: 50, baseChance: 0.15, weights: [0, 0, 10, 90], xp: 80, fine: 50, heat: [40, 50, 65, 80] }
 ];
 
 // Number plates: two letters and up to four digits, in the style of the 1930s.
@@ -210,19 +212,21 @@ export function effectiveMinutes(car: CarModel | undefined, damage: number): num
   return Math.round(travelMinutes(car) * (car ? 1 + damage / 100 : 1));
 }
 
-// One cooldown covers every level: after any auto theft you wait 3 minutes before the next.
-export const THEFT_COOLDOWN_SECONDS = 180;
+// Each level has its own wait, and the harder the job the longer it is.
 export const THEFT_COOLDOWNS: Record<number, number> = {
-  1: THEFT_COOLDOWN_SECONDS,
-  2: THEFT_COOLDOWN_SECONDS,
-  3: THEFT_COOLDOWN_SECONDS,
-  4: THEFT_COOLDOWN_SECONDS
+  1: 180, // 3 minutes
+  2: 600, // 10 minutes
+  3: 1800, // 30 minutes
+  4: 7200 // 2 hours
 };
 
-export function theftChance(level: TheftLevel, tier: number): number {
-  const gap = Math.max(0, tier - level.level);
-  const chance = level.baseChance - gap * 0.2 - (tier - 1) * 0.04;
-  return Math.max(0.03, Math.min(0.92, chance));
+export const MAX_THEFT_CHANCE = 0.5; // no job is ever better than 50%
+
+// Chance of pulling a job off: it starts at the level's base chance and improves by
+// 2% for every rank you hold above the one that unlocks it, up to the 50% cap.
+export function theftChance(level: TheftLevel, rankLevel: number): number {
+  const above = Math.max(0, rankLevel - level.minRank);
+  return Math.min(MAX_THEFT_CHANCE, level.baseChance + above * 0.02);
 }
 
 export type CityStory = { welcome: string; history: string };
@@ -263,7 +267,5 @@ export const ARMS: Arm[] = [
   { name: "Enfield No. 2 Mk I Revolver", maker: "Royal Small Arms Factory", calibre: ".38", note: "Adopted by the army in 1932." },
   { name: "Colt M1911", maker: "Colt", calibre: ".45 ACP", note: "American automatic pistol, smuggled in from across the Atlantic." },
   { name: "Mauser C96 'Broomhandle'", maker: "Mauser", calibre: "7.63mm", note: "The long-barrelled German pistol with a wooden holster stock." },
-  { name: "Greener Police Shotgun", maker: "W.W. Greener", calibre: "12-bore", note: "A Birmingham-made shotgun, used by police and gangs alike." },
-  { name: "Short Magazine Lee-Enfield", maker: "Enfield", calibre: ".303", note: "The army rifle of two wars." },
-  { name: "Thompson Submachine Gun", maker: "Auto-Ordnance", calibre: ".45 ACP", note: "The 'Tommy gun'. Rare and feared, and the IRA bought some." }
+  { name: "Greener Police Shotgun", maker: "W.W. Greener", calibre: ".303", note: "PLACEHOLDER" }
 ];
