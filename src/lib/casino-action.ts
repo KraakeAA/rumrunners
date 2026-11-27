@@ -12,6 +12,7 @@ type Tx = Prisma.TransactionClient;
 // Cash and chips are stored as whole numbers that stay exact up to about 9 quadrillion. Nothing may be pushed past that.
 const INT_MAX = Number.MAX_SAFE_INTEGER;
 const INT_MIN = -Number.MAX_SAFE_INTEGER;
+const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 const room = (current: number, add: number) =>
   Math.max(INT_MIN - current, Math.min(INT_MAX - current, add));
 
@@ -152,8 +153,8 @@ async function settle(
               fromName: "The Casino",
               subject: "You lost your casino",
               body: paidInFull
-                ? `${who} won every chip your ${game} casino in ${city} had.\n\nThe casino was bust, so ${who} now owns it.`
-                : `${who} won more than your ${game} casino in ${city} could pay.\n\nYou could not cover the win. ${who} was paid what was left and now owns the casino.`
+                ? `${who} won ${gbp(fullPayout)} on a ${gbp(bet)} bet at your ${game} casino in ${city}.\n\nThat was every chip the casino had, so it went bust and ${who} now owns it.`
+                : `${who} won ${gbp(fullPayout)} on a ${gbp(bet)} bet at your ${game} casino in ${city}.\n\nThe casino could only pay ${gbp(payout)}. ${who} was paid that and now owns the casino.`
             }
           });
         }
