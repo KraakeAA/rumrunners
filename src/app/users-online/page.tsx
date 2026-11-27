@@ -10,7 +10,18 @@ type OnlinePlayer = {
   rankLevel: number;
   updatedAt: string;
   isAdmin?: boolean;
+  staffRole?: string;
 };
+
+// Name colours: admins red, moderators green, help desk operators yellow, everyone else white.
+function roleOf(p: OnlinePlayer): "admin" | "mod" | "helper" | "user" {
+  if (p.isAdmin) return "admin";
+  if (p.staffRole === "MODERATOR") return "mod";
+  if (p.staffRole === "HELPER") return "helper";
+  return "user";
+}
+const ROLE_COLOUR = { admin: "#e0584f", mod: "#6fcf6f", helper: "#e4c04d", user: "#f1e8d3" };
+const ROLE_TITLE = { admin: "Admin", mod: "Moderator", helper: "Help desk", user: "" };
 
 const bar: CSSProperties = {
   padding: "6px 8px",
@@ -104,10 +115,10 @@ export default function UsersOnlinePage() {
                   {index > 0 && <span style={{ color: "#8a8470" }}> - </span>}
                   <Link
                     href={`/profile/${encodeURIComponent(player.username)}`}
-                    title={player.isAdmin ? "Admin" : `${player.rank} (${player.rankLevel})`}
+                    title={roleOf(player) !== "user" ? ROLE_TITLE[roleOf(player)] : `${player.rank} (${player.rankLevel})`}
                     style={{
-                      color: player.isAdmin ? "#c0141c" : "#f1e8d3",
-                      fontWeight: player.isAdmin ? 700 : 400,
+                      color: ROLE_COLOUR[roleOf(player)],
+                      fontWeight: roleOf(player) !== "user" ? 700 : 400,
                       textDecoration: "none"
                     }}
                   >
@@ -121,6 +132,24 @@ export default function UsersOnlinePage() {
 
         <div style={{ ...box, textAlign: "center", padding: "5px 10px" }}>
           <strong>Total:</strong> {players.length}
+        </div>
+
+        <div
+          style={{
+            ...box,
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: "2px 14px",
+            padding: "5px 10px",
+            fontSize: 11
+          }}
+        >
+          <span style={{ color: "#b7ad93" }}>Key:</span>
+          <span style={{ color: ROLE_COLOUR.admin, fontWeight: 700 }}>Admin</span>
+          <span style={{ color: ROLE_COLOUR.mod, fontWeight: 700 }}>Moderator</span>
+          <span style={{ color: ROLE_COLOUR.helper, fontWeight: 700 }}>Help desk</span>
+          <span style={{ color: ROLE_COLOUR.user }}>Player</span>
         </div>
 
         <p style={{ color: "#8a8470", fontSize: 11, textAlign: "center", margin: "8px 0 0" }}>
