@@ -75,7 +75,7 @@ function CrimeBanner({
       {attempt < files.length && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={`/images/crimes/banners/${files[attempt]}`}
+                    src={`/images/crimes/${files[attempt]}`}
           alt=""
           onError={() => setAttempt((a) => a + 1)}
           style={{
