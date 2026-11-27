@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { CITY_STORIES, RAIL_MINUTES, SHIP_CITIES } from "@/lib/era";
+import { CITY_STORIES, RAIL_MINUTES, SHIP_CITIES, heatZone } from "@/lib/era";
 
 type GarageCar = {
   id: string;
@@ -19,6 +19,8 @@ type GarageCar = {
   city: string;
   heat: number;
   plate: string;
+  plateOrigin: string;
+  plateChanged: boolean;
   damage: number;
   repairCost: number;
   shipCost: number;
@@ -78,14 +80,20 @@ function Bar({ children }: { children: ReactNode }) {
 }
 
 export function HeatBar({ heat }: { heat: number }) {
-  const colour = heat >= 70 ? "#e0584f" : heat >= 40 ? "#e0a24f" : "#6fcf6f";
+  // Three zones: green (quiet), amber (watched), red (hunted).
+  const zone = heatZone(heat);
+  const colour = zone === "red" ? "#e0584f" : zone === "amber" ? "#e0a24f" : "#6fcf6f";
+  const label = zone === "red" ? "Red" : zone === "amber" ? "Amber" : "Green";
+  const h = Math.max(0, Math.min(100, heat));
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
       <span style={{ fontSize: 11, color: "#c9bfa6", width: 32 }}>Heat</span>
-      <div style={{ flex: 1, height: 7, background: "#0e1411", border: "1px solid #5b4d3a" }}>
-        <div style={{ width: `${Math.max(0, Math.min(100, heat))}%`, height: "100%", background: colour }} />
+      <div style={{ flex: 1, position: "relative", height: 7, background: "#0e1411", border: "1px solid #5b4d3a" }}>
+        <div style={{ width: `${h}%`, height: "100%", background: colour }} />
+        <div style={{ position: "absolute", left: "33.5%", top: 0, bottom: 0, width: 1, background: "#0e1411" }} />
+        <div style={{ position: "absolute", left: "66.5%", top: 0, bottom: 0, width: 1, background: "#0e1411" }} />
       </div>
-      <span style={{ fontSize: 11, color: colour, width: 30, textAlign: "right" }}>{heat}%</span>
+      <span style={{ fontSize: 11, color: colour, width: 38, textAlign: "right" }}>{label}</span>
     </div>
   );
 }
@@ -281,7 +289,6 @@ export function TravelSection({
     </div>
   );
 }
-
 const sub: CSSProperties = { fontSize: 12, color: "#c9bfa6" };
 /* ------------------------------- Garage ------------------------------- */
 
@@ -319,6 +326,7 @@ export function GarageSection({ onCash }: { onCash?: (money: number) => void }) 
         return;
       }
       setData(g.body as GarageData);
+      if (Array.isArray(g.body.notices) && g.body.notices.length > 0) setMsg(g.body.notices.join(" "));
     } catch {
       setMsg("Unable to connect. Please try again.");
     }
@@ -348,7 +356,7 @@ export function GarageSection({ onCash }: { onCash?: (money: number) => void }) 
             <strong>{c.name}</strong> <span style={sub}>({c.year})</span>
             <div style={{ fontWeight: 700, letterSpacing: 1 }}>Plate: {c.plate}</div>
             <div style={sub}>
-              Stolen in {c.originCity} · now in {c.city} · melts down for{" "}
+              {c.plateChanged ? "False plate" : `${c.originCity} plate`} · stolen in {c.originCity} · now in {c.city} · melts down for{" "}
               {c.scrap.toLocaleString("en-GB")} bullets
             </div>
             <HeatBar heat={c.heat} />
@@ -389,8 +397,8 @@ export function GarageSection({ onCash }: { onCash?: (money: number) => void }) 
         ))}
         {msg && <div style={{ padding: "6px 8px", color: "#ddc18d" }}>{msg}</div>}
         <div style={{ padding: 8, fontSize: 12, color: "#c9bfa6" }}>
-          Cars are not driven. Ship them to another city by rail freight (the plate stays the same),
-          melt them down for bullets at the Bullet Factory, or use them on Organised Crime jobs.
+          Cars are not driven. Change the plate, then ship them to another city by rail freight (a car on its
+          stolen plates is caught at the station), melt them down for bullets at the Bullet Factory, or use them on Organised Crime jobs.
           Need more room? Buy a bigger garage in the Store.
         </div>
       </div>
