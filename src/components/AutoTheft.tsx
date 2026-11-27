@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { CARS, heatZone, PLATE_COST, PLATE_HEAT_DROP, SHIP_CITIES, SHIP_MINUTES, THEFT_COOLDOWN_SECONDS, THEFT_LEVELS } from "@/lib/era";
+import { CARS, heatZone, PLATE_COST, SHIP_CITIES, SHIP_MINUTES, THEFT_COOLDOWN_SECONDS, THEFT_LEVELS } from "@/lib/era";
 import { clock } from "@/components/EnergyBar";
 import { rankForLevel } from "@/lib/ranks";
 import { energyCostFor } from "@/lib/training";
@@ -99,7 +99,10 @@ function PlateBadge({ plate }: { plate: string }) {
       style={{
         display: "inline-block",
         flexShrink: 0,
-        padding: "0 4px",
+        width: 56,
+        boxSizing: "border-box",
+        textAlign: "center",
+        padding: "0 2px",
         background: "#141414",
         color: "#e8e4d4",
         border: "1px solid #c9c5b4",
@@ -117,25 +120,25 @@ function PlateBadge({ plate }: { plate: string }) {
   );
 }
 
-// Three little bars climbing left to right: green, amber, red. The ones that are lit show the heat.
+// Three equal bars. The more are lit, the hotter the car, and they take the colour of the zone.
 function HeatBars({ heat }: { heat: number }) {
   const zone = heatZone(heat);
   const lit = zone === "red" ? 3 : zone === "amber" ? 2 : 1;
-  const colours = ["#6fcf6f", "#e0a24f", "#e0584f"];
+  const colour = zone === "red" ? "#e0584f" : zone === "amber" ? "#e0a24f" : "#6fcf6f";
   return (
     <span
       title={`Heat ${zone}`}
       aria-label={`Heat ${zone}`}
-      style={{ display: "inline-flex", alignItems: "flex-end", gap: 2, height: 13, flexShrink: 0 }}
+      style={{ display: "inline-flex", alignItems: "center", gap: 2, height: 13, flexShrink: 0 }}
     >
       {[0, 1, 2].map((i) => (
         <span
           key={i}
           style={{
             width: 5,
-            height: 5 + i * 4,
+            height: 11,
             borderRadius: 1,
-            background: i < lit ? colours[i] : "#2d3731",
+            background: i < lit ? colour : "#2d3731",
           }}
         />
       ))}
@@ -462,12 +465,14 @@ export default function AutoTheftSection({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "4px 8px",
+                gap: 6,
+                padding: "3px 6px",
                 background: "#17201c",
                 borderBottom: "1px solid #6b5d3a",
-                fontSize: 11,
-                color: "#c9bfa6",
+                fontSize: 8,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                color: "#8f8770",
               }}
             >
               <input
@@ -475,11 +480,13 @@ export default function AutoTheftSection({
                 aria-label="Select all cars"
                 checked={picked.length === cars.length}
                 onChange={(e) => setPicked(e.target.checked ? cars.map((c) => c.id) : [])}
-                style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }}
+                style={{ width: 15, height: 15, margin: 0, flexShrink: 0 }}
               />
-              <span style={{ flex: 1 }}>
-                {picked.length === 0 ? "Tick cars to work on them" : `${picked.length} selected`}
-              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>Car</span>
+              <span style={{ width: 56, textAlign: "center", flexShrink: 0 }}>Plate</span>
+              <span style={{ width: 26, textAlign: "right", flexShrink: 0 }}>Dmg</span>
+              <span style={{ width: 19, textAlign: "center", flexShrink: 0 }}>Heat</span>
+              <span style={{ width: 40, textAlign: "center", flexShrink: 0 }}>Ship</span>
             </div>
 
             {cars.map((c) => {
@@ -534,24 +541,26 @@ export default function AutoTheftSection({
                       {c.damage}%
                     </span>
                     <HeatBars heat={c.heat} />
-                    {transit > 0 && (
-                      <span
-                        title={`Shipping to ${c.city}`}
-                        style={{
-                          flexShrink: 0,
-                          padding: "0 4px",
-                          border: "1px solid #5a7fa0",
-                          borderRadius: 2,
-                          background: "#1b2a38",
-                          color: "#9fc4e4",
-                          fontSize: 10,
-                          lineHeight: "14px",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {clock(transit)}
-                      </span>
-                    )}
+                    <span style={{ width: 40, flexShrink: 0, textAlign: "center" }}>
+                      {transit > 0 && (
+                        <span
+                          title={`Shipping to ${c.city}`}
+                          style={{
+                            display: "inline-block",
+                            padding: "0 3px",
+                            border: "1px solid #5a7fa0",
+                            borderRadius: 2,
+                            background: "#1b2a38",
+                            color: "#9fc4e4",
+                            fontSize: 10,
+                            lineHeight: "14px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {clock(transit)}
+                        </span>
+                      )}
+                    </span>
                   </label>
                   {c.exposedUntil && (
                     <div style={{ padding: "0 6px 3px 27px", fontSize: 10, color: left > 0 ? "#e0a24f" : "#e0584f" }}>
@@ -569,8 +578,6 @@ export default function AutoTheftSection({
                 const plates = chosen.filter((c) => canDo("plate", c));
                 const repairs = chosen.filter((c) => canDo("repair", c));
                 const ships = chosen.filter((c) => canDo("ship", c));
-                const notReady = chosen.filter((c) => !c.plateChanged).length;
-                const waitingRepair = chosen.filter((c) => c.damage > 0 && !canDo("repair", c)).length;
                 const sum = (list: WorkshopCar[], a: Pane) => list.reduce((n, c) => n + costOf(a, c), 0);
                 const actionBtn = (list: WorkshopCar[]): CSSProperties => ({
                   ...btn,
@@ -631,23 +638,11 @@ export default function AutoTheftSection({
                         Ship ({ships.length}) £{sum(ships, "ship").toLocaleString("en-GB")}
                       </button>
                     </div>
-                    <div style={{ ...sub, marginTop: 4, fontSize: 10 }}>
-                      Plate: £{PLATE_COST.toLocaleString("en-GB")} each, takes {PLATE_HEAT_DROP} off the heat, never the stolen
-                      city again. Ship: needs a false plate first, takes {SHIP_MINUTES} minutes
-                      {notReady > 0 ? ` (${notReady} still on stolen plates)` : ""}. Repair: only after a car has a false
-                      plate, has been shipped and has arrived
-                      {waitingRepair > 0 ? ` (${waitingRepair} not ready yet)` : ""}.
-                    </div>
                   </div>
                 );
               })()}
 
             {shopMsg && <p style={{ color: "#ddc18d", margin: 0, padding: "6px 8px" }}>{shopMsg}</p>}
-            <div style={{ ...sub, padding: "6px 8px" }}>
-              Heat: <span style={{ color: "#6fcf6f" }}>green</span> is quiet, <span style={{ color: "#e0a24f" }}>amber</span>{" "}
-              is watched, <span style={{ color: "#e0584f" }}>red</span> is hunted. It cools slowly over about two
-              days. Police can only find amber and red cars; a green car is safe.
-            </div>
           </>
         )}
       </div>
