@@ -37,10 +37,10 @@ type Data = {
 const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 const bar: CSSProperties = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   textAlign: "center",
   fontFamily: "Georgia, serif",
-  fontSize: 15,
+  fontSize: 13,
   color: "#f7efdb",
   background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
   borderTop: "1px solid #b0904a",
@@ -147,8 +147,7 @@ export default function WhackSection({
       ? h.status === "found" || h.status === "searching"
       : h.status === "found" && h.windowEndsAt && new Date(h.windowEndsAt).getTime() > now
   );
-
-  return (
+    return (
     <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", minWidth: 0 }}>
       <div style={bar}>Whack</div>
       <div style={{ ...box, borderTop: 0, color: "#c9bfa6", fontSize: 12 }}>
@@ -300,4 +299,3 @@ export default function WhackSection({
     </div>
   );
 }
-
