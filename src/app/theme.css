@@ -145,7 +145,24 @@ body {
 
 .footer { color: #8a8470; border-top: 1px solid #2a3a30; }
 
-.notice { background: #2a3832; border: 1px solid #a08340; color: #f7efdb; }
+.notice {
+  background: #1f2a25;
+  border: 1px solid #6b5d3a;
+  border-left: 3px solid #b0904a;
+  color: #e4d9bb;
+  font-size: 11px;
+  line-height: 1.35;
+}
+/* Messages that used to be coloured green or red in the code: one calm look instead. */
+.notice[style*="9be39f"],
+.notice[style*="7fe08f"] {
+  color: #e4d9bb !important;
+  border-left-color: #b0904a !important;
+}
+.notice[style*="f09a8c"] {
+  color: #e8c4bc !important;
+  border-left-color: #e0584f !important;
+}
 
 .bank-panel, .stat-grid > div, .dash-card { background: #1f2a25; border: 1px solid #a08340; }
 .bank-panel input, .auth-panel input { background: #0e1411; border: 1px solid #a08340; color: #f7efdb; }
