@@ -26,6 +26,18 @@ export type GameContextValue = {
   theftLeft: (level: number) => number;
   refresh: () => void;
   showBreakout: () => void;
+  playerId: string;
+  staffLevel: number;
+  latestMailId: string;
+  mailChanged: () => void;
+  letterTo: string;
+  letterQuote: { from: string; at: string; body: string } | null;
+  openLetter: (name: string, quote?: { from: string; at: string; body: string }) => void;
+  go: (page: string) => void;
+  busy: boolean;
+  notice: string;
+  commitCrime: (crimeId: string) => void;
+  crimeLeft: (crimeId: string) => number;
 };
 
 export const GameContext = createContext<GameContextValue | null>(null);
