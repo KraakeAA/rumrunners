@@ -86,17 +86,14 @@ export async function GET() {
       ? (player.theftTimes as Record<string, string>)
       : {};
   const thefts: Record<string, number> = {};
-  // One shared wait: the most recent attempt at any level starts it for all of them.
-  let lastTheft: Date | null = null;
-  for (const v of Object.values(times)) {
-    const t = new Date(v);
-    if (!Number.isNaN(t.getTime()) && (!lastTheft || t > lastTheft)) lastTheft = t;
-  }
-  if (lastTheft) {
-    for (const [level, secs] of Object.entries(THEFT_COOLDOWNS)) {
-      const left = Math.ceil((secs * 1000 - (now.getTime() - lastTheft.getTime())) / 1000);
-      if (left > 0) thefts[level] = left;
-    }
+  // Each level keeps its own wait, counted from the last attempt at that level.
+  for (const [level, secs] of Object.entries(THEFT_COOLDOWNS)) {
+    const raw = times[level];
+    if (!raw) continue;
+    const t = new Date(raw);
+    if (Number.isNaN(t.getTime())) continue;
+    const left = Math.ceil((secs * 1000 - (now.getTime() - t.getTime())) / 1000);
+    if (left > 0) thefts[level] = left;
   }
 
   return NextResponse.json({
