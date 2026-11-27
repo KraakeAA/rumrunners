@@ -10,9 +10,9 @@ import { energyCostFor } from "@/lib/training";
 import { CRIMES, crimeCooldownSeconds } from "@/lib/game";
 
 const titleBarStyle = {
-  padding: "6px 8px",
+  padding: "3px 8px",
   textAlign: "center" as const,
-  fontSize: 16,
+  fontSize: 13,
   lineHeight: 1.25,
   fontWeight: 400,
   fontFamily: "Georgia, serif",
@@ -73,8 +73,8 @@ export default function CrimesPage() {
               style={{
                 flex: 1,
                 minWidth: 0,
-                padding: "8px 0",
-                fontSize: 15,
+                padding: "4px 0",
+                fontSize: 13,
                 border: on ? "1px solid #f0dfa8" : "1px solid #6b5d3a",
                 background: on ? "#8f8668" : "#4a4640",
                 color: open ? "#f7efdb" : "#9a9382",
@@ -88,13 +88,13 @@ export default function CrimesPage() {
         })}
       </div>
 
-      <div style={{ margin: "4px 0 6px", fontSize: 12, color: "#b7ad93", textAlign: "center" }}>
+      <div style={{ margin: "2px 0 4px", fontSize: 11, color: "#b7ad93", textAlign: "center" }}>
         {crimeTiers[activeTier][0].minRankLevel <= g.rankLevel
           ? `Tier ${activeTier + 1} · unlocked`
           : `Tier ${activeTier + 1} unlocks at ${rankForLevel(crimeTiers[activeTier][0].minRankLevel)}`}
       </div>
 
-      <div style={{ display: "grid", gap: 4 }}>
+      <div style={{ display: "grid", gap: 0 }}>
         {crimeTiers[activeTier].map((baseCrime) => {
           const crime = crimeForCity(baseCrime, g.currentCity);
           if (!g.isAdmin && crime.minRankLevel > g.rankLevel) {
@@ -108,6 +108,7 @@ export default function CrimesPage() {
                 locked
                 lockedText={`Unlocks at ${rankForLevel(crime.minRankLevel)}`}
                 buttonLabel="Locked"
+                compact
               />
             );
           }
@@ -135,6 +136,7 @@ export default function CrimesPage() {
                 !g.isAdmin && g.jailLeft > 0 ? "Jailed" : !g.isAdmin && wait > 0 ? clock(wait) : needsEnergy ? "Tired" : "Commit!"
               }
               onClick={() => g.commitCrime(crime.id)}
+              compact
             />
           );
         })}
