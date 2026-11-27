@@ -62,14 +62,39 @@ export function travelMinutes(car: CarModel | undefined): number {
   return car ? car.minutes : RAIL_MINUTES;
 }
 
-// Heat: how much the police want a car. Cools down while it sits unused.
+// Heat: how much the police want a car.
 export const MAX_HEAT = 100;
-export const HEAT_COOL_MINUTES = 29; // one point lost every 29 minutes: red to green takes about two days
-export const DRIVE_HEAT = 8; // heat added by each journey
+// Heat only ever rises with time. From green it reaches amber after one day and red after
+// three days. (Plating resets a car to green; shipping a car back to where it was stolen
+// makes it red at once.)
+export const AMBER_AFTER_MINUTES = 24 * 60;
+export const RED_AFTER_MINUTES = 3 * 24 * 60;
+const AMBER_AT = 34;
+const RED_AT = 67;
+
+function heatToMinutes(heat: number): number {
+  if (heat <= 0) return 0;
+  if (heat < AMBER_AT) return (heat / AMBER_AT) * AMBER_AFTER_MINUTES;
+  if (heat < RED_AT) {
+    return AMBER_AFTER_MINUTES + ((heat - AMBER_AT) / (RED_AT - AMBER_AT)) * (RED_AFTER_MINUTES - AMBER_AFTER_MINUTES);
+  }
+  return RED_AFTER_MINUTES + ((heat - RED_AT) / (MAX_HEAT - RED_AT)) * (RED_AFTER_MINUTES - AMBER_AFTER_MINUTES);
+}
+function minutesToHeat(m: number): number {
+  if (m <= 0) return 0;
+  if (m < AMBER_AFTER_MINUTES) return (m / AMBER_AFTER_MINUTES) * AMBER_AT;
+  if (m < RED_AFTER_MINUTES) {
+    return AMBER_AT + ((m - AMBER_AFTER_MINUTES) / (RED_AFTER_MINUTES - AMBER_AFTER_MINUTES)) * (RED_AT - AMBER_AT);
+  }
+  return Math.min(
+    MAX_HEAT,
+    RED_AT + ((m - RED_AFTER_MINUTES) / (RED_AFTER_MINUTES - AMBER_AFTER_MINUTES)) * (MAX_HEAT - RED_AT)
+  );
+}
 
 export function currentHeat(heat: number, heatAt: Date | string, now = Date.now()): number {
-  const lost = Math.floor((now - new Date(heatAt).getTime()) / (HEAT_COOL_MINUTES * 60_000));
-  return Math.max(0, Math.min(MAX_HEAT, heat - Math.max(0, lost)));
+  const elapsed = Math.max(0, (now - new Date(heatAt).getTime()) / 60_000);
+  return Math.round(minutesToHeat(heatToMinutes(heat) + elapsed));
 }
 
 // Three heat zones: green is quiet, amber is watched, red is hunted.
@@ -147,8 +172,7 @@ export function makeFalsePlate(originCity: string, current: string): string {
   return makePlate(cities[0]);
 }
 
-// Shipping a car to another city by rail freight. A car still on its stolen
-// plates is spotted at the station, so change the plate first.
+// Shipping a car to another city by rail freight.
 export const SHIP_CITIES = ["London", "Birmingham", "Manchester", "Liverpool", "Glasgow"];
 export function shipCost(price: number): number {
   return Math.max(25, Math.round(price * 0.05));
@@ -156,17 +180,21 @@ export function shipCost(price: number): number {
 
 export const SHIP_MINUTES = 10; // how long rail freight takes to arrive
 
-// A car stolen after the heat rules began can only be repaired once it has a false plate,
-// has been shipped and has arrived. Older cars and gifted cars keep the old rule (always).
-export function carRepairable(
-  car: { createdAt: Date | string; plateChanged: boolean; hasShipped: boolean; shipArrivesAt: Date | string | null },
+// Plates and repairs can only be done away from the city the car was stolen in, with the
+// player standing in the car's city, once any rail journey has finished.
+export type WorkBlock = "IN_TRANSIT" | "AT_ORIGIN" | "NOT_HERE" | null;
+export function workBlock(
+  car: { city: string; originCity: string; shipArrivesAt: Date | string | null },
+  playerCity: string,
   now = Date.now()
-): boolean {
-  const inTransit = !!car.shipArrivesAt && new Date(car.shipArrivesAt).getTime() > now;
-  if (inTransit) return false;
-  if (new Date(car.createdAt).getTime() < HEAT_RULES_FROM) return true;
-  return car.plateChanged && car.hasShipped;
+): WorkBlock {
+  if (car.shipArrivesAt && new Date(car.shipArrivesAt).getTime() > now) return "IN_TRANSIT";
+  if (car.city === car.originCity) return "AT_ORIGIN";
+  if (car.city !== playerCity) return "NOT_HERE";
+  return null;
 }
+
+export const AMBER_HEAT = 50; // a car that has just been shipped is amber
 
 export const PLATE_COST = 20; // £ to fit a new plate
 export const PLATE_HEAT_DROP = 50; // heat removed by a new plate
