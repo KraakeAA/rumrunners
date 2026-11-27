@@ -72,6 +72,7 @@ model Player {
   lastTheftAt  DateTime?
   // When each auto theft level was last tried, keyed by level number.
   theftTimes   Json?
+  theftPractice Json?
   // Jail: free when jailUntil is empty or in the past.
   jailUntil    DateTime?
   jailReason   String?
