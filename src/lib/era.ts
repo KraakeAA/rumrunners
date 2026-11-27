@@ -115,15 +115,14 @@ export function sweepChance(heat: number, shipped: boolean): number {
   return shipped ? base / 2 : base;
 }
 
-// Auto theft: four levels unlocked by rank. The better the level, the better the cars,
-// and the special cars of level 4 are only for the top rank.
+// Auto theft: four jobs, each unlocked at a certain rank. The better the job, the better
+// the cars, and the special cars are only for the top rank.
 export type TheftLevel = {
   level: 1 | 2 | 3 | 4;
   name: string;
   minRank: number;
   blurb: string;
   energy: number;
-  baseChance: number; // chance at the rank that unlocks the level
   weights: [number, number, number, number]; // how often tier 1..4 cars turn up
   xp: number; // XP for a successful theft (plus a little more for harder cars)
   fine: number; // paid if you are caught
@@ -133,10 +132,10 @@ export type TheftLevel = {
 export const GODFATHER_RANK = 13; // top rank: Legendary Crime Baron
 
 export const THEFT_LEVELS: TheftLevel[] = [
-  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 20, baseChance: 0.3, weights: [75, 22, 3, 0], xp: 14, fine: 3, heat: [25, 35, 50, 65] },
-  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 30, baseChance: 0.25, weights: [40, 42, 18, 0], xp: 30, fine: 8, heat: [30, 40, 55, 70] },
-  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 40, baseChance: 0.2, weights: [15, 40, 45, 0], xp: 52, fine: 20, heat: [35, 45, 60, 75] },
-  { level: 4, name: "Special Cars", minRank: GODFATHER_RANK, blurb: "The grandest motors in Britain, from outside the finest houses and hotels.", energy: 50, baseChance: 0.15, weights: [0, 0, 10, 90], xp: 80, fine: 50, heat: [40, 50, 65, 80] }
+  { level: 1, name: "Back-Street Opportunist", minRank: 3, blurb: "Try the doors of motors left on the street.", energy: 20, weights: [75, 22, 3, 0], xp: 14, fine: 3, heat: [25, 35, 50, 65] },
+  { level: 2, name: "Hot-Wire Job", minRank: 5, blurb: "Work the ignition on cars parked outside pubs and shops.", energy: 30, weights: [40, 42, 18, 0], xp: 30, fine: 8, heat: [30, 40, 55, 70] },
+  { level: 3, name: "Garage Break-In", minRank: 7, blurb: "Break into lock-ups and private garages after dark.", energy: 40, weights: [15, 40, 45, 0], xp: 52, fine: 20, heat: [35, 45, 60, 75] },
+  { level: 4, name: "Special Cars", minRank: GODFATHER_RANK, blurb: "The grandest motors in Britain, from outside the finest houses and hotels.", energy: 50, weights: [0, 0, 10, 90], xp: 80, fine: 50, heat: [40, 50, 65, 80] }
 ];
 
 // Number plates: two letters and up to four digits, in the style of the 1930s.
@@ -222,11 +221,18 @@ export const THEFT_COOLDOWNS: Record<number, number> = {
 
 export const MAX_THEFT_CHANCE = 0.5; // no job is ever better than 50%
 
-// Chance of pulling a job off: it starts at the level's base chance and improves by
-// 2% for every rank you hold above the one that unlocks it, up to the 50% cap.
-export function theftChance(level: TheftLevel, rankLevel: number): number {
-  const above = Math.max(0, rankLevel - level.minRank);
-  return Math.min(MAX_THEFT_CHANCE, level.baseChance + above * 0.02);
+// Your chance on a job starts at 0% and rises with every attempt you make at it, up to the
+// 50% cap. This is how many attempts it takes to reach the cap: the better the cars, the more.
+export const THEFT_ATTEMPTS_TO_CAP: Record<number, number> = {
+  1: 100,
+  2: 60,
+  3: 40,
+  4: 25
+};
+
+export function theftChance(level: TheftLevel, attempts: number): number {
+  const need = THEFT_ATTEMPTS_TO_CAP[level.level] ?? 100;
+  return MAX_THEFT_CHANCE * Math.min(1, Math.max(0, attempts) / need);
 }
 
 export type CityStory = { welcome: string; history: string };
