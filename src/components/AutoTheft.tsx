@@ -54,11 +54,16 @@ const panel: CSSProperties = {
 const barStyle: CSSProperties = {
   padding: "3px 8px",
   textAlign: "center",
-  fontWeight: 700,
   fontSize: 13,
+  lineHeight: 1.25,
+  fontWeight: 400,
+  fontFamily: "Georgia, serif",
+  letterSpacing: 0.3,
   color: "#f7efdb",
-  background: "linear-gradient(180deg, #8a7038, #4d3d1c)",
+  background: "linear-gradient(180deg, #8a7038 0%, #4d3d1c 100%)",
+  borderTop: "1px solid #b0904a",
   borderBottom: "1px solid #b0904a",
+  textShadow: "0 1px 2px #000",
 };
 const btn: CSSProperties = {
   padding: "6px 12px",
